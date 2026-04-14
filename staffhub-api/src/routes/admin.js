@@ -1,0 +1,27 @@
+const express = require('express');
+const router = express.Router();
+const adminController = require('../controllers/adminController');
+const warningController = require('../controllers/warningController');
+const { requireAuth, requireAdmin } = require('../middleware/authMiddleware');
+
+router.use(requireAuth);
+router.use(requireAdmin);
+
+router.get('/me', adminController.getAdminMe);
+router.put('/me', adminController.updateAdminMe);
+
+router.get('/attendance-report', adminController.getAttendanceReport);
+router.get('/staff-list', adminController.getStaffList);
+router.post('/register-staff', adminController.registerStaff);
+router.put('/staff/:staffId/salary', adminController.updateStaffSalary);
+router.get('/config', adminController.getConfig);
+router.get('/leave-requests', adminController.getLeaveRequests);
+router.put('/leave-requests/:id', adminController.updateLeaveRequestStatus);
+router.get('/payslip-records', adminController.getPayslipRecords);
+router.post('/payslip-record', adminController.upsertPayslipRecord);
+
+router.get('/staff/:staffId/discipline-metrics', warningController.getStaffDisciplineMetrics);
+router.get('/warnings', warningController.listWarnings);
+router.post('/warnings', warningController.createWarning);
+
+module.exports = router;

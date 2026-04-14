@@ -1,0 +1,36 @@
+name: staffhub_mobile
+description: Staff Hub - Clock in/out dengan radius 60m
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_maps_flutter: ^2.5.3
+  geolocator: ^10.1.0
+  http: ^1.1.0
+  image_picker: ^1.0.7
+  permission_handler: ^11.0.1
+  shared_preferences: ^2.2.2
+  cupertino_icons: ^1.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: images/staffhub_logo.png
+  adaptive_icon_background: "#0B1222"
+  adaptive_icon_foreground: images/staffhub_logo.png
+
+flutter:
+  uses-material-design: true
+  assets:
+    - images/staffhub_logo.png
