@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
 
 class WorkScheduleScreen extends StatefulWidget {
   const WorkScheduleScreen({super.key});
@@ -19,6 +20,16 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
   }
 
   Future<Map<String, dynamic>> _fetch() async {
+    if (await AuthService.isDemoMode()) {
+      return ApiService.getWorkSchedule();
+    }
+    final token = await AuthService.getToken();
+    if (token != null) {
+      try {
+        final r = await ApiService.getMyWorkSchedule();
+        if (r['success'] == true) return r;
+      } catch (_) {}
+    }
     return ApiService.getWorkSchedule();
   }
 
@@ -62,6 +73,7 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
             final data = snapshot.data!['data'] as Map<String, dynamic>? ?? {};
             final expected = data['expectedClockIn'] as String? ?? '—';
             final weekly = (data['weeklySchedule'] as List<dynamic>?) ?? [];
+            final source = data['source'] as String?;
 
             return RefreshIndicator(
               color: AppTheme.accentBlue,
@@ -85,6 +97,20 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
                         const Text('Expected clock-in', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
                         const SizedBox(height: 6),
                         Text(expected, style: const TextStyle(color: AppTheme.accentBlue, fontSize: 28, fontWeight: FontWeight.bold)),
+                        if (source == 'supervisor') ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.teal.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'Includes schedule from your supervisor',
+                              style: TextStyle(color: Colors.tealAccent, fontSize: 12),
+                            ),
+                          ),
+                        ],
                         if (data['notes'] != null) ...[
                           const SizedBox(height: 12),
                           Text(

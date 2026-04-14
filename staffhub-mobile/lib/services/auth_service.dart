@@ -31,8 +31,39 @@ class AuthService {
     } catch (e) {
       return LoginResult(
         success: false,
-        errorMessage: 'Connection error. Please ensure API is running.',
+        errorMessage: _networkErrorHint(e),
       );
+    }
+  }
+
+  static String _networkErrorHint(Object e) {
+    final s = e.toString();
+    if (s.contains('SocketException') ||
+        s.contains('TimeoutException') ||
+        s.contains('Failed host lookup') ||
+        s.contains('Connection refused')) {
+      return 'Cannot reach API. Start staffhub-api on port 3000. On a real phone, use your PC IP in config (see config.dart) or flutter run --dart-define=API_HOST=...';
+    }
+    return 'Connection error. Please ensure API is running.';
+  }
+
+  static Future<LoginResult> registerSupervisor(
+    String staffId, String name, String email, String password, String supervisorSecret,
+  ) async {
+    try {
+      final response = await ApiService.registerSupervisor(staffId, name, email, password, supervisorSecret);
+      if (response['success'] == true && response['data'] != null) {
+        final token = response['data']['token'] as String;
+        final user = response['data']['user'] as Map<String, dynamic>;
+        await _saveAuth(token, user);
+        return LoginResult(success: true, errorMessage: null);
+      }
+      return LoginResult(
+        success: false,
+        errorMessage: response['message'] as String? ?? 'Supervisor registration failed',
+      );
+    } catch (e) {
+      return LoginResult(success: false, errorMessage: _networkErrorHint(e));
     }
   }
 
@@ -81,7 +112,7 @@ class AuthService {
     } catch (e) {
       return LoginResult(
         success: false,
-        errorMessage: 'Connection error. Please ensure API is running.',
+        errorMessage: _networkErrorHint(e),
       );
     }
   }

@@ -14,6 +14,8 @@ router.get('/attendance-report', adminController.getAttendanceReport);
 router.get('/staff-list', adminController.getStaffList);
 router.post('/register-staff', adminController.registerStaff);
 router.put('/staff/:staffId/salary', adminController.updateStaffSalary);
+router.put('/staff/:staffId/supervisor', adminController.assignSupervisor);
+router.put('/staff/:staffId/promote-supervisor', adminController.promoteStaffToSupervisor);
 router.get('/config', adminController.getConfig);
 router.get('/leave-requests', adminController.getLeaveRequests);
 router.put('/leave-requests/:id', adminController.updateLeaveRequestStatus);

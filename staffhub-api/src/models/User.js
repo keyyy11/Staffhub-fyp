@@ -30,7 +30,9 @@ const userSchema = new mongoose.Schema({
   department: { type: String, default: '' },
   position: { type: String, default: '' },
   profileImage: { type: String, default: '' },
-  role: { type: String, enum: ['staff', 'admin'], default: 'staff' },
+  role: { type: String, enum: ['staff', 'admin', 'supervisor'], default: 'staff' },
+  /** Staff reports to this supervisor's staffId (supervisor account must have role supervisor). */
+  supervisorStaffId: { type: String, default: '', trim: true },
   salary: { type: Number, default: 0 },
 }, {
   timestamps: true,

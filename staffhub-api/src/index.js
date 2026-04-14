@@ -7,6 +7,7 @@ const authRoutes = require('./routes/auth');
 const leaveRoutes = require('./routes/leave');
 const profileRoutes = require('./routes/profile');
 const adminRoutes = require('./routes/admin');
+const supervisorRoutes = require('./routes/supervisor');
 const staffRoutes = require('./routes/staff');
 
 const app = express();
@@ -23,6 +24,7 @@ app.use('/api/leave', leaveRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/supervisor', supervisorRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Staff Hub API is running' });

@@ -28,3 +28,10 @@ exports.requireAdmin = (req, res, next) => {
   }
   next();
 };
+
+exports.requireSupervisor = (req, res, next) => {
+  if (req.user.role !== 'supervisor') {
+    return res.status(403).json({ success: false, message: 'Supervisor access required' });
+  }
+  next();
+};

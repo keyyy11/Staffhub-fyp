@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Attendance = require('../models/Attendance');
 const PayslipRecord = require('../models/PayslipRecord');
+const StaffSchedule = require('../models/StaffSchedule');
 const workplace = require('../config/workplace');
 
 function pad2(n) {
@@ -36,6 +37,65 @@ exports.getWorkSchedule = (req, res) => {
       weeklySchedule: days,
     },
   });
+};
+
+/** Merged workplace default + supervisor-defined schedule (if any). Requires auth — staff sees own only. */
+exports.getMyWorkSchedule = async (req, res) => {
+  try {
+    const staffId = req.user.staffId;
+    const start = timeStr(workplace.workStartHour, workplace.workStartMinute);
+    const end = timeStr(workplace.workEndHour, workplace.workEndMinute);
+    const expectedIn = timeStr(workplace.expectedClockInHour, workplace.expectedClockInMinute);
+
+    const defaultDays = [
+      { day: 'Monday', isWorkingDay: true, workStart: start, workEnd: end, breakMinutes: workplace.breakMinutes },
+      { day: 'Tuesday', isWorkingDay: true, workStart: start, workEnd: end, breakMinutes: workplace.breakMinutes },
+      { day: 'Wednesday', isWorkingDay: true, workStart: start, workEnd: end, breakMinutes: workplace.breakMinutes },
+      { day: 'Thursday', isWorkingDay: true, workStart: start, workEnd: end, breakMinutes: workplace.breakMinutes },
+      { day: 'Friday', isWorkingDay: true, workStart: start, workEnd: end, breakMinutes: workplace.breakMinutes },
+      { day: 'Saturday', isWorkingDay: false },
+      { day: 'Sunday', isWorkingDay: false },
+    ];
+
+    const custom = await StaffSchedule.findOne({ staffId }).lean();
+    let weeklySchedule = defaultDays;
+    let source = 'default';
+    let customNotes = '';
+
+    if (custom && custom.days && custom.days.length > 0) {
+      source = 'supervisor';
+      customNotes = custom.notes || '';
+      const byDay = Object.fromEntries(custom.days.map((d) => [d.day, d]));
+      weeklySchedule = defaultDays.map((def) => {
+        const o = byDay[def.day];
+        if (!o) return def;
+        return {
+          day: def.day,
+          isWorkingDay: o.isWorkingDay !== undefined ? o.isWorkingDay : def.isWorkingDay,
+          workStart: o.workStart || def.workStart,
+          workEnd: o.workEnd || def.workEnd,
+          breakMinutes: def.breakMinutes,
+        };
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        timezone: 'Asia/Kuala_Lumpur',
+        expectedClockIn: expectedIn,
+        source,
+        supervisorNotes: customNotes,
+        weeklySchedule,
+        notes:
+          source === 'supervisor'
+            ? 'Schedule set by your supervisor (merged with company defaults).'
+            : 'Company default schedule. Your supervisor may set a custom weekly plan.',
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 /** Slip gaji ringkas berdasarkan gaji bulanan (User.salary) + rekod kehadiran bulan tersebut */

@@ -58,7 +58,8 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
     try {
       final result = await ApiService.getStaffList();
       if (result['success'] == true && result['data'] != null && mounted) {
-        final list = List<Map<String, dynamic>>.from(result['data'] as List);
+        final raw = List<Map<String, dynamic>>.from(result['data'] as List);
+        final list = raw.where((s) => (s['role'] as String?) != 'supervisor').toList();
         setState(() {
           _staffList = list;
           if (list.isNotEmpty) {

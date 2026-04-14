@@ -5,6 +5,7 @@ const warningController = require('../controllers/warningController');
 const { requireAuth } = require('../middleware/authMiddleware');
 
 router.get('/work-schedule', staffController.getWorkSchedule);
+router.get('/my-work-schedule', requireAuth, staffController.getMyWorkSchedule);
 router.get('/payslip/:staffId', staffController.getPayslip);
 
 router.get('/warnings', requireAuth, warningController.getMyWarnings);

@@ -3,6 +3,7 @@ import 'app_theme.dart';
 import 'screens/login_page.dart';
 import 'screens/home_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
+import 'screens/supervisor_dashboard_screen.dart';
 import 'services/auth_service.dart';
 import 'widgets/staffhub_logo.dart';
 
@@ -88,6 +89,9 @@ class _RoleRedirect extends StatelessWidget {
         final role = user?['role'] as String?;
         if (role == 'admin') {
           return const AdminDashboardScreen();
+        }
+        if (role == 'supervisor') {
+          return const SupervisorDashboardScreen();
         }
         return const HomeScreen();
       },

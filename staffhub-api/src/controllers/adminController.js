@@ -73,12 +73,92 @@ exports.getAttendanceReport = async (req, res) => {
 
 exports.getStaffList = async (req, res) => {
   try {
-    const staff = await User.find({ role: 'staff' })
-      .select('staffId name email department position salary')
+    const staff = await User.find({ role: { $in: ['staff', 'supervisor'] } })
+      .select('staffId name email department position salary role supervisorStaffId')
       .sort({ staffId: 1 })
       .lean();
 
     res.json({ success: true, data: staff });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/** Assign which supervisor (by supervisor's staffId) this staff reports to. */
+exports.assignSupervisor = async (req, res) => {
+  try {
+    const { staffId } = req.params;
+    const { supervisorStaffId } = req.body;
+    if (supervisorStaffId === undefined) {
+      return res.status(400).json({ success: false, message: 'supervisorStaffId required (empty string to clear)' });
+    }
+    const staff = await User.findOne({ staffId, role: 'staff' });
+    if (!staff) {
+      return res.status(404).json({ success: false, message: 'Staff not found' });
+    }
+    const trimmed = String(supervisorStaffId).trim();
+    if (trimmed) {
+      const sup = await User.findOne({ staffId: trimmed, role: 'supervisor' });
+      if (!sup) {
+        return res.status(400).json({ success: false, message: 'Supervisor staff ID not found or not a supervisor' });
+      }
+    }
+    staff.supervisorStaffId = trimmed;
+    await staff.save();
+    res.json({
+      success: true,
+      message: 'Supervisor assignment updated',
+      data: { staffId: staff.staffId, supervisorStaffId: staff.supervisorStaffId },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/** Change a staff account to supervisor (same email/password; clears reporting line). Admin-only (router + check). */
+exports.promoteStaffToSupervisor = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Only administrators can promote staff to supervisor' });
+    }
+    const { staffId } = req.params;
+    const user = await User.findOne({ staffId });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No account with this Staff ID. Register the user first or check the ID.',
+      });
+    }
+    if (user.role === 'supervisor') {
+      return res.status(409).json({
+        success: false,
+        message: 'This account is already a supervisor.',
+      });
+    }
+    if (user.role === 'admin') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot promote an administrator account.',
+      });
+    }
+    if (user.role !== 'staff') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only staff accounts can be promoted to supervisor.',
+      });
+    }
+    user.role = 'supervisor';
+    user.supervisorStaffId = '';
+    await user.save();
+    res.json({
+      success: true,
+      message: 'Staff promoted to supervisor',
+      data: {
+        staffId: user.staffId,
+        name: user.name,
+        role: user.role,
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -94,10 +174,10 @@ exports.updateStaffSalary = async (req, res) => {
     }
 
     const user = await User.findOneAndUpdate(
-      { staffId, role: 'staff' },
+      { staffId, role: { $in: ['staff', 'supervisor'] } },
       { salary: Number(salary) },
       { new: true }
-    ).select('staffId name salary');
+    ).select('staffId name salary role');
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'Staff not found' });
@@ -248,7 +328,7 @@ exports.getLeaveRequests = async (req, res) => {
 exports.updateLeaveRequestStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, adminComment } = req.body;
     if (!['approved', 'rejected'].includes(status)) {
       return res.status(400).json({ success: false, message: 'status must be approved or rejected' });
     }
@@ -260,6 +340,9 @@ exports.updateLeaveRequestStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Request already processed' });
     }
     lr.status = status;
+    if (adminComment !== undefined && adminComment !== null) {
+      lr.adminComment = String(adminComment).trim();
+    }
     await lr.save();
 
     if (status === 'approved') {

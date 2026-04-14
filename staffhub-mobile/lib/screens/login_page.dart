@@ -6,6 +6,7 @@ import 'register_screen.dart';
 import 'admin_register_screen.dart';
 import 'admin_dashboard_screen.dart';
 import 'home_screen.dart';
+import 'supervisor_dashboard_screen.dart';
 
 /// Dedicated login page — entry for staff and admin.
 class LoginPage extends StatefulWidget {
@@ -57,10 +58,14 @@ class _LoginPageState extends State<LoginPage> {
       final user = await AuthService.getCurrentUser();
       final role = user?['role'] as String?;
       if (!mounted) return;
+      Widget next = const HomeScreen();
+      if (role == 'admin') {
+        next = const AdminDashboardScreen();
+      } else if (role == 'supervisor') {
+        next = const SupervisorDashboardScreen();
+      }
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => role == 'admin' ? const AdminDashboardScreen() : const HomeScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => next),
       );
     } else {
       setState(() => _errorMessage = result.errorMessage ?? 'Login failed');

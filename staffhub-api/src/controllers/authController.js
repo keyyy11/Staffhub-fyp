@@ -172,3 +172,65 @@ exports.registerAdmin = async (req, res) => {
     });
   }
 };
+
+exports.registerSupervisor = async (req, res) => {
+  try {
+    if (process.env.ALLOW_SUPERVISOR_SELF_REGISTER !== 'true') {
+      return res.status(403).json({
+        success: false,
+        message: 'Supervisor accounts are managed by an administrator only. Ask admin to register staff, then use Admin → Staff pay → Promote to supervisor.',
+      });
+    }
+    const { staffId, name, email, password, supervisorSecret } = req.body;
+    const SUPERVISOR_SECRET = process.env.SUPERVISOR_SECRET || 'supervisor123';
+
+    if (supervisorSecret !== SUPERVISOR_SECRET) {
+      return res.status(403).json({ success: false, message: 'Invalid supervisor secret' });
+    }
+
+    if (!staffId || !name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please fill all fields: staffId, name, email, password',
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters',
+      });
+    }
+
+    const existingUser = await User.findOne({ $or: [{ email }, { staffId }] });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: existingUser.email === email ? 'Email already registered' : 'Staff ID already exists',
+      });
+    }
+
+    const user = await User.create({ staffId, name, email, password, role: 'supervisor' });
+    const token = generateToken(user);
+
+    res.status(201).json({
+      success: true,
+      message: 'Supervisor registration successful',
+      data: {
+        token,
+        user: {
+          id: user._id,
+          staffId: user.staffId,
+          name: user.name,
+          email: user.email,
+          role: 'supervisor',
+        },
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

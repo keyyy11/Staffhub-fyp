@@ -184,10 +184,142 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
 
   Color _statusColor(String status) {
     switch (status) {
-      case 'approved': return Colors.greenAccent;
-      case 'rejected': return Colors.redAccent;
-      default: return Colors.amber;
+      case 'approved':
+        return Colors.greenAccent;
+      case 'rejected':
+        return Colors.redAccent;
+      default:
+        return Colors.amber;
     }
+  }
+
+  String _formatDateTime(dynamic d) {
+    if (d == null) return '-';
+    final dt = DateTime.tryParse(d.toString());
+    if (dt == null) return '-';
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} · '
+        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _statusResponseText(String? status) {
+    switch (status) {
+      case 'approved':
+        return 'Approved — your leave request has been accepted.';
+      case 'rejected':
+        return 'Rejected — your leave request was not approved.';
+      default:
+        return 'Pending — waiting for admin review.';
+    }
+  }
+
+  Widget _buildLeaveRequestCard(Map<String, dynamic> r) {
+    final start = r['startDate'] != null ? DateTime.tryParse(r['startDate'].toString()) : null;
+    final end = r['endDate'] != null ? DateTime.tryParse(r['endDate'].toString()) : null;
+    final status = r['status'] as String? ?? 'pending';
+    final reason = (r['reason'] as String?)?.trim() ?? '';
+    final adminComment = (r['adminComment'] as String?)?.trim() ?? '';
+    final stColor = _statusColor(status);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardDark,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: stColor.withOpacity(0.45), width: 1.2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                status == 'approved'
+                    ? Icons.check_circle_outline
+                    : status == 'rejected'
+                        ? Icons.cancel_outlined
+                        : Icons.hourglass_empty_rounded,
+                color: stColor,
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _getLeaveTypeLabel(r['leaveType'] as String? ?? ''),
+                      style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary, fontSize: 16),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _statusResponseText(status),
+                      style: TextStyle(color: stColor, fontSize: 13, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: stColor.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  status.toUpperCase(),
+                  style: TextStyle(color: stColor, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (start != null && end != null)
+            Text(
+              '${_formatDate(start)} → ${_formatDate(end)} · ${r['totalDays'] ?? '-'} working day(s)',
+              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+            ),
+          const SizedBox(height: 6),
+          Text(
+            'Submitted: ${_formatDateTime(r['createdAt'])}',
+            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+          ),
+          if (status != 'pending') ...[
+            const SizedBox(height: 4),
+            Text(
+              'Response time: ${_formatDateTime(r['updatedAt'])}',
+              style: const TextStyle(color: AppTheme.accentBlue, fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+          ],
+          if (reason.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            const Text('Your reason', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+            const SizedBox(height: 2),
+            Text(reason, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
+          ],
+          if (adminComment.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceDark,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppTheme.borderBlue.withOpacity(0.35)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Admin response', style: TextStyle(color: AppTheme.accentBlue, fontSize: 11, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text(adminComment, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   @override
@@ -216,21 +348,56 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppTheme.cardDark,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
+          child: RefreshIndicator(
+            color: AppTheme.accentBlue,
+            onRefresh: _loadMyRequests,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Your leave requests & responses',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
+                  const SizedBox(height: 6),
+                  const Text(
+                    'See admin decision (approved / rejected) and any note below.',
+                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                  ),
+                  const SizedBox(height: 14),
+                  if (_myRequests.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: AppTheme.cardDark.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.borderBlue.withOpacity(0.3)),
+                      ),
+                      child: const Center(
+                        child: Text('No leave requests yet. Submit a new application below.', style: TextStyle(color: AppTheme.textSecondary)),
+                      ),
+                    )
+                  else
+                    ..._myRequests.map((r) => _buildLeaveRequestCard(r)),
+                  const SizedBox(height: 28),
+                  const Text(
+                    'New leave application',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardDark,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                       const Text('Leave Type', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
@@ -340,62 +507,11 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                               : const Text('Submit Application'),
                         ),
                       ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                const Text('My Leave Requests', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                const SizedBox(height: 12),
-                if (_myRequests.isEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: AppTheme.cardDark.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.borderBlue.withOpacity(0.3)),
-                    ),
-                    child: const Center(
-                      child: Text('No leave requests yet', style: TextStyle(color: AppTheme.textSecondary)),
-                    ),
-                  )
-                else
-                  ..._myRequests.map((r) {
-                    final start = r['startDate'] != null ? DateTime.parse(r['startDate'] as String) : null;
-                    final end = r['endDate'] != null ? DateTime.parse(r['endDate'] as String) : null;
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppTheme.cardDark,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.borderBlue.withOpacity(0.4)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(_getLeaveTypeLabel(r['leaveType'] as String? ?? ''), style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textPrimary, fontSize: 15)),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: _statusColor(r['status'] as String? ?? 'pending').withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text((r['status'] as String? ?? 'pending').toUpperCase(), style: TextStyle(color: _statusColor(r['status'] as String? ?? 'pending'), fontSize: 11, fontWeight: FontWeight.bold)),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          if (start != null && end != null)
-                            Text('${_formatDate(start)} - ${_formatDate(end)}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-                          if (r['totalDays'] != null) Text('${r['totalDays']} days', style: const TextStyle(color: AppTheme.accentBlue, fontSize: 12)),
-                        ],
-                      ),
-                    );
-                  }),
-              ],
+                ],
+              ),
             ),
           ),
         ),

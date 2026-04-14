@@ -1,6 +1,25 @@
 const Attendance = require('../models/Attendance');
+const User = require('../models/User');
+const Notification = require('../models/Notification');
 const { isWithinRadius } = require('../utils/distance');
 const workplace = require('../config/workplace');
+
+async function notifySupervisorClockEvent(staffId, type) {
+  try {
+    const staff = await User.findOne({ staffId }).select('name supervisorStaffId').lean();
+    if (!staff || !staff.supervisorStaffId) return;
+    const supervisor = await User.findOne({ staffId: staff.supervisorStaffId, role: 'supervisor' }).select('_id');
+    if (!supervisor) return;
+    await Notification.create({
+      recipientId: supervisor._id,
+      type,
+      staffId,
+      staffName: staff.name || staffId,
+    });
+  } catch (e) {
+    console.error('notifySupervisorClockEvent', e.message);
+  }
+}
 
 // Clock In - Hadir
 exports.clockIn = async (req, res) => {
@@ -38,6 +57,8 @@ exports.clockIn = async (req, res) => {
       clockIn: new Date(),
       clockInLocation: { lat, lng },
     });
+
+    await notifySupervisorClockEvent(staffId, 'clock_in');
 
     res.status(201).json({
       success: true,
@@ -93,6 +114,8 @@ exports.clockOut = async (req, res) => {
     attendance.clockOut = new Date();
     attendance.clockOutLocation = { lat, lng };
     await attendance.save();
+
+    await notifySupervisorClockEvent(staffId, 'clock_out');
 
     res.json({
       success: true,
@@ -174,6 +197,8 @@ exports.autoClockOut = async (req, res) => {
     attendance.clockOut = new Date();
     attendance.clockOutLocation = attendance.clockInLocation;
     await attendance.save();
+
+    await notifySupervisorClockEvent(staffId, 'clock_out');
 
     res.json({
       success: true,

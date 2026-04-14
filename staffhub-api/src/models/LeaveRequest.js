@@ -32,6 +32,12 @@ const leaveRequestSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending',
   },
+  /** Optional note from admin when approving or rejecting (shown to staff). */
+  adminComment: {
+    type: String,
+    default: '',
+    trim: true,
+  },
 }, {
   timestamps: true,
 });

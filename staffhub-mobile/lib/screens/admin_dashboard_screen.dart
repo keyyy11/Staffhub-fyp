@@ -8,6 +8,12 @@ import 'admin_register_screen.dart';
 import 'admin_profile_screen.dart';
 import 'admin_discipline_screen.dart';
 
+String _roleLabel(dynamic role) {
+  final r = role as String?;
+  if (r == 'supervisor') return 'Supervisor';
+  return 'Staff';
+}
+
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
 
@@ -17,14 +23,18 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   static const _sectionTitles = [
+    'Staff directory',
     'Attendance',
     'Leave requests',
     'Payslip',
     'Staff pay',
+    'Promote to supervisor',
     'Register staff',
   ];
 
   int _selectedIndex = 0;
+  /// Loading state for promote action (staffId while API runs).
+  String? _promotingStaffId;
   final _payslipNetController = TextEditingController();
   final _payslipGrossController = TextEditingController();
   final _payslipRemarksController = TextEditingController();
@@ -179,6 +189,170 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
+  Future<void> _confirmPromoteStaffToSupervisor(Map<String, dynamic> member) async {
+    final sid = member['staffId'] as String? ?? '';
+    final name = member['name'] as String? ?? sid;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardDark,
+        title: const Text('Promote to supervisor?', style: TextStyle(color: AppTheme.textPrimary)),
+        content: Text(
+          '$name ($sid) will become a supervisor. They keep the same email and password and will see the supervisor dashboard. Assign other staff to report to supervisor ID: $sid.\n\nContinue?',
+          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue),
+            child: const Text('Promote'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _promotingStaffId = sid);
+    try {
+      final result = await ApiService.promoteStaffToSupervisor(sid);
+      if (!mounted) return;
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] as String? ?? 'Promoted to supervisor')),
+        );
+        await _loadStaff();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] as String? ?? 'Failed')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Network error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _promotingStaffId = null);
+    }
+  }
+
+  Widget _buildStaffDirectoryTab() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+          stops: [0.0, 0.2],
+        ),
+      ),
+      child: RefreshIndicator(
+        onRefresh: _loadStaff,
+        color: AppTheme.accentBlue,
+        child: _staffList.isEmpty
+            ? ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(24),
+                children: const [
+                  SizedBox(height: 48),
+                  Center(child: Text('No staff or supervisors yet.', style: TextStyle(color: AppTheme.textSecondary))),
+                ],
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _staffList.length + 1,
+                itemBuilder: (context, i) {
+                  if (i == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: Text(
+                        'All staff and supervisors (${_staffList.length}). Names, roles, and reporting lines.',
+                        style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.95), fontSize: 13),
+                      ),
+                    );
+                  }
+                  final s = _staffList[i - 1];
+                  final name = s['name'] as String? ?? '-';
+                  final sid = s['staffId'] as String? ?? '';
+                  final email = s['email'] as String? ?? '';
+                  final role = s['role'] as String?;
+                  final reportsTo = (s['supervisorStaffId'] as String?)?.trim() ?? '';
+                  final isSupervisor = role == 'supervisor';
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardDark,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppTheme.borderBlue.withValues(alpha: 0.45)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              isSupervisor ? Icons.supervisor_account_rounded : Icons.person_outline_rounded,
+                              color: AppTheme.accentBlue,
+                              size: 28,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    name,
+                                    style: const TextStyle(
+                                      color: AppTheme.textPrimary,
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(sid, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                                  if (email.isNotEmpty)
+                                    Text(email, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                            Chip(
+                              label: Text(
+                                _roleLabel(role),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: isSupervisor ? Colors.deepPurpleAccent.shade100 : AppTheme.textPrimary,
+                                ),
+                              ),
+                              backgroundColor: isSupervisor
+                                  ? Colors.deepPurple.withValues(alpha: 0.25)
+                                  : AppTheme.surfaceDark,
+                              side: BorderSide(color: AppTheme.borderBlue.withValues(alpha: 0.5)),
+                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ],
+                        ),
+                        if (!isSupervisor && reportsTo.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Reports to supervisor ID: $reportsTo',
+                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                },
+              ),
+      ),
+    );
+  }
+
   Widget _drawerNavTile({
     required int index,
     required IconData icon,
@@ -249,11 +423,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   children: [
-                    _drawerNavTile(index: 0, icon: Icons.access_time_rounded, label: 'Attendance'),
-                    _drawerNavTile(index: 1, icon: Icons.event_note_rounded, label: 'Leave requests'),
-                    _drawerNavTile(index: 2, icon: Icons.receipt_long_rounded, label: 'Payslip'),
-                    _drawerNavTile(index: 3, icon: Icons.payments_rounded, label: 'Staff pay'),
-                    _drawerNavTile(index: 4, icon: Icons.person_add_alt_1_rounded, label: 'Register staff'),
+                    _drawerNavTile(index: 0, icon: Icons.groups_rounded, label: 'Staff directory'),
+                    _drawerNavTile(index: 1, icon: Icons.access_time_rounded, label: 'Attendance'),
+                    _drawerNavTile(index: 2, icon: Icons.event_note_rounded, label: 'Leave requests'),
+                    _drawerNavTile(index: 3, icon: Icons.receipt_long_rounded, label: 'Payslip'),
+                    _drawerNavTile(index: 4, icon: Icons.payments_rounded, label: 'Staff pay'),
+                    _drawerNavTile(index: 5, icon: Icons.supervisor_account_outlined, label: 'Promote to supervisor'),
+                    _drawerNavTile(index: 6, icon: Icons.person_add_alt_1_rounded, label: 'Register staff'),
                   ],
                 ),
               ),
@@ -325,10 +501,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       body: IndexedStack(
         index: _selectedIndex,
         children: [
+          _buildStaffDirectoryTab(),
           _buildAttendanceTab(),
           _buildLeaveRequestsTab(),
           _buildAdminPayslipTab(),
           _buildSalaryTab(),
+          _buildPromoteSupervisorTab(),
           _buildRegisterStaffTab(),
         ],
       ),
@@ -740,7 +918,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           items: _staffList.map((s) {
                             final id = s['staffId'] as String? ?? '';
                             final name = s['name'] as String? ?? '';
-                            return DropdownMenuItem(value: id, child: Text('$name ($id)'));
+                            final role = _roleLabel(s['role']);
+                            return DropdownMenuItem(value: id, child: Text('$name ($id) · $role'));
                           }).toList(),
                           onChanged: (v) => setState(() => _payslipSelectedStaffId = v),
                         ),
@@ -877,11 +1056,119 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         color: AppTheme.accentBlue,
         child: ListView(
           padding: const EdgeInsets.all(16),
-          children: _staffList.map((s) => _StaffSalaryCard(
-            staff: s,
-            onSalaryUpdated: _loadStaff,
-          )).toList(),
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Set monthly salary for staff and supervisors. To change a staff member into a supervisor, use the Promote to supervisor section.',
+                style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.95), fontSize: 13),
+              ),
+            ),
+            ..._staffList.map((s) => _StaffSalaryCard(
+                  staff: s,
+                  onSalaryUpdated: _loadStaff,
+                )),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPromoteSupervisorTab() {
+    final staffOnly = _staffList.where((s) => (s['role'] as String?) != 'supervisor').toList();
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+          stops: [0.0, 0.2],
+        ),
+      ),
+      child: RefreshIndicator(
+        onRefresh: _loadStaff,
+        color: AppTheme.accentBlue,
+        child: staffOnly.isEmpty
+            ? ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(24),
+                children: [
+                  const SizedBox(height: 32),
+                  Icon(Icons.supervisor_account_outlined, size: 56, color: AppTheme.textSecondary.withValues(alpha: 0.6)),
+                  const SizedBox(height: 16),
+                  Text(
+                    _staffList.isEmpty
+                        ? 'No accounts yet. Register staff first.'
+                        : 'Everyone is already a supervisor. Register new staff if you need to promote someone.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                  ),
+                ],
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: staffOnly.length + 1,
+                itemBuilder: (context, i) {
+                  if (i == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: Text(
+                        'Admin only: choose a staff member to promote. They keep the same login; after promotion, assign other staff to report to their Staff ID in the API or future tools.',
+                        style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.95), fontSize: 13),
+                      ),
+                    );
+                  }
+                  final s = staffOnly[i - 1];
+                  final sid = s['staffId'] as String? ?? '';
+                  final name = s['name'] as String? ?? sid;
+                  final email = s['email'] as String? ?? '';
+                  final busy = _promotingStaffId == sid;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardDark,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppTheme.borderBlue.withValues(alpha: 0.45)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.person_outline_rounded, color: AppTheme.accentBlue, size: 36),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(name, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 17, fontWeight: FontWeight.bold)),
+                              Text(sid, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                              if (email.isNotEmpty)
+                                Text(email, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton.icon(
+                          onPressed: busy ? null : () => _confirmPromoteStaffToSupervisor(s),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppTheme.primaryBlue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          ),
+                          icon: busy
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Icon(Icons.arrow_upward_rounded, size: 18),
+                          label: Text(busy ? 'Wait…' : 'Promote'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
       ),
     );
   }
@@ -1153,6 +1440,7 @@ class _StaffSalaryCardState extends State<_StaffSalaryCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Icon(Icons.person, color: AppTheme.accentBlue, size: 32),
               const SizedBox(width: 16),
@@ -1162,8 +1450,26 @@ class _StaffSalaryCardState extends State<_StaffSalaryCard> {
                   children: [
                     Text(widget.staff['name'] ?? '-', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
                     Text(widget.staff['staffId'] ?? '-', style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Chip(
+                        label: Text(
+                          _roleLabel(widget.staff['role']),
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                        ),
+                        backgroundColor: AppTheme.surfaceDark,
+                        side: BorderSide(color: AppTheme.borderBlue.withValues(alpha: 0.5)),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
                     if (widget.staff['department'] != null && (widget.staff['department'] as String).isNotEmpty)
-                      Text(widget.staff['department'], style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(widget.staff['department'], style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                      ),
                   ],
                 ),
               ),

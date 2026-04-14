@@ -35,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime? _clockInTime;
   DateTime? _clockOutTime;
   List<LeaveBalance> _leaveBalances = [];
+  List<Map<String, dynamic>> _leaveRequestsPreview = [];
   Timer? _workTimer;
 
   static const int _maxWorkHours = 12;
@@ -60,6 +61,43 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() => _staffId = staffId);
       _loadLeaveBalance(staffId);
       _loadTodayAttendance(staffId);
+      _loadLeaveRequestsPreview(staffId);
+    }
+  }
+
+  Future<void> _loadLeaveRequestsPreview(String staffId) async {
+    if (staffId.isEmpty) return;
+    if (await AuthService.isDemoMode()) return;
+    try {
+      final result = await ApiService.getMyLeaveRequests(staffId);
+      if (result['success'] == true && result['data'] != null && mounted) {
+        final list = List<Map<String, dynamic>>.from(result['data'] as List);
+        setState(() {
+          _leaveRequestsPreview = list.take(5).toList();
+        });
+      }
+    } catch (_) {}
+  }
+
+  Color _leaveStatusColor(String? s) {
+    switch (s) {
+      case 'approved':
+        return Colors.greenAccent;
+      case 'rejected':
+        return Colors.redAccent;
+      default:
+        return Colors.amber;
+    }
+  }
+
+  String _leaveStatusLabel(String? s) {
+    switch (s) {
+      case 'approved':
+        return 'Approved';
+      case 'rejected':
+        return 'Rejected';
+      default:
+        return 'Pending';
     }
   }
 
@@ -497,6 +535,70 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 const SizedBox(height: 12),
+                if (_leaveRequestsPreview.isNotEmpty) ...[
+                  const Text(
+                    'Leave request responses',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ..._leaveRequestsPreview.map((r) {
+                    final st = r['status'] as String? ?? 'pending';
+                    final stColor = _leaveStatusColor(st);
+                    final start = r['startDate'] != null ? DateTime.tryParse(r['startDate'].toString()) : null;
+                    final end = r['endDate'] != null ? DateTime.tryParse(r['endDate'].toString()) : null;
+                    final range = (start != null && end != null)
+                        ? '${start.day}/${start.month}–${end.day}/${end.month}'
+                        : '';
+                    final note = (r['adminComment'] as String?)?.trim();
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.cardDark,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: stColor.withOpacity(0.35)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  range,
+                                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
+                                ),
+                                if (note != null && note.isNotEmpty)
+                                  Text(
+                                    'Admin: $note',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: stColor.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              _leaveStatusLabel(st),
+                              style: TextStyle(color: stColor, fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 8),
+                ],
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
