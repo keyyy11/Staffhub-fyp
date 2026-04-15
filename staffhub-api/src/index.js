@@ -30,6 +30,18 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Staff Hub API is running' });
 });
 
+/** Tanpa auth — buka di browser / curl untuk pastikan app betul host & kod terkini. */
+app.get('/api/capabilities', (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      api: 'staffhub-api',
+      adminStaffUpdatePut: true,
+      adminStaffSupervisorPut: true,
+    },
+  });
+});
+
 // Root URL — supaya buka http://localhost:3000/ di browser nampak mesej, bukan "Cannot GET /"
 app.get('/', (req, res) => {
   res.type('html').send(
@@ -40,11 +52,24 @@ app.get('/', (req, res) => {
   );
 });
 
+// 404 JSON untuk /api/* — elak respons HTML (Flutter nampak "Non-JSON") & tunjuk laluan sebenar
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') return next();
+  if (req.originalUrl.startsWith('/api')) {
+    return res.status(404).json({
+      success: false,
+      message: `No API route: ${req.method} ${req.originalUrl}`,
+    });
+  }
+  next();
+});
+
 // Connect DB and start server
 connectDB()
   .then(() => {
     const server = app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
+      console.log('  GET  /api/capabilities — pastikan kod terkini (adminStaffUpdatePut: true)');
     });
     server.on('error', (err) => {
       if (err.code === 'EADDRINUSE') {

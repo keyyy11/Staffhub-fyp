@@ -3,7 +3,35 @@ const Attendance = require('../models/Attendance');
 const LeaveRequest = require('../models/LeaveRequest');
 const LeaveBalance = require('../models/LeaveBalance');
 const PayslipRecord = require('../models/PayslipRecord');
+const OvertimeRequest = require('../models/OvertimeRequest');
+const StaffSchedule = require('../models/StaffSchedule');
+const Notification = require('../models/Notification');
+const WarningLetter = require('../models/WarningLetter');
 const workplace = require('../config/workplace');
+
+/**
+ * Move all app data keyed by oldId to newId (same person). Does not change the User row
+ * for that person — caller sets user.staffId and saves after this.
+ * Updates other users' supervisorStaffId when they report to oldId.
+ */
+async function reassignStaffIdDataToNewId(oldId, newId) {
+  await User.updateMany({ supervisorStaffId: oldId }, { $set: { supervisorStaffId: newId } });
+  await Attendance.updateMany({ staffId: oldId }, { $set: { staffId: newId } });
+  await LeaveRequest.updateMany({ staffId: oldId }, { $set: { staffId: newId } });
+  await LeaveBalance.updateMany({ staffId: oldId }, { $set: { staffId: newId } });
+  await PayslipRecord.updateMany({ staffId: oldId }, { $set: { staffId: newId } });
+  await WarningLetter.updateMany({ staffId: oldId }, { $set: { staffId: newId } });
+  await OvertimeRequest.updateMany({ staffId: oldId }, { $set: { staffId: newId } });
+  await OvertimeRequest.updateMany({ supervisorStaffIdAtSubmit: oldId }, { $set: { supervisorStaffIdAtSubmit: newId } });
+  await OvertimeRequest.updateMany({ approverStaffId: oldId }, { $set: { approverStaffId: newId } });
+  await OvertimeRequest.updateMany(
+    { 'flow.actorStaffId': oldId },
+    { $set: { 'flow.$[elem].actorStaffId': newId } },
+    { arrayFilters: [{ 'elem.actorStaffId': oldId }] },
+  );
+  await StaffSchedule.updateMany({ staffId: oldId }, { $set: { staffId: newId } });
+  await Notification.updateMany({ staffId: oldId }, { $set: { staffId: newId } });
+}
 
 async function getOrCreateBalance(staffId, year) {
   let balance = await LeaveBalance.findOne({ staffId, year });
@@ -74,7 +102,7 @@ exports.getAttendanceReport = async (req, res) => {
 exports.getStaffList = async (req, res) => {
   try {
     const staff = await User.find({ role: { $in: ['staff', 'supervisor'] } })
-      .select('staffId name email department position salary role supervisorStaffId')
+      .select('staffId name email phone department position salary role supervisorStaffId')
       .sort({ staffId: 1 })
       .lean();
 
@@ -115,13 +143,16 @@ exports.assignSupervisor = async (req, res) => {
   }
 };
 
-/** Change a staff account to supervisor (same email/password; clears reporting line). Admin-only (router + check). */
+/** Change a staff account to supervisor (same email/password; clears reporting line). Admin-only (router + check).
+ * Optional body: { newStaffId } — if set, reassign all records to the new ID before promoting (user must log in with new ID).
+ */
 exports.promoteStaffToSupervisor = async (req, res) => {
   try {
     if (!req.user || req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Only administrators can promote staff to supervisor' });
     }
     const { staffId } = req.params;
+    const newStaffIdRaw = req.body && req.body.newStaffId != null ? String(req.body.newStaffId).trim() : '';
     const user = await User.findOne({ staffId });
     if (!user) {
       return res.status(404).json({
@@ -147,12 +178,39 @@ exports.promoteStaffToSupervisor = async (req, res) => {
         message: 'Only staff accounts can be promoted to supervisor.',
       });
     }
+
+    if (newStaffIdRaw) {
+      if (newStaffIdRaw === user.staffId) {
+        return res.status(400).json({
+          success: false,
+          message: 'newStaffId must be different from the current Staff ID.',
+        });
+      }
+      if (newStaffIdRaw.length < 2 || newStaffIdRaw.length > 64) {
+        return res.status(400).json({
+          success: false,
+          message: 'newStaffId must be between 2 and 64 characters.',
+        });
+      }
+      const taken = await User.findOne({ staffId: newStaffIdRaw });
+      if (taken) {
+        return res.status(400).json({
+          success: false,
+          message: 'That Staff ID is already in use. Choose another.',
+        });
+      }
+      await reassignStaffIdDataToNewId(user.staffId, newStaffIdRaw);
+      user.staffId = newStaffIdRaw;
+    }
+
     user.role = 'supervisor';
     user.supervisorStaffId = '';
     await user.save();
     res.json({
       success: true,
-      message: 'Staff promoted to supervisor',
+      message: newStaffIdRaw
+        ? 'Staff promoted to supervisor with new Staff ID. Ask them to sign in again (same email and password) so the app uses the new ID.'
+        : 'Staff promoted to supervisor',
       data: {
         staffId: user.staffId,
         name: user.name,
@@ -303,6 +361,54 @@ exports.registerStaff = async (req, res) => {
   }
 };
 
+/** Admin: update staff/supervisor profile fields; optional newPassword (min 6 chars). */
+exports.updateStaffByAdmin = async (req, res) => {
+  try {
+    const { staffId } = req.params;
+    const { name, email, phone, department, position, newPassword } = req.body;
+    const user = await User.findOne({ staffId, role: { $in: ['staff', 'supervisor'] } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Staff or supervisor not found' });
+    }
+    if (email !== undefined && String(email).trim().toLowerCase() !== user.email) {
+      const em = String(email).toLowerCase().trim();
+      const taken = await User.findOne({ email: em });
+      if (taken && taken.staffId !== staffId) {
+        return res.status(400).json({ success: false, message: 'Email already in use' });
+      }
+      user.email = em;
+    }
+    if (name !== undefined) user.name = String(name).trim();
+    if (phone !== undefined) user.phone = String(phone).trim();
+    if (department !== undefined) user.department = String(department).trim();
+    if (position !== undefined) user.position = String(position).trim();
+    if (newPassword !== undefined && String(newPassword).length > 0) {
+      if (String(newPassword).length < 6) {
+        return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+      }
+      user.password = String(newPassword);
+    }
+    await user.save();
+    res.json({
+      success: true,
+      message: 'Staff updated',
+      data: {
+        staffId: user.staffId,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        department: user.department || '',
+        position: user.position || '',
+        role: user.role,
+        supervisorStaffId: user.supervisorStaffId || '',
+        salary: user.salary,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 /** Senarai semua permohonan cuti (tapis ?status=pending|approved|rejected) */
 exports.getLeaveRequests = async (req, res) => {
   try {
@@ -313,12 +419,23 @@ exports.getLeaveRequests = async (req, res) => {
     }
     const requests = await LeaveRequest.find(filter).sort({ createdAt: -1 }).limit(200).lean();
     const staffIds = [...new Set(requests.map((r) => r.staffId))];
-    const users = await User.find({ staffId: { $in: staffIds } }).select('staffId name').lean();
+    const users = await User.find({ staffId: { $in: staffIds } }).select('staffId name supervisorStaffId').lean();
     const nameMap = Object.fromEntries(users.map((u) => [u.staffId, u.name]));
-    const data = requests.map((r) => ({
-      ...r,
-      staffName: nameMap[r.staffId] || r.staffId,
-    }));
+    const supIds = [...new Set(users.map((u) => u.supervisorStaffId).filter((id) => id && String(id).trim()))];
+    const supervisors = await User.find({ staffId: { $in: supIds }, role: 'supervisor' }).select('staffId name').lean();
+    const supNameMap = Object.fromEntries(supervisors.map((s) => [s.staffId, s.name]));
+    const userByStaffId = Object.fromEntries(users.map((u) => [u.staffId, u]));
+    const data = requests.map((r) => {
+      const u = userByStaffId[r.staffId];
+      const supId = u && u.supervisorStaffId ? String(u.supervisorStaffId).trim() : '';
+      const supervisorName = supId ? supNameMap[supId] || supId : '';
+      return {
+        ...r,
+        staffName: nameMap[r.staffId] || r.staffId,
+        supervisorName,
+        supervisorStaffId: supId,
+      };
+    });
     res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -343,6 +460,9 @@ exports.updateLeaveRequestStatus = async (req, res) => {
     if (adminComment !== undefined && adminComment !== null) {
       lr.adminComment = String(adminComment).trim();
     }
+    lr.decidedByRole = 'admin';
+    lr.decidedByStaffId = req.user.staffId || '';
+    lr.decidedByName = req.user.name || '';
     await lr.save();
 
     if (status === 'approved') {

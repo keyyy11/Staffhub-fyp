@@ -21,9 +21,16 @@ class ApiService {
       if (decoded is Map) return Map<String, dynamic>.from(decoded);
       return {'success': false, 'message': 'Unexpected response from server'};
     } catch (_) {
+      final code = response.statusCode;
+      final hint404 = code == 404
+          ? ' Laluan API tidak dijumpai (404). Pastikan staffhub-api dijalankan semula dengan kod terkini, '
+              'dan URL asas termasuk /api (contoh http://10.0.2.2:3000/api). '
+              'Pada telefon sebenar, guna: flutter run --dart-define=API_BASE_URL=http://IP_PC:3000'
+          : '';
       return {
         'success': false,
-        'message': 'Non-JSON response (HTTP ${response.statusCode}). Restart the API or open DevTools → Response to inspect.',
+        'message': 'Non-JSON response (HTTP $code).$hint404 '
+            'Restart the API or open DevTools → Response to inspect.',
       };
     }
   }
@@ -116,10 +123,19 @@ class ApiService {
     } else {
       throw Exception('Unsupported method');
     }
-    return jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseApiJson(response);
   }
 
   static Future<Map<String, dynamic>> getSupervisorTeam() async => _supervisorRequest('GET', '/supervisor/team');
+
+  /// Staff + supervisors company-wide (admin excluded). Supervisor home / directory.
+  static Future<Map<String, dynamic>> getSupervisorOrgStaff() async => _supervisorRequest('GET', '/supervisor/org-staff');
+
+  static Future<Map<String, dynamic>> getSupervisorOrgLeaveRequests() async =>
+      _supervisorRequest('GET', '/supervisor/org-leave-requests');
+
+  static Future<Map<String, dynamic>> getSupervisorOrgOvertimeRequests() async =>
+      _supervisorRequest('GET', '/supervisor/org-overtime-requests');
 
   static Future<Map<String, dynamic>> getSupervisorConfig() async => _supervisorRequest('GET', '/supervisor/config');
 
@@ -135,6 +151,17 @@ class ApiService {
     var path = '/supervisor/leave-requests';
     if (status != null) path += '?status=${Uri.encodeComponent(status)}';
     return _supervisorRequest('GET', path);
+  }
+
+  /// Supervisor: approve/reject leave for direct-report staff (team only).
+  static Future<Map<String, dynamic>> supervisorDecideLeave(
+    String id,
+    String status, {
+    String? comment,
+  }) async {
+    final body = <String, dynamic>{'status': status};
+    if (comment != null && comment.isNotEmpty) body['adminComment'] = comment;
+    return _supervisorRequest('PUT', '/supervisor/leave-requests/${Uri.encodeComponent(id)}', body: body);
   }
 
   static Future<Map<String, dynamic>> getSupervisorNotifications() async => _supervisorRequest('GET', '/supervisor/notifications');
@@ -338,10 +365,48 @@ class ApiService {
     return _adminRequest('PUT', '/admin/staff/$staffId/salary', body: {'salary': salary});
   }
 
+  /// Admin: update staff/supervisor profile (`PUT /admin/staff/:staffId`).
+  static Future<Map<String, dynamic>> adminUpdateStaff(
+    String staffId, {
+    required String name,
+    required String email,
+    required String phone,
+    required String department,
+    required String position,
+    String? newPassword,
+  }) async {
+    final body = <String, dynamic>{
+      'name': name,
+      'email': email,
+      'phone': phone,
+      'department': department,
+      'position': position,
+    };
+    if (newPassword != null && newPassword.isNotEmpty) {
+      body['newPassword'] = newPassword;
+    }
+    final path = '/admin/staff/${Uri.encodeComponent(staffId)}';
+    return _adminRequest('PUT', path, body: body);
+  }
+
+  /// Assign or clear supervisor for a staff account (`supervisorStaffId` empty string clears).
+  static Future<Map<String, dynamic>> adminAssignSupervisor(String staffId, String supervisorStaffId) async {
+    final path = '/admin/staff/${Uri.encodeComponent(staffId)}/supervisor';
+    return _adminRequest('PUT', path, body: {'supervisorStaffId': supervisorStaffId});
+  }
+
   /// Admin only: `PUT /admin/.../promote-supervisor` (requires admin JWT).
-  static Future<Map<String, dynamic>> promoteStaffToSupervisor(String staffId) async {
+  /// [newStaffId] optional — rename Staff ID while promoting (attendance, leave, etc. follow the new ID).
+  static Future<Map<String, dynamic>> promoteStaffToSupervisor(
+    String staffId, {
+    String? newStaffId,
+  }) async {
     final path = '/admin/staff/${Uri.encodeComponent(staffId)}/promote-supervisor';
-    return _adminRequest('PUT', path, body: {});
+    final body = <String, dynamic>{};
+    if (newStaffId != null && newStaffId.trim().isNotEmpty) {
+      body['newStaffId'] = newStaffId.trim();
+    }
+    return _adminRequest('PUT', path, body: body);
   }
 
   static Future<Map<String, dynamic>> getAdminConfig() async {
@@ -428,6 +493,63 @@ class ApiService {
       },
     );
     return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  /// Staff: apply for overtime (requires JWT, role staff).
+  static Future<Map<String, dynamic>> applyOvertime({
+    required DateTime otDate,
+    required double hours,
+    String reason = '',
+  }) async {
+    final token = await AuthService.getToken();
+    if (token == null) throw Exception('Not authenticated');
+    final response = await http.post(
+      Uri.parse('$baseUrl/staff/overtime/apply'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'otDate': otDate.toIso8601String().split('T')[0],
+        'hours': hours,
+        'reason': reason,
+      }),
+    );
+    return _parseApiJson(response);
+  }
+
+  static Future<Map<String, dynamic>> getMyOvertimeRequests() async {
+    final token = await AuthService.getToken();
+    if (token == null) throw Exception('Not authenticated');
+    final response = await http.get(
+      Uri.parse('$baseUrl/staff/overtime/my'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return _parseApiJson(response);
+  }
+
+  static Future<Map<String, dynamic>> getSupervisorOvertimeRequests({String? status}) async {
+    var path = '/supervisor/overtime-requests';
+    if (status != null) path += '?status=${Uri.encodeComponent(status)}';
+    return _supervisorRequest('GET', path);
+  }
+
+  static Future<Map<String, dynamic>> supervisorDecideOvertime(
+    String id,
+    String status, {
+    String? comment,
+  }) async {
+    final body = <String, dynamic>{'status': status};
+    if (comment != null && comment.isNotEmpty) body['comment'] = comment;
+    return _supervisorRequest('PUT', '/supervisor/overtime-requests/${Uri.encodeComponent(id)}', body: body);
+  }
+
+  static Future<Map<String, dynamic>> getAdminOvertimeRequests({String? status, String? staffId}) async {
+    final q = <String>[];
+    if (status != null) q.add('status=${Uri.encodeComponent(status)}');
+    if (staffId != null && staffId.isNotEmpty) q.add('staffId=${Uri.encodeComponent(staffId)}');
+    final query = q.isEmpty ? '' : '?${q.join('&')}';
+    return _adminRequest('GET', '/admin/overtime-requests$query');
   }
 
   static Future<Map<String, dynamic>> upsertAdminPayslipRecord({

@@ -1,9 +1,18 @@
 const User = require('../models/User');
 const Attendance = require('../models/Attendance');
 const LeaveRequest = require('../models/LeaveRequest');
+const LeaveBalance = require('../models/LeaveBalance');
 const Notification = require('../models/Notification');
 const StaffSchedule = require('../models/StaffSchedule');
 const workplace = require('../config/workplace');
+
+async function getOrCreateBalance(staffId, year) {
+  let balance = await LeaveBalance.findOne({ staffId, year });
+  if (!balance) {
+    balance = await LeaveBalance.create({ staffId, year });
+  }
+  return balance;
+}
 
 function isClockInLate(clockInDate) {
   const clockIn = new Date(clockInDate);
@@ -29,6 +38,46 @@ exports.getTeam = async (req, res) => {
       .sort({ staffId: 1 })
       .lean();
     res.json({ success: true, data: team });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/** All staff and supervisors in the organisation (admin accounts excluded). */
+exports.getOrgStaff = async (req, res) => {
+  try {
+    const users = await User.find({ role: { $in: ['staff', 'supervisor'] } })
+      .select('staffId name email department position role supervisorStaffId')
+      .sort({ staffId: 1 })
+      .lean();
+    res.json({ success: true, data: users });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/** All leave requests for organisation staff/supervisors (admin excluded). For supervisor home overview. */
+exports.getOrgLeaveRequests = async (req, res) => {
+  try {
+    const orgUsers = await User.find({ role: { $in: ['staff', 'supervisor'] } }).select('staffId').lean();
+    const ids = orgUsers.map((u) => u.staffId);
+    if (ids.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+    const { status } = req.query;
+    const filter = { staffId: { $in: ids } };
+    if (status && ['pending', 'approved', 'rejected'].includes(status)) {
+      filter.status = status;
+    }
+    const requests = await LeaveRequest.find(filter).sort({ createdAt: -1 }).limit(300).lean();
+    const nameMap = Object.fromEntries(
+      (await User.find({ staffId: { $in: ids } }).select('staffId name').lean()).map((u) => [u.staffId, u.name]),
+    );
+    const data = requests.map((r) => ({
+      ...r,
+      staffName: nameMap[r.staffId] || r.staffId,
+    }));
+    res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -114,6 +163,63 @@ exports.getLeaveRequests = async (req, res) => {
       staffName: nameMap[r.staffId] || r.staffId,
     }));
     res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/** Approve or reject leave for a direct-report staff member (same balance rules as admin). */
+exports.supervisorUpdateLeaveRequest = async (req, res) => {
+  try {
+    const teamIds = await getTeamStaffIds(req.user.staffId);
+    const { id } = req.params;
+    const { status, adminComment } = req.body;
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'status must be approved or rejected' });
+    }
+    const lr = await LeaveRequest.findById(id);
+    if (!lr) {
+      return res.status(404).json({ success: false, message: 'Leave request not found' });
+    }
+    if (!teamIds.includes(lr.staffId)) {
+      return res.status(403).json({ success: false, message: 'Not your team member' });
+    }
+    if (lr.status !== 'pending') {
+      return res.status(400).json({ success: false, message: 'Request already processed' });
+    }
+    lr.status = status;
+    if (adminComment !== undefined && adminComment !== null) {
+      lr.adminComment = String(adminComment).trim();
+    }
+    lr.decidedByRole = 'supervisor';
+    lr.decidedByStaffId = req.user.staffId || '';
+    lr.decidedByName = req.user.name || '';
+    await lr.save();
+
+    if (status === 'approved') {
+      const year = new Date(lr.startDate).getFullYear();
+      const balance = await getOrCreateBalance(lr.staffId, year);
+      const days = lr.totalDays;
+      switch (lr.leaveType) {
+        case 'medical':
+          balance.medicalLeave.used += days;
+          break;
+        case 'annual':
+          balance.annualLeave.used += days;
+          break;
+        case 'unpaid':
+          balance.unpaidLeave.used += days;
+          break;
+        case 'other':
+          balance.otherLeave.used += days;
+          break;
+        default:
+          break;
+      }
+      await balance.save();
+    }
+
+    res.json({ success: true, message: `Leave ${status}`, data: lr });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

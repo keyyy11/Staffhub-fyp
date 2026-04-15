@@ -7,6 +7,8 @@ import 'login_screen.dart';
 import 'admin_register_screen.dart';
 import 'admin_profile_screen.dart';
 import 'admin_discipline_screen.dart';
+import 'admin_overtime_screen.dart';
+import 'admin_staff_edit_screen.dart';
 
 String _roleLabel(dynamic role) {
   final r = role as String?;
@@ -23,6 +25,7 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   static const _sectionTitles = [
+    'Home',
     'Staff directory',
     'Attendance',
     'Leave requests',
@@ -52,10 +55,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   bool _isLoading = false;
   bool _leaveLoading = false;
   String? _errorMessage;
+  /// Admin home: last 7 days attendance snapshot + leave + OT (loaded together).
+  List<Map<String, dynamic>> _homeAttendance = [];
+  Map<String, dynamic>? _homeAttendanceStats;
+  List<Map<String, dynamic>> _homeLeave = [];
+  List<Map<String, dynamic>> _homeOvertime = [];
+  bool _homeLoading = false;
 
   @override
   void initState() {
     super.initState();
+    _loadHome();
     _loadAttendance();
     _loadStaff();
     _loadLeaveRequests();
@@ -146,6 +156,51 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     } catch (_) {}
   }
 
+  String _isoDateOnly(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  Future<void> _loadHome() async {
+    setState(() => _homeLoading = true);
+    try {
+      final end = DateTime.now();
+      final start = end.subtract(const Duration(days: 7));
+      final sd = _isoDateOnly(start);
+      final ed = _isoDateOnly(end);
+      final results = await Future.wait([
+        ApiService.getAttendanceReport(startDate: sd, endDate: ed),
+        ApiService.getAdminLeaveRequests(),
+        ApiService.getAdminOvertimeRequests(),
+      ]);
+      if (!mounted) return;
+      final att = results[0];
+      final leave = results[1];
+      final ot = results[2];
+      setState(() {
+        if (att['success'] == true && att['data'] != null) {
+          final data = att['data'] as Map<String, dynamic>;
+          _homeAttendance = List<Map<String, dynamic>>.from(data['report'] as List);
+          _homeAttendanceStats = data['stats'] as Map<String, dynamic>?;
+        } else {
+          _homeAttendance = [];
+          _homeAttendanceStats = null;
+        }
+        if (leave['success'] == true && leave['data'] != null) {
+          _homeLeave = List<Map<String, dynamic>>.from(leave['data'] as List);
+        } else {
+          _homeLeave = [];
+        }
+        if (ot['success'] == true && ot['data'] != null) {
+          _homeOvertime = List<Map<String, dynamic>>.from(ot['data'] as List);
+        } else {
+          _homeOvertime = [];
+        }
+        _homeLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _homeLoading = false);
+    }
+  }
+
   Future<void> _logout() async {
     await AuthService.logout();
     if (!mounted) return;
@@ -192,14 +247,39 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Future<void> _confirmPromoteStaffToSupervisor(Map<String, dynamic> member) async {
     final sid = member['staffId'] as String? ?? '';
     final name = member['name'] as String? ?? sid;
+    final newIdController = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.cardDark,
         title: const Text('Promote to supervisor?', style: TextStyle(color: AppTheme.textPrimary)),
-        content: Text(
-          '$name ($sid) will become a supervisor. They keep the same email and password and will see the supervisor dashboard. Assign other staff to report to supervisor ID: $sid.\n\nContinue?',
-          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$name ($sid) will become a supervisor. Same email and password; they will see the supervisor dashboard. '
+                'Other staff can be assigned to report to this supervisor ID (see field below, or the current ID if unchanged).\n\n'
+                'Optional: set a new Staff ID now (e.g. SUP001). Leave blank to keep $sid.',
+                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'New Staff ID (optional)',
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: newIdController,
+                style: const TextStyle(color: AppTheme.textPrimary),
+                decoration: const InputDecoration(
+                  hintText: 'Leave empty to keep current ID',
+                  hintStyle: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
@@ -211,10 +291,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ],
       ),
     );
+    final newStaffId = newIdController.text.trim();
+    newIdController.dispose();
     if (ok != true || !mounted) return;
     setState(() => _promotingStaffId = sid);
     try {
-      final result = await ApiService.promoteStaffToSupervisor(sid);
+      final result = await ApiService.promoteStaffToSupervisor(
+        sid,
+        newStaffId: newStaffId.isEmpty ? null : newStaffId,
+      );
       if (!mounted) return;
       if (result['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -235,6 +320,225 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     } finally {
       if (mounted) setState(() => _promotingStaffId = null);
     }
+  }
+
+  Widget _buildHomeTab() {
+    final pendingLeave = _homeLeave.where((l) => l['status'] == 'pending').length;
+    final pendingOt = _homeOvertime.where((o) => o['status'] == 'pending').length;
+    final attSlice = _homeAttendance.take(10).toList();
+    final leavePending = _homeLeave.where((l) => l['status'] == 'pending').take(6).toList();
+    final leaveRecentDone = _homeLeave.where((l) => l['status'] != 'pending').take(5).toList();
+    final otPending = _homeOvertime.where((o) => o['status'] == 'pending').take(6).toList();
+    final otRecentDone = _homeOvertime.where((o) => o['status'] != 'pending').take(6).toList();
+
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+          stops: [0.0, 0.2],
+        ),
+      ),
+      child: RefreshIndicator(
+        onRefresh: () async {
+          await Future.wait([_loadHome(), _loadStaff()]);
+        },
+        color: AppTheme.accentBlue,
+        child: _homeLoading && _homeAttendance.isEmpty && _homeLeave.isEmpty && _homeOvertime.isEmpty
+            ? ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  SizedBox(height: 120),
+                  Center(child: CircularProgressIndicator(color: AppTheme.accentBlue)),
+                ],
+              )
+            : ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  Text(
+                    'Ringkasan operasi',
+                    style: TextStyle(
+                      color: AppTheme.textSecondary.withValues(alpha: 0.95),
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _HomeStatCard(
+                          icon: Icons.event_note_rounded,
+                          label: 'Cuti menunggu',
+                          value: '$pendingLeave',
+                          color: Colors.amber.shade200,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _HomeStatCard(
+                          icon: Icons.more_time_rounded,
+                          label: 'OT menunggu',
+                          value: '$pendingOt',
+                          color: AppTheme.accentBlue,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _HomeStatCard(
+                          icon: Icons.fact_check_rounded,
+                          label: 'Rekod kehadiran',
+                          value: '${_homeAttendanceStats?['total'] ?? _homeAttendance.length}',
+                          color: Colors.greenAccent.shade100,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () => _selectSection(2),
+                        child: const Text('Kehadiran penuh'),
+                      ),
+                      TextButton(
+                        onPressed: () => _selectSection(3),
+                        child: const Text('Permohonan cuti'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const AdminOvertimeScreen()),
+                          );
+                        },
+                        child: const Text('OT lengkap'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Aktiviti kehadiran (7 hari lepas)',
+                    style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (attSlice.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text('Tiada rekod kehadiran dalam tempoh ini.', style: TextStyle(color: AppTheme.textSecondary)),
+                    )
+                  else
+                    ...attSlice.map((r) => _HomeAttendanceRow(
+                          staffName: _staffDisplayName(r['staffId'] as String?, r['staffName'] as String?),
+                          staffId: r['staffId'] as String? ?? '',
+                          dateText: _formatDate(r['date']),
+                          timeLine: 'Masuk ${r['clockInTime'] ?? '-'} · Keluar ${r['clockOutTime'] ?? '-'}',
+                          late: (r['status'] as String?) == 'late',
+                        )),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Permohonan cuti & penyelia',
+                    style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Menunggu: tunjuk penyelia (laporan). Selesai: siapa meluluskan.',
+                    style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.9), fontSize: 12),
+                  ),
+                  const SizedBox(height: 10),
+                  if (leavePending.isEmpty && leaveRecentDone.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Text('Tiada permohonan cuti.', style: TextStyle(color: AppTheme.textSecondary)),
+                    )
+                  else ...[
+                    if (leavePending.isNotEmpty) ...[
+                      const Text('Menunggu kelulusan', style: TextStyle(color: AppTheme.accentBlue, fontSize: 13, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 6),
+                      ...leavePending.map((l) => _HomeLeaveCard(
+                            staffName: l['staffName'] as String? ?? l['staffId'] as String? ?? '',
+                            type: _leaveTypeLabel(l['leaveType'] as String?),
+                            range: '${_formatDate(l['startDate'])} – ${_formatDate(l['endDate'])}',
+                            status: 'pending',
+                            supervisorName: (l['supervisorName'] as String?)?.trim(),
+                            decidedByName: null,
+                            decidedByRole: null,
+                          )),
+                    ],
+                    if (leaveRecentDone.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      const Text('Keputusan terkini', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 6),
+                      ...leaveRecentDone.map((l) => _HomeLeaveCard(
+                            staffName: l['staffName'] as String? ?? l['staffId'] as String? ?? '',
+                            type: _leaveTypeLabel(l['leaveType'] as String?),
+                            range: '${_formatDate(l['startDate'])} – ${_formatDate(l['endDate'])}',
+                            status: l['status'] as String? ?? '',
+                            supervisorName: null,
+                            decidedByName: (l['decidedByName'] as String?)?.trim(),
+                            decidedByRole: l['decidedByRole'] as String?,
+                          )),
+                    ],
+                  ],
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Lebih masa (OT)',
+                    style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Menunggu: penyelia yang dilapor. Selesai: nama pelulus.',
+                    style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.9), fontSize: 12),
+                  ),
+                  const SizedBox(height: 10),
+                  if (otPending.isEmpty && otRecentDone.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Text('Tiada permohonan OT.', style: TextStyle(color: AppTheme.textSecondary)),
+                    )
+                  else ...[
+                    if (otPending.isNotEmpty) ...[
+                      const Text('Menunggu penyelia', style: TextStyle(color: AppTheme.accentBlue, fontSize: 13, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 6),
+                      ...otPending.map((o) => _HomeOtCard(
+                            staffName: o['staffName'] as String? ?? o['staffId'] as String? ?? '',
+                            otDate: _formatDate(o['otDate']),
+                            hours: o['hours']?.toString() ?? '-',
+                            status: 'pending',
+                            supervisorLabel: (o['supervisorNameAtSubmit'] as String?)?.trim(),
+                            approverName: null,
+                          )),
+                    ],
+                    if (otRecentDone.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      const Text('Kelulusan / tolak terkini', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 6),
+                      ...otRecentDone.map((o) => _HomeOtCard(
+                            staffName: o['staffName'] as String? ?? o['staffId'] as String? ?? '',
+                            otDate: _formatDate(o['otDate']),
+                            hours: o['hours']?.toString() ?? '-',
+                            status: o['status'] as String? ?? '',
+                            supervisorLabel: null,
+                            approverName: (o['approverName'] as String?)?.trim(),
+                          )),
+                    ],
+                  ],
+                  const SizedBox(height: 32),
+                ],
+              ),
+      ),
+    );
   }
 
   Widget _buildStaffDirectoryTab() {
@@ -344,6 +648,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                           ),
                         ],
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: () async {
+                              final updated = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => AdminStaffEditScreen(
+                                    staff: Map<String, dynamic>.from(s),
+                                    allStaff: _staffList,
+                                  ),
+                                ),
+                              );
+                              if (updated == true && mounted) await _loadStaff();
+                            },
+                            icon: const Icon(Icons.edit_outlined, size: 18, color: AppTheme.accentBlue),
+                            label: const Text('Edit', style: TextStyle(color: AppTheme.accentBlue)),
+                          ),
+                        ),
                       ],
                     ),
                   );
@@ -423,13 +747,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   children: [
-                    _drawerNavTile(index: 0, icon: Icons.groups_rounded, label: 'Staff directory'),
-                    _drawerNavTile(index: 1, icon: Icons.access_time_rounded, label: 'Attendance'),
-                    _drawerNavTile(index: 2, icon: Icons.event_note_rounded, label: 'Leave requests'),
-                    _drawerNavTile(index: 3, icon: Icons.receipt_long_rounded, label: 'Payslip'),
-                    _drawerNavTile(index: 4, icon: Icons.payments_rounded, label: 'Staff pay'),
-                    _drawerNavTile(index: 5, icon: Icons.supervisor_account_outlined, label: 'Promote to supervisor'),
-                    _drawerNavTile(index: 6, icon: Icons.person_add_alt_1_rounded, label: 'Register staff'),
+                    _drawerNavTile(index: 0, icon: Icons.home_rounded, label: 'Home'),
+                    _drawerNavTile(index: 1, icon: Icons.groups_rounded, label: 'Staff directory'),
+                    _drawerNavTile(index: 2, icon: Icons.access_time_rounded, label: 'Attendance'),
+                    _drawerNavTile(index: 3, icon: Icons.event_note_rounded, label: 'Leave requests'),
+                    _drawerNavTile(index: 4, icon: Icons.receipt_long_rounded, label: 'Payslip'),
+                    _drawerNavTile(index: 5, icon: Icons.payments_rounded, label: 'Staff pay'),
+                    _drawerNavTile(index: 6, icon: Icons.supervisor_account_outlined, label: 'Promote to supervisor'),
+                    _drawerNavTile(index: 7, icon: Icons.person_add_alt_1_rounded, label: 'Register staff'),
                   ],
                 ),
               ),
@@ -451,6 +776,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   Navigator.of(context).pop();
                   Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const AdminDisciplineScreen()),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.more_time_rounded, color: AppTheme.accentBlue),
+                title: const Text('Overtime (audit)', style: TextStyle(color: AppTheme.textPrimary)),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AdminOvertimeScreen()),
                   );
                 },
               ),
@@ -490,6 +825,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             icon: const Icon(Icons.refresh, color: AppTheme.accentBlue),
             tooltip: 'Refresh data',
             onPressed: () {
+              _loadHome();
               _loadAttendance();
               _loadStaff();
               _loadLeaveRequests();
@@ -501,6 +837,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       body: IndexedStack(
         index: _selectedIndex,
         children: [
+          _buildHomeTab(),
           _buildStaffDirectoryTab(),
           _buildAttendanceTab(),
           _buildLeaveRequestsTab(),
@@ -1113,7 +1450,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 14),
                       child: Text(
-                        'Admin only: choose a staff member to promote. They keep the same login; after promotion, assign other staff to report to their Staff ID in the API or future tools.',
+                        'Admin only: choose a staff member to promote. Optional: give them a new Staff ID in the dialog (e.g. supervisor prefix). Otherwise assign staff to report to their existing ID.',
                         style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.95), fontSize: 13),
                       ),
                     );
@@ -1174,7 +1511,243 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildRegisterStaffTab() {
-    return _AdminRegisterStaffForm(onStaffCreated: _loadStaff);
+    return _AdminRegisterStaffForm(onStaffCreated: () {
+      _loadStaff();
+      _loadHome();
+    });
+  }
+}
+
+class _HomeStatCard extends StatelessWidget {
+  const _HomeStatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppTheme.cardDark,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.borderBlue.withValues(alpha: 0.45)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 8),
+          Text(value, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 22, fontWeight: FontWeight.bold)),
+          Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeAttendanceRow extends StatelessWidget {
+  const _HomeAttendanceRow({
+    required this.staffName,
+    required this.staffId,
+    required this.dateText,
+    required this.timeLine,
+    required this.late,
+  });
+
+  final String staffName;
+  final String staffId;
+  final String dateText;
+  final String timeLine;
+  final bool late;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.cardDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: (late ? Colors.amber : Colors.green).withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        children: [
+          Icon(late ? Icons.schedule_rounded : Icons.check_circle_outline_rounded, color: late ? Colors.amber : Colors.green, size: 26),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(staffName, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
+                Text('$staffId · $dateText', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                Text(timeLine, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: (late ? Colors.amber : Colors.green).withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              late ? 'LEWAT' : 'TEPAT',
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: late ? Colors.amber : Colors.green),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeLeaveCard extends StatelessWidget {
+  const _HomeLeaveCard({
+    required this.staffName,
+    required this.type,
+    required this.range,
+    required this.status,
+    this.supervisorName,
+    this.decidedByName,
+    this.decidedByRole,
+  });
+
+  final String staffName;
+  final String type;
+  final String range;
+  final String status;
+  final String? supervisorName;
+  final String? decidedByName;
+  final String? decidedByRole;
+
+  @override
+  Widget build(BuildContext context) {
+    final pending = status == 'pending';
+    final roleLabel = decidedByRole == 'supervisor'
+        ? 'Penyelia'
+        : decidedByRole == 'admin'
+            ? 'Admin'
+            : '';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.cardDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderBlue.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(staffName, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: pending ? Colors.amber.withValues(alpha: 0.2) : Colors.blueGrey.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  pending ? 'MENUNGGU' : status.toUpperCase(),
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: pending ? Colors.amber : AppTheme.textSecondary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text('$type · $range', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+          if (pending && supervisorName != null && supervisorName!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text('Penyelia (laporan): $supervisorName', style: const TextStyle(color: AppTheme.accentBlue, fontSize: 12)),
+          ],
+          if (!pending && decidedByName != null && decidedByName!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Keputusan: $decidedByName${roleLabel.isNotEmpty ? ' ($roleLabel)' : ''}',
+              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeOtCard extends StatelessWidget {
+  const _HomeOtCard({
+    required this.staffName,
+    required this.otDate,
+    required this.hours,
+    required this.status,
+    this.supervisorLabel,
+    this.approverName,
+  });
+
+  final String staffName;
+  final String otDate;
+  final String hours;
+  final String status;
+  final String? supervisorLabel;
+  final String? approverName;
+
+  @override
+  Widget build(BuildContext context) {
+    final pending = status == 'pending';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.cardDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderBlue.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(staffName, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: pending ? Colors.amber.withValues(alpha: 0.2) : Colors.blueGrey.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  pending ? 'MENUNGGU' : status.toUpperCase(),
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: pending ? Colors.amber : AppTheme.textSecondary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text('OT $otDate · $hours jam', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+          if (pending && supervisorLabel != null && supervisorLabel!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text('Menunggu penyelia: $supervisorLabel', style: const TextStyle(color: AppTheme.accentBlue, fontSize: 12)),
+            ),
+          if (!pending && approverName != null && approverName!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text('Pelulus: $approverName', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+            ),
+        ],
+      ),
+    );
   }
 }
 

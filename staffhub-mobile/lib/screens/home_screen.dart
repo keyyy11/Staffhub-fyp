@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../app_theme.dart';
@@ -8,6 +9,7 @@ import '../services/auth_service.dart';
 import '../services/location_service.dart';
 import 'login_screen.dart';
 import 'apply_leave_screen.dart';
+import 'apply_overtime_screen.dart';
 import 'attendance_history_screen.dart';
 import 'payslip_screen.dart';
 import 'profile_screen.dart';
@@ -23,6 +25,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String _staffId = '';
+  String _staffName = '';
   bool _isLoading = false;
   String? _message;
   bool _isSuccess = false;
@@ -36,21 +39,24 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime? _clockOutTime;
   List<LeaveBalance> _leaveBalances = [];
   List<Map<String, dynamic>> _leaveRequestsPreview = [];
-  Timer? _workTimer;
+  List<Map<String, dynamic>> _otRequestsPreview = [];
 
   static const int _maxWorkHours = 12;
 
   @override
   void initState() {
     super.initState();
-    _loadUser();
-    _loadWorkplaceInfo();
-    _checkLocation();
+    // Defer work until after first frame so the shell can paint (reduces ANR risk with Maps + GPS on emulator).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _loadUser();
+      _loadWorkplaceInfo();
+      // Do not call _checkLocation() here: _loadWorkplaceInfo already awaits _checkLocation() after coords load.
+    });
   }
 
   @override
   void dispose() {
-    _workTimer?.cancel();
     super.dispose();
   }
 
@@ -58,11 +64,39 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = await AuthService.getCurrentUser();
     if (user != null && mounted) {
       final staffId = user['staffId'] as String? ?? '';
-      setState(() => _staffId = staffId);
+      final name = (user['name'] as String?)?.trim() ?? '';
+      setState(() {
+        _staffId = staffId;
+        _staffName = name;
+      });
       _loadLeaveBalance(staffId);
       _loadTodayAttendance(staffId);
-      _loadLeaveRequestsPreview(staffId);
+      // Defer previews so Maps + GPS finish first (reduces emulator ANR / "System UI not responding").
+      Future<void>.delayed(const Duration(milliseconds: 600), () {
+        if (!mounted || staffId.isEmpty) return;
+        _loadLeaveRequestsPreview(staffId);
+        _loadOvertimePreview();
+      });
     }
+  }
+
+  Future<void> _loadOvertimePreview() async {
+    if (await AuthService.isDemoMode()) return;
+    try {
+      final result = await ApiService.getMyOvertimeRequests();
+      if (result['success'] == true && result['data'] != null && mounted) {
+        final list = List<Map<String, dynamic>>.from(result['data'] as List);
+        setState(() {
+          _otRequestsPreview = list.take(5).toList();
+        });
+      }
+    } catch (_) {}
+  }
+
+  String _shortDate(dynamic d) {
+    if (d == null) return '-';
+    final date = DateTime.parse(d.toString());
+    return '${date.day}/${date.month}/${date.year}';
   }
 
   Future<void> _loadLeaveRequestsPreview(String staffId) async {
@@ -114,9 +148,6 @@ class _HomeScreenState extends State<HomeScreen> {
           _clockOutTime = clockOut != null ? DateTime.parse(clockOut.toString()) : null;
         });
         if (!mounted) return;
-        if (_clockInTime != null && _clockOutTime == null) {
-          _startWorkTimer();
-        }
       } else {
         setState(() {
           _clockInTime = null;
@@ -124,21 +155,6 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     } catch (_) {}
-  }
-
-  void _startWorkTimer() {
-    _workTimer?.cancel();
-    _workTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      final now = DateTime.now();
-      final elapsed = now.difference(_clockInTime!);
-      if (elapsed.inHours >= _maxWorkHours) {
-        _workTimer?.cancel();
-        _doAutoClockOut();
-      } else {
-        setState(() {});
-      }
-    });
   }
 
   Future<void> _doAutoClockOut() async {
@@ -159,13 +175,6 @@ class _HomeScreenState extends State<HomeScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  String _formatElapsed(Duration d) {
-    final h = d.inHours.toString().padLeft(2, '0');
-    final m = (d.inMinutes % 60).toString().padLeft(2, '0');
-    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
-    return '$h:$m:$s';
   }
 
   Future<void> _loadLeaveBalance([String? staffId]) async {
@@ -218,7 +227,10 @@ class _HomeScreenState extends State<HomeScreen> {
         });
         await _checkLocation();
       }
-    } catch (_) {}
+    } catch (_) {
+      // API unreachable: still try location so the screen can show user coords without map center.
+      if (mounted) await _checkLocation();
+    }
   }
 
   Future<void> _checkLocation() async {
@@ -335,7 +347,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (result['success'] == true) {
         _showMessage('Clock out successful', true);
-        _workTimer?.cancel();
         await _loadTodayAttendance(_staffId);
       } else {
         _showMessage(result['message'] ?? 'Clock out failed', false);
@@ -430,6 +441,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ApplyLeaveScreen()));
                 },
               ),
+              ListTile(
+                leading: const Icon(Icons.more_time_rounded, color: AppTheme.accentBlue),
+                title: const Text('Apply overtime (OT)', style: TextStyle(color: AppTheme.textPrimary)),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.of(context)
+                      .push(MaterialPageRoute(builder: (_) => const ApplyOvertimeScreen()))
+                      .then((_) {
+                        if (mounted) _loadOvertimePreview();
+                      });
+                },
+              ),
               const Divider(color: AppTheme.borderBlue),
               ListTile(
                 leading: const Icon(Icons.person_outline, color: AppTheme.accentBlue),
@@ -491,9 +514,245 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 const Text(
-                  'Leave Dashboard',
+                  'Welcome',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.textSecondary,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _staffName.isNotEmpty ? _staffName : 'Staff',
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                if (_staffId.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      'Staff ID: $_staffId',
+                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                    ),
+                  ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Attendance',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (_workplaceLat != null && _workplaceLng != null)
+                  Container(
+                    height: 300,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryBlue.withOpacity(0.2),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Stack(
+                      children: [
+                        GoogleMap(
+                          initialCameraPosition: CameraPosition(
+                            target: LatLng(_workplaceLat!, _workplaceLng!),
+                            zoom: 17,
+                          ),
+                          liteModeEnabled: !kIsWeb && defaultTargetPlatform == TargetPlatform.android,
+                          circles: {
+                            Circle(
+                              circleId: const CircleId('workplace_radius'),
+                              center: LatLng(_workplaceLat!, _workplaceLng!),
+                              radius: _radiusMeters.toDouble(),
+                              fillColor: AppTheme.accentBlue.withOpacity(0.25),
+                              strokeColor: AppTheme.accentBlue.withOpacity(0.8),
+                              strokeWidth: 2,
+                            ),
+                          },
+                          markers: {
+                            Marker(
+                              markerId: const MarkerId('workplace'),
+                              position: LatLng(_workplaceLat!, _workplaceLng!),
+                              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+                            ),
+                            if (_userLat != null && _userLng != null)
+                              Marker(
+                                markerId: const MarkerId('user'),
+                                position: LatLng(_userLat!, _userLng!),
+                                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+                              ),
+                          },
+                          myLocationEnabled: true,
+                          myLocationButtonEnabled: false,
+                          mapToolbarEnabled: false,
+                          zoomControlsEnabled: false,
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Material(
+                            color: AppTheme.cardDark.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(8),
+                            child: IconButton(
+                              icon: const Icon(Icons.my_location, color: AppTheme.accentBlue, size: 24),
+                              onPressed: _checkLocation,
+                              tooltip: 'Refresh location',
+                            ),
+                          ),
+                        ),
+                        if (_clockInTime != null && _clockOutTime == null)
+                          Positioned(
+                            bottom: 8,
+                            left: 8,
+                            right: 8,
+                            child: _WorkElapsedTicker(
+                              clockInTime: _clockInTime!,
+                              maxWorkHours: _maxWorkHours,
+                              onExceededMaxHours: _doAutoClockOut,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardDark,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primaryBlue.withOpacity(0.15),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        isWithinRange ? Icons.location_on : Icons.location_off,
+                        size: 48,
+                        color: isWithinRange
+                            ? AppTheme.accentBlue
+                            : Colors.amber.shade400,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        isWithinRange
+                            ? 'Within ${_radiusMeters}m radius'
+                            : 'Outside ${_radiusMeters}m radius',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: isWithinRange ? AppTheme.accentBlue : Colors.amber.shade400,
+                        ),
+                      ),
+                      if (_distance != null)
+                        Text(
+                          'Distance: ${_distance!.toStringAsFixed(0)}m',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                if (_message != null)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: _isSuccess
+                          ? Colors.green.shade900.withOpacity(0.3)
+                          : Colors.red.shade900.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _isSuccess ? Colors.green.shade700 : Colors.red.shade700,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isSuccess ? Icons.check_circle : Icons.error,
+                          color: _isSuccess ? Colors.greenAccent : Colors.redAccent,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _message!,
+                            style: TextStyle(
+                              color: _isSuccess ? Colors.greenAccent : Colors.redAccent,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _clockIn,
+                    icon: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Icon(Icons.login),
+                    label: const Text('Clock In'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryBlue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _clockOut,
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Clock Out'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.accentBlue,
+                      side: const BorderSide(color: AppTheme.accentBlue),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                const Text(
+                  'Leave',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -602,9 +861,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ApplyLeaveScreen()),
-                    ),
+                    onPressed: () => Navigator.of(context)
+                        .push(
+                          MaterialPageRoute(builder: (_) => const ApplyLeaveScreen()),
+                        )
+                        .then((_) {
+                          if (mounted) _loadLeaveRequestsPreview(_staffId);
+                        }),
                     icon: const Icon(Icons.add_circle_outline, size: 20),
                     label: const Text('Apply Leave'),
                     style: OutlinedButton.styleFrom(
@@ -615,274 +878,104 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
                 const Text(
-                  'Attendance',
+                  'Overtime (OT)',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 12),
-                if (_workplaceLat != null && _workplaceLng != null)
-                  Container(
-                    height: 300,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primaryBlue.withOpacity(0.2),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Stack(
-                      children: [
-                        GoogleMap(
-                          initialCameraPosition: CameraPosition(
-                            target: LatLng(_workplaceLat!, _workplaceLng!),
-                            zoom: 17,
-                          ),
-                          circles: {
-                            Circle(
-                              circleId: const CircleId('workplace_radius'),
-                              center: LatLng(_workplaceLat!, _workplaceLng!),
-                              radius: _radiusMeters.toDouble(),
-                              fillColor: AppTheme.accentBlue.withOpacity(0.25),
-                              strokeColor: AppTheme.accentBlue.withOpacity(0.8),
-                              strokeWidth: 2,
-                            ),
-                          },
-                          markers: {
-                            Marker(
-                              markerId: const MarkerId('workplace'),
-                              position: LatLng(_workplaceLat!, _workplaceLng!),
-                              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-                            ),
-                            if (_userLat != null && _userLng != null)
-                              Marker(
-                                markerId: const MarkerId('user'),
-                                position: LatLng(_userLat!, _userLng!),
-                                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-                              ),
-                          },
-                          myLocationEnabled: true,
-                          myLocationButtonEnabled: false,
-                          mapToolbarEnabled: false,
-                          zoomControlsEnabled: false,
-                        ),
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Material(
-                            color: AppTheme.cardDark.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(8),
-                            child: IconButton(
-                              icon: const Icon(Icons.my_location, color: AppTheme.accentBlue, size: 24),
-                              onPressed: _checkLocation,
-                              tooltip: 'Refresh location',
-                            ),
-                          ),
-                        ),
-                        if (_clockInTime != null && _clockOutTime == null)
-                          Positioned(
-                            bottom: 8,
-                            left: 8,
-                            right: 8,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: AppTheme.cardDark.withOpacity(0.95),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppTheme.accentBlue.withOpacity(0.5)),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.timer, color: AppTheme.accentBlue, size: 24),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    _formatElapsed(DateTime.now().difference(_clockInTime!)),
-                                    style: const TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.accentBlue,
-                                      letterSpacing: 2,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    () {
-                                      final elapsed = DateTime.now().difference(_clockInTime!);
-                                      final remaining = const Duration(hours: _maxWorkHours) - elapsed;
-                                      if (remaining.isNegative) return '';
-                                      return '(${remaining.inHours}h ${remaining.inMinutes % 60}m left)';
-                                    }(),
-                                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppTheme.cardDark,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primaryBlue.withOpacity(0.15),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        isWithinRange ? Icons.location_on : Icons.location_off,
-                        size: 48,
-                        color: isWithinRange
-                            ? AppTheme.accentBlue
-                            : Colors.amber.shade400,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        isWithinRange
-                            ? 'Within ${_radiusMeters}m radius'
-                            : 'Outside ${_radiusMeters}m radius',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: isWithinRange ? AppTheme.accentBlue : Colors.amber.shade400,
-                        ),
-                      ),
-                      if (_distance != null)
-                        Text(
-                          'Distance: ${_distance!.toStringAsFixed(0)}m',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: AppTheme.textSecondary,
-                          ),
-                        ),
-                    ],
-                  ),
+                const SizedBox(height: 8),
+                Text(
+                  'Your recent OT requests and status (supervisor approval).',
+                  style: TextStyle(fontSize: 13, color: AppTheme.textSecondary.withValues(alpha: 0.95)),
                 ),
-                if (_staffId.isNotEmpty) ...[
-                  const SizedBox(height: 24),
+                const SizedBox(height: 12),
+                if (_otRequestsPreview.isEmpty)
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceDark,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.borderBlue.withOpacity(0.4)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.badge, color: AppTheme.accentBlue, size: 32),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Staff ID', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
-                              Text(
-                                _staffId,
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.textPrimary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 24),
-                if (_message != null)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: _isSuccess
-                          ? Colors.green.shade900.withOpacity(0.3)
-                          : Colors.red.shade900.withOpacity(0.3),
+                      color: AppTheme.cardDark.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _isSuccess ? Colors.green.shade700 : Colors.red.shade700,
-                      ),
+                      border: Border.all(color: AppTheme.borderBlue.withValues(alpha: 0.35)),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _isSuccess ? Icons.check_circle : Icons.error,
-                          color: _isSuccess ? Colors.greenAccent : Colors.redAccent,
-                          size: 24,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            _message!,
-                            style: TextStyle(
-                              color: _isSuccess ? Colors.greenAccent : Colors.redAccent,
+                    child: const Text(
+                      'No OT requests yet. Submit one to see it here.',
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                    ),
+                  )
+                else
+                  ..._otRequestsPreview.map((r) {
+                    final st = r['status'] as String? ?? 'pending';
+                    final stColor = _leaveStatusColor(st);
+                    final hours = r['hours'];
+                    final hLabel = hours is num ? '${hours.toString()} h' : '${hours ?? '-'} h';
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.cardDark,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: stColor.withValues(alpha: 0.35)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.more_time_rounded, size: 22, color: stColor.withValues(alpha: 0.9)),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${_shortDate(r['otDate'])} · $hLabel',
+                                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
+                                ),
+                                if ((r['reason'] as String?)?.trim().isNotEmpty == true)
+                                  Text(
+                                    r['reason'] as String,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                                  ),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _clockIn,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: stColor.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                          )
-                        : const Icon(Icons.login),
-                    label: const Text('Clock In'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryBlue,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                            child: Text(
+                              _leaveStatusLabel(st),
+                              style: TextStyle(color: stColor, fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
+                    );
+                  }),
+                const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
-                  height: 56,
                   child: OutlinedButton.icon(
-                    onPressed: _isLoading ? null : _clockOut,
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Clock Out'),
+                    onPressed: () => Navigator.of(context)
+                        .push(
+                          MaterialPageRoute(builder: (_) => const ApplyOvertimeScreen()),
+                        )
+                        .then((_) {
+                          if (mounted) _loadOvertimePreview();
+                        }),
+                    icon: const Icon(Icons.add_circle_outline, size: 20),
+                    label: const Text('Apply OT'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.accentBlue,
                       side: const BorderSide(color: AppTheme.accentBlue),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ),
@@ -890,6 +983,89 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Updates every second **only this overlay**, not the whole [HomeScreen] (avoids rebuilding [GoogleMap] each tick).
+class _WorkElapsedTicker extends StatefulWidget {
+  const _WorkElapsedTicker({
+    required this.clockInTime,
+    required this.maxWorkHours,
+    required this.onExceededMaxHours,
+  });
+
+  final DateTime clockInTime;
+  final int maxWorkHours;
+  final VoidCallback onExceededMaxHours;
+
+  @override
+  State<_WorkElapsedTicker> createState() => _WorkElapsedTickerState();
+}
+
+class _WorkElapsedTickerState extends State<_WorkElapsedTicker> {
+  Timer? _timer;
+
+  static String _formatElapsed(Duration d) {
+    final h = d.inHours.toString().padLeft(2, '0');
+    final m = (d.inMinutes % 60).toString().padLeft(2, '0');
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$h:$m:$s';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final elapsed = DateTime.now().difference(widget.clockInTime);
+      if (elapsed >= Duration(hours: widget.maxWorkHours)) {
+        _timer?.cancel();
+        widget.onExceededMaxHours();
+      } else {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final elapsed = DateTime.now().difference(widget.clockInTime);
+    final remaining = Duration(hours: widget.maxWorkHours) - elapsed;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.cardDark.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.accentBlue.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.timer, color: AppTheme.accentBlue, size: 24),
+          const SizedBox(width: 12),
+          Text(
+            _formatElapsed(elapsed),
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.accentBlue,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            remaining.isNegative ? '' : '(${remaining.inHours}h ${remaining.inMinutes % 60}m left)',
+            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+          ),
+        ],
       ),
     );
   }

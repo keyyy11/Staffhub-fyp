@@ -17,8 +17,10 @@ class LocationService {
       return null;
     }
 
+    // Medium accuracy + time limit reduce emulator ANRs from long GPS fixes / permission stalls.
     return await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
+      desiredAccuracy: LocationAccuracy.medium,
+      timeLimit: const Duration(seconds: 25),
     );
   }
 

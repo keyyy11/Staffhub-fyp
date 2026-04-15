@@ -35,3 +35,10 @@ exports.requireSupervisor = (req, res, next) => {
   }
   next();
 };
+
+exports.requireStaff = (req, res, next) => {
+  if (req.user.role !== 'staff') {
+    return res.status(403).json({ success: false, message: 'Staff access required' });
+  }
+  next();
+};

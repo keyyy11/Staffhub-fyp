@@ -38,6 +38,14 @@ const leaveRequestSchema = new mongoose.Schema({
     default: '',
     trim: true,
   },
+  /** Who approved/rejected (set when status leaves pending). */
+  decidedByStaffId: { type: String, default: '', trim: true },
+  decidedByName: { type: String, default: '', trim: true },
+  decidedByRole: {
+    type: String,
+    enum: ['', 'admin', 'supervisor'],
+    default: '',
+  },
 }, {
   timestamps: true,
 });
