@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'app_theme.dart';
 import 'screens/login_page.dart';
 import 'screens/home_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
 import 'screens/supervisor_dashboard_screen.dart';
 import 'services/auth_service.dart';
+import 'services/settings_controller.dart';
 import 'widgets/staffhub_logo.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SettingsController.instance.load();
   runApp(const StaffHubApp());
 }
 
@@ -16,11 +20,29 @@ class StaffHubApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Staff Hub',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      home: const AuthCheckScreen(),
+    return ListenableBuilder(
+      listenable: SettingsController.instance,
+      builder: (context, _) {
+        final s = SettingsController.instance;
+        return MaterialApp(
+          title: 'Staff Hub',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: s.themeMode,
+          locale: s.locale,
+          supportedLocales: const [
+            Locale('en'),
+            Locale('ms'),
+          ],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: const AuthCheckScreen(),
+        );
+      },
     );
   }
 }
@@ -39,15 +61,15 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
       future: AuthService.isLoggedIn(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            backgroundColor: AppTheme.backgroundBlack,
+          return Scaffold(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  StaffHubLogo(height: 88),
-                  SizedBox(height: 28),
-                  CircularProgressIndicator(color: AppTheme.accentBlue),
+                  const StaffHubLogo(height: 100),
+                  const SizedBox(height: 28),
+                  CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
                 ],
               ),
             ),
@@ -71,15 +93,15 @@ class _RoleRedirect extends StatelessWidget {
       future: AuthService.getCurrentUser(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            backgroundColor: AppTheme.backgroundBlack,
+          return Scaffold(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  StaffHubLogo(height: 88),
-                  SizedBox(height: 28),
-                  CircularProgressIndicator(color: AppTheme.accentBlue),
+                  const StaffHubLogo(height: 100),
+                  const SizedBox(height: 28),
+                  CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
                 ],
               ),
             ),

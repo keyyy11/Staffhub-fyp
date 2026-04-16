@@ -6,6 +6,8 @@ import 'auth_service.dart';
 class ApiService {
   static String get baseUrl => AppConfig.apiBaseUrl;
 
+  static const Duration _timeout = Duration(seconds: 15);
+
   /// Parses JSON error/success bodies even when HTTP status is 4xx; avoids decode throws on HTML 404.
   static Map<String, dynamic> _parseApiJson(http.Response response) {
     final raw = response.body.trim();
@@ -23,9 +25,9 @@ class ApiService {
     } catch (_) {
       final code = response.statusCode;
       final hint404 = code == 404
-          ? ' Laluan API tidak dijumpai (404). Pastikan staffhub-api dijalankan semula dengan kod terkini, '
-              'dan URL asas termasuk /api (contoh http://10.0.2.2:3000/api). '
-              'Pada telefon sebenar, guna: flutter run --dart-define=API_BASE_URL=http://IP_PC:3000'
+          ? ' API path not found (404). Restart staffhub-api with the latest code, '
+              'and ensure the base URL includes /api (e.g. http://10.0.2.2:3000/api). '
+              'On a physical phone use: flutter run --dart-define=API_BASE_URL=http://YOUR_PC_IP:3000'
           : '';
       return {
         'success': false,
@@ -36,34 +38,38 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> clockIn(String staffId, double lat, double lng) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/attendance/clock-in'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'staffId': staffId,
-        'lat': lat,
-        'lng': lng,
-      }),
-    );
-    return jsonDecode(response.body) as Map<String, dynamic>;
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/attendance/clock-in'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'staffId': staffId,
+            'lat': lat,
+            'lng': lng,
+          }),
+        )
+        .timeout(_timeout);
+    return _parseApiJson(response);
   }
 
   static Future<Map<String, dynamic>> clockOut(String staffId, double lat, double lng) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/attendance/clock-out'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'staffId': staffId,
-        'lat': lat,
-        'lng': lng,
-      }),
-    );
-    return jsonDecode(response.body) as Map<String, dynamic>;
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/attendance/clock-out'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'staffId': staffId,
+            'lat': lat,
+            'lng': lng,
+          }),
+        )
+        .timeout(_timeout);
+    return _parseApiJson(response);
   }
 
   static Future<Map<String, dynamic>> getWorkplaceInfo() async {
-    final response = await http.get(Uri.parse('$baseUrl/attendance/workplace'));
-    return jsonDecode(response.body) as Map<String, dynamic>;
+    final response = await http.get(Uri.parse('$baseUrl/attendance/workplace')).timeout(_timeout);
+    return _parseApiJson(response);
   }
 
   static Future<Map<String, dynamic>> getTodayAttendance(String staffId) async {
@@ -95,11 +101,16 @@ class ApiService {
   }
 
   /// Staff: merged company + supervisor schedule (requires login).
-  static Future<Map<String, dynamic>> getMyWorkSchedule() async {
+  /// [year]/[month] — optional; returns [calendarMonth] for that month when set.
+  static Future<Map<String, dynamic>> getMyWorkSchedule({int? year, int? month}) async {
     final token = await AuthService.getToken();
     if (token == null) throw Exception('Not authenticated');
+    final q = <String>[];
+    if (year != null) q.add('year=$year');
+    if (month != null) q.add('month=$month');
+    final query = q.isEmpty ? '' : '?${q.join('&')}';
     final response = await http.get(
-      Uri.parse('$baseUrl/staff/my-work-schedule'),
+      Uri.parse('$baseUrl/staff/my-work-schedule$query'),
       headers: {'Authorization': 'Bearer $token'},
     );
     return jsonDecode(response.body) as Map<String, dynamic>;
@@ -176,37 +187,44 @@ class ApiService {
       _supervisorRequest('GET', '/supervisor/staff/${Uri.encodeComponent(staffId)}/schedule');
 
   static Future<Map<String, dynamic>> putSupervisorStaffSchedule(
-    String staffId,
-    List<Map<String, dynamic>> days, {
+    String staffId, {
+    List<Map<String, dynamic>>? days,
+    List<Map<String, dynamic>>? dateEntries,
     String notes = '',
   }) async {
-    return _supervisorRequest('PUT', '/supervisor/staff/${Uri.encodeComponent(staffId)}/schedule', body: {
-      'days': days,
-      'notes': notes,
-    });
+    final body = <String, dynamic>{'notes': notes};
+    if (days != null) body['days'] = days;
+    if (dateEntries != null) body['dateEntries'] = dateEntries;
+    return _supervisorRequest('PUT', '/supervisor/staff/${Uri.encodeComponent(staffId)}/schedule', body: body);
   }
 
+  /// [staffId] optional — empty sends [autoStaffId] for SUP### on server.
   static Future<Map<String, dynamic>> registerSupervisor(
-    String staffId,
+    String? staffId,
     String name,
     String email,
     String password,
     String supervisorSecret,
   ) async {
+    final body = <String, dynamic>{
+      'name': name,
+      'email': email,
+      'password': password,
+      'supervisorSecret': supervisorSecret,
+    };
+    if (staffId == null || staffId.trim().isEmpty) {
+      body['autoStaffId'] = true;
+    } else {
+      body['staffId'] = staffId.trim();
+    }
     final response = await http
         .post(
           Uri.parse('$baseUrl/auth/register-supervisor'),
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'staffId': staffId,
-            'name': name,
-            'email': email,
-            'password': password,
-            'supervisorSecret': supervisorSecret,
-          }),
+          body: jsonEncode(body),
         )
         .timeout(_timeout);
-    return jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseApiJson(response);
   }
 
   static Future<Map<String, dynamic>> getPayslip(
@@ -288,22 +306,33 @@ class ApiService {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
-  static const _timeout = Duration(seconds: 15);
-
+  /// [staffId] optional — empty sends [autoStaffId] for ADM### on server.
   static Future<Map<String, dynamic>> registerAdmin(
-    String staffId, String name, String email, String password, String adminSecret,
+    String? staffId,
+    String name,
+    String email,
+    String password,
+    String adminSecret,
   ) async {
+    final body = <String, dynamic>{
+      'name': name,
+      'email': email,
+      'password': password,
+      'adminSecret': adminSecret,
+    };
+    if (staffId == null || staffId.trim().isEmpty) {
+      body['autoStaffId'] = true;
+    } else {
+      body['staffId'] = staffId.trim();
+    }
     final response = await http
         .post(
           Uri.parse('$baseUrl/auth/register-admin'),
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'staffId': staffId, 'name': name, 'email': email, 'password': password,
-            'adminSecret': adminSecret,
-          }),
+          body: jsonEncode(body),
         )
         .timeout(_timeout);
-    return jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseApiJson(response);
   }
 
   static Future<Map<String, dynamic>> login(String email, String password) async {
@@ -315,6 +344,28 @@ class ApiService {
         )
         .timeout(_timeout);
     return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final token = await AuthService.getToken();
+    if (token == null) throw Exception('Not authenticated');
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/auth/change-password'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({
+            'currentPassword': currentPassword,
+            'newPassword': newPassword,
+          }),
+        )
+        .timeout(_timeout);
+    return _parseApiJson(response);
   }
 
   static Future<Map<String, dynamic>> _adminRequest(String method, String path, {Map<String, dynamic>? body}) async {
@@ -350,15 +401,24 @@ class ApiService {
     return _adminRequest('GET', '/admin/staff-list');
   }
 
+  /// [staffId] optional — leave empty or null to auto-generate (STF001, STF002, … on server).
   static Future<Map<String, dynamic>> registerStaffByAdmin(
-    String staffId, String name, String email, String password,
+    String? staffId,
+    String name,
+    String email,
+    String password,
   ) async {
-    return _adminRequest('POST', '/admin/register-staff', body: {
-      'staffId': staffId,
+    final body = <String, dynamic>{
       'name': name,
       'email': email,
       'password': password,
-    });
+    };
+    if (staffId == null || staffId.trim().isEmpty) {
+      body['autoStaffId'] = true;
+    } else {
+      body['staffId'] = staffId.trim();
+    }
+    return _adminRequest('POST', '/admin/register-staff', body: body);
   }
 
   static Future<Map<String, dynamic>> updateStaffSalary(String staffId, double salary) async {
@@ -395,8 +455,29 @@ class ApiService {
     return _adminRequest('PUT', path, body: {'supervisorStaffId': supervisorStaffId});
   }
 
+  /// Admin: weekly timetable (working days, times, rest days) for any staff/supervisor.
+  static Future<Map<String, dynamic>> getAdminStaffSchedule(String staffId) async {
+    return _adminRequest('GET', '/admin/staff/${Uri.encodeComponent(staffId)}/schedule');
+  }
+
+  static Future<Map<String, dynamic>> putAdminStaffSchedule(
+    String staffId, {
+    List<Map<String, dynamic>>? days,
+    List<Map<String, dynamic>>? dateEntries,
+    String notes = '',
+  }) async {
+    final body = <String, dynamic>{'notes': notes};
+    if (days != null) body['days'] = days;
+    if (dateEntries != null) body['dateEntries'] = dateEntries;
+    return _adminRequest(
+      'PUT',
+      '/admin/staff/${Uri.encodeComponent(staffId)}/schedule',
+      body: body,
+    );
+  }
+
   /// Admin only: `PUT /admin/.../promote-supervisor` (requires admin JWT).
-  /// [newStaffId] optional — rename Staff ID while promoting (attendance, leave, etc. follow the new ID).
+  /// [newStaffId] optional — set to `'auto'` for next SUP### ID, or a custom ID; omit to keep current ID.
   static Future<Map<String, dynamic>> promoteStaffToSupervisor(
     String staffId, {
     String? newStaffId,
@@ -570,24 +651,30 @@ class ApiService {
     });
   }
 
+  /// Public self-registration (`POST /auth/register`). [staffId] optional — empty sends [autoStaffId] for STF###.
   static Future<Map<String, dynamic>> register(
-    String staffId,
+    String? staffId,
     String name,
     String email,
     String password,
   ) async {
+    final body = <String, dynamic>{
+      'name': name,
+      'email': email,
+      'password': password,
+    };
+    if (staffId == null || staffId.trim().isEmpty) {
+      body['autoStaffId'] = true;
+    } else {
+      body['staffId'] = staffId.trim();
+    }
     final response = await http
         .post(
           Uri.parse('$baseUrl/auth/register'),
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'staffId': staffId,
-            'name': name,
-            'email': email,
-            'password': password,
-          }),
+          body: jsonEncode(body),
         )
         .timeout(_timeout);
-    return jsonDecode(response.body) as Map<String, dynamic>;
+    return _parseApiJson(response);
   }
 }

@@ -68,4 +68,66 @@ class AppTheme {
       ),
     );
   }
+
+  static const Color _lightBg = Color(0xFFF0F4F8);
+  static const Color _lightSurface = Color(0xFFFFFFFF);
+  static const Color _lightCard = Color(0xFFE3E8EF);
+  static const Color _lightOnSurface = Color(0xFF0D1B2A);
+  static const Color _lightMuted = Color(0xFF546E7A);
+
+  static ThemeData get lightTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: _lightBg,
+      colorScheme: const ColorScheme.light(
+        primary: primaryBlue,
+        secondary: accentBlue,
+        surface: _lightSurface,
+        onPrimary: Colors.white,
+        onSecondary: Colors.white,
+        onSurface: _lightOnSurface,
+        onError: Colors.white,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: _lightSurface,
+        foregroundColor: _lightOnSurface,
+        elevation: 0,
+      ),
+      cardTheme: CardTheme(
+        color: _lightSurface,
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: _lightSurface,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.blue.shade200, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: accentBlue, width: 2),
+        ),
+        labelStyle: const TextStyle(color: _lightMuted),
+        hintStyle: TextStyle(color: _lightMuted.withOpacity(0.75)),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryBlue,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: primaryBlue,
+          side: const BorderSide(color: primaryBlue),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+  }
 }

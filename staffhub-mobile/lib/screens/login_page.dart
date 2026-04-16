@@ -95,7 +95,7 @@ class _LoginPageState extends State<LoginPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 16),
-                    const StaffHubLogo(height: 132),
+                    const StaffHubLogo(height: 152),
                     const SizedBox(height: 24),
                     const Text(
                       'Login',

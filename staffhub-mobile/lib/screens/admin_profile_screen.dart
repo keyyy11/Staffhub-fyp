@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../app_theme.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import 'settings_screen.dart';
 
 class AdminProfileScreen extends StatefulWidget {
   const AdminProfileScreen({super.key});
@@ -220,6 +221,11 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, color: AppTheme.accentBlue),
+            tooltip: 'Settings',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+          ),
           if (_isEditing)
             TextButton(
               onPressed: _isSaving ? null : () => setState(() => _isEditing = false),

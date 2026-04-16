@@ -8,6 +8,8 @@ const StaffSchedule = require('../models/StaffSchedule');
 const Notification = require('../models/Notification');
 const WarningLetter = require('../models/WarningLetter');
 const workplace = require('../config/workplace');
+const { allocateNextId, AUTO_STAFF_PREFIX, AUTO_SUPERVISOR_PREFIX } = require('../utils/staffIdAllocator');
+const { normalizeScheduleDays, normalizeDateEntries } = require('../utils/scheduleDays');
 
 /**
  * Move all app data keyed by oldId to newId (same person). Does not change the User row
@@ -152,7 +154,6 @@ exports.promoteStaffToSupervisor = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Only administrators can promote staff to supervisor' });
     }
     const { staffId } = req.params;
-    const newStaffIdRaw = req.body && req.body.newStaffId != null ? String(req.body.newStaffId).trim() : '';
     const user = await User.findOne({ staffId });
     if (!user) {
       return res.status(404).json({
@@ -179,25 +180,33 @@ exports.promoteStaffToSupervisor = async (req, res) => {
       });
     }
 
+    let newStaffIdRaw = req.body && req.body.newStaffId != null ? String(req.body.newStaffId).trim() : '';
+    const autoSupervisorId = req.body && (req.body.autoSupervisorId === true || String(req.body.newStaffId || '').toLowerCase() === 'auto');
+    if (autoSupervisorId) {
+      newStaffIdRaw = await allocateNextId(AUTO_SUPERVISOR_PREFIX);
+    }
+
     if (newStaffIdRaw) {
-      if (newStaffIdRaw === user.staffId) {
-        return res.status(400).json({
-          success: false,
-          message: 'newStaffId must be different from the current Staff ID.',
-        });
-      }
-      if (newStaffIdRaw.length < 2 || newStaffIdRaw.length > 64) {
-        return res.status(400).json({
-          success: false,
-          message: 'newStaffId must be between 2 and 64 characters.',
-        });
-      }
-      const taken = await User.findOne({ staffId: newStaffIdRaw });
-      if (taken) {
-        return res.status(400).json({
-          success: false,
-          message: 'That Staff ID is already in use. Choose another.',
-        });
+      if (!autoSupervisorId) {
+        if (newStaffIdRaw === user.staffId) {
+          return res.status(400).json({
+            success: false,
+            message: 'newStaffId must be different from the current Staff ID.',
+          });
+        }
+        if (newStaffIdRaw.length < 2 || newStaffIdRaw.length > 64) {
+          return res.status(400).json({
+            success: false,
+            message: 'newStaffId must be between 2 and 64 characters.',
+          });
+        }
+        const taken = await User.findOne({ staffId: newStaffIdRaw });
+        if (taken) {
+          return res.status(400).json({
+            success: false,
+            message: 'That Staff ID is already in use. Choose another.',
+          });
+        }
       }
       await reassignStaffIdDataToNewId(user.staffId, newStaffIdRaw);
       user.staffId = newStaffIdRaw;
@@ -209,7 +218,7 @@ exports.promoteStaffToSupervisor = async (req, res) => {
     res.json({
       success: true,
       message: newStaffIdRaw
-        ? 'Staff promoted to supervisor with new Staff ID. Ask them to sign in again (same email and password) so the app uses the new ID.'
+        ? 'Staff promoted to supervisor with a new supervisor ID. Historical data now uses this ID; the old staff ID is no longer used. Ask them to sign in again (same email and password).'
         : 'Staff promoted to supervisor',
       data: {
         staffId: user.staffId,
@@ -317,15 +326,19 @@ exports.updateAdminMe = async (req, res) => {
   }
 };
 
-/** Admin creates a new staff account (no self-registration token returned to admin) */
+/** Admin creates a new staff account (no self-registration token returned to admin).
+ * Omit staffId or set autoStaffId: true / staffId: "auto" to allocate STF001, STF002, …
+ */
 exports.registerStaff = async (req, res) => {
   try {
-    const { staffId, name, email, password } = req.body;
+    const { name, email, password, autoStaffId } = req.body;
+    let staffId = req.body.staffId != null ? String(req.body.staffId).trim() : '';
+    const useAutoStaffId = autoStaffId === true || !staffId || staffId.toLowerCase() === 'auto';
 
-    if (!staffId || !name || !email || !password) {
+    if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please fill all fields: staffId, name, email, password',
+        message: 'Please provide name, email, and password',
       });
     }
 
@@ -333,6 +346,24 @@ exports.registerStaff = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Password must be at least 6 characters',
+      });
+    }
+
+    if (useAutoStaffId) {
+      staffId = await allocateNextId(AUTO_STAFF_PREFIX);
+    }
+
+    if (!staffId || staffId.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Staff ID is required, or enable automatic ID (autoStaffId / leave staffId empty)',
+      });
+    }
+
+    if (staffId.length > 64) {
+      return res.status(400).json({
+        success: false,
+        message: 'Staff ID must be at most 64 characters',
       });
     }
 
@@ -537,6 +568,49 @@ exports.upsertPayslipRecord = async (req, res) => {
       { upsert: true, new: true },
     );
     res.json({ success: true, message: 'Payslip record saved', data: doc });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/** Admin: weekly timetable for any staff/supervisor (same shape as supervisor schedule). */
+exports.getStaffSchedule = async (req, res) => {
+  try {
+    const { staffId } = req.params;
+    const target = await User.findOne({ staffId, role: { $in: ['staff', 'supervisor'] } });
+    if (!target) {
+      return res.status(404).json({ success: false, message: 'Staff or supervisor not found' });
+    }
+    const doc = await StaffSchedule.findOne({ staffId }).lean();
+    res.json({ success: true, data: doc || null });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.putStaffSchedule = async (req, res) => {
+  try {
+    const { staffId } = req.params;
+    const { days, dateEntries, notes } = req.body;
+    const target = await User.findOne({ staffId, role: { $in: ['staff', 'supervisor'] } });
+    if (!target) {
+      return res.status(404).json({ success: false, message: 'Staff or supervisor not found' });
+    }
+    if (!Array.isArray(days) && !Array.isArray(dateEntries)) {
+      return res.status(400).json({ success: false, message: 'Provide days (weekly) and/or dateEntries (ikut tarikh)' });
+    }
+    const $set = {
+      notes: notes != null ? String(notes) : '',
+      updatedBy: req.user._id,
+    };
+    if (Array.isArray(days)) {
+      $set.days = normalizeScheduleDays(days);
+    }
+    if (Array.isArray(dateEntries)) {
+      $set.dateEntries = normalizeDateEntries(dateEntries);
+    }
+    const doc = await StaffSchedule.findOneAndUpdate({ staffId }, { $set }, { upsert: true, new: true });
+    res.json({ success: true, message: 'Schedule saved', data: doc });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

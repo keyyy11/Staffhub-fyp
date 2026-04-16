@@ -42,9 +42,9 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
     final password = _passwordController.text;
     final adminSecret = _adminSecretController.text;
 
-    if (staffId.isEmpty || name.isEmpty || email.isEmpty || password.isEmpty || adminSecret.isEmpty) {
+    if (name.isEmpty || email.isEmpty || password.isEmpty || adminSecret.isEmpty) {
       setState(() {
-        _errorMessage = 'Please fill all fields';
+        _errorMessage = 'Please fill name, email, password, and admin secret';
         _isLoading = false;
       });
       return;
@@ -58,7 +58,13 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
       return;
     }
 
-    final result = await AuthService.registerAdmin(staffId, name, email, password, adminSecret);
+    final result = await AuthService.registerAdmin(
+      staffId.isEmpty ? null : staffId,
+      name,
+      email,
+      password,
+      adminSecret,
+    );
 
     if (!mounted) return;
     setState(() => _isLoading = false);
@@ -129,7 +135,7 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
                           ],
                         ),
                       ),
-                  _buildField('Admin ID', _staffIdController, 'admin001'),
+                  _buildField('Admin ID (optional)', _staffIdController, 'Leave empty for auto ADM001…'),
                   const SizedBox(height: 16),
                   _buildField('Full Name', _nameController, 'Admin Name'),
                   const SizedBox(height: 16),

@@ -3,6 +3,7 @@ const Attendance = require('../models/Attendance');
 const PayslipRecord = require('../models/PayslipRecord');
 const StaffSchedule = require('../models/StaffSchedule');
 const workplace = require('../config/workplace');
+const { coerceWorkingDay, deriveShiftTypeForApiRow, SHIFT_LABEL_MS, buildCalendarMonth } = require('../utils/scheduleDays');
 
 function pad2(n) {
   return String(n).padStart(2, '0');
@@ -28,13 +29,18 @@ exports.getWorkSchedule = (req, res) => {
     { day: 'Sunday', isWorkingDay: false },
   ];
 
+  const weeklySchedule = days.map((def) => {
+    const st = deriveShiftTypeForApiRow(null, def);
+    return { ...def, shiftType: st, shiftLabel: SHIFT_LABEL_MS[st] };
+  });
+
   res.json({
     success: true,
     data: {
       timezone: 'Asia/Kuala_Lumpur',
       expectedClockIn: expectedIn,
       notes: 'Ideal clock-in: on or before the expected time. Lunch break is included in the working window.',
-      weeklySchedule: days,
+      weeklySchedule,
     },
   });
 };
@@ -58,26 +64,50 @@ exports.getMyWorkSchedule = async (req, res) => {
     ];
 
     const custom = await StaffSchedule.findOne({ staffId }).lean();
-    let weeklySchedule = defaultDays;
+    let weeklySchedule = defaultDays.map((def) => {
+      const st = deriveShiftTypeForApiRow(null, def);
+      return { ...def, shiftType: st, shiftLabel: SHIFT_LABEL_MS[st] };
+    });
     let source = 'default';
     let customNotes = '';
 
-    if (custom && custom.days && custom.days.length > 0) {
-      source = 'supervisor';
+    const hasWeekly = custom && custom.days && custom.days.length > 0;
+    const hasDate = custom && custom.dateEntries && custom.dateEntries.length > 0;
+
+    if (hasWeekly) {
+      source = 'custom';
       customNotes = custom.notes || '';
       const byDay = Object.fromEntries(custom.days.map((d) => [d.day, d]));
       weeklySchedule = defaultDays.map((def) => {
         const o = byDay[def.day];
-        if (!o) return def;
-        return {
+        if (!o) {
+          const st = deriveShiftTypeForApiRow(null, def);
+          return { ...def, shiftType: st, shiftLabel: SHIFT_LABEL_MS[st] };
+        }
+        const merged = {
           day: def.day,
-          isWorkingDay: o.isWorkingDay !== undefined ? o.isWorkingDay : def.isWorkingDay,
+          isWorkingDay: coerceWorkingDay(o.isWorkingDay, def.isWorkingDay),
           workStart: o.workStart || def.workStart,
           workEnd: o.workEnd || def.workEnd,
           breakMinutes: def.breakMinutes,
         };
+        const st = deriveShiftTypeForApiRow(o, def);
+        return { ...merged, shiftType: st, shiftLabel: SHIFT_LABEL_MS[st] };
       });
+    } else if (hasDate) {
+      source = 'custom';
+      customNotes = custom.notes || '';
     }
+
+    const scheduleMode = hasDate ? 'byDate' : 'weekly';
+
+    const now = new Date();
+    const cy = req.query.year ? parseInt(req.query.year, 10) : now.getFullYear();
+    const cm = req.query.month ? parseInt(req.query.month, 10) : now.getMonth() + 1;
+    const calendarMonth =
+      !Number.isNaN(cy) && !Number.isNaN(cm) && cm >= 1 && cm <= 12
+        ? buildCalendarMonth(cy, cm, custom || {}, defaultDays)
+        : [];
 
     res.json({
       success: true,
@@ -85,12 +115,19 @@ exports.getMyWorkSchedule = async (req, res) => {
         timezone: 'Asia/Kuala_Lumpur',
         expectedClockIn: expectedIn,
         source,
+        scheduleMode,
         supervisorNotes: customNotes,
+        dateEntries: custom?.dateEntries || [],
         weeklySchedule,
+        calendarMonth,
+        calendarYear: cy,
+        calendarMonthNum: cm,
         notes:
-          source === 'supervisor'
-            ? 'Schedule set by your supervisor (merged with company defaults).'
-            : 'Company default schedule. Your supervisor may set a custom weekly plan.',
+          source === 'custom'
+            ? hasDate
+              ? 'Jadual ikut tarikh — Isnin minggu ini boleh lain dari Isnin minggu depan. Lalai mingguan dipakai jika tiada rekod untuk tarikh tersebut.'
+              : 'Custom weekly timetable (hari kerja, masa, cuti hari) — ditetapkan oleh pentadbir atau penyelia.'
+            : 'Jadual syarikat lalai. Pentadbir atau penyelia boleh menetapkan jadual sendiri.',
       },
     });
   } catch (error) {

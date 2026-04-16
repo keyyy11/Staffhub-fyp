@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
 import '../widgets/staffhub_logo.dart';
+import '../widgets/staff_schedule_editor_dialog.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'admin_register_screen.dart';
 import 'admin_profile_screen.dart';
+import 'settings_screen.dart';
 import 'admin_discipline_screen.dart';
 import 'admin_overtime_screen.dart';
 import 'admin_staff_edit_screen.dart';
@@ -248,57 +250,86 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final sid = member['staffId'] as String? ?? '';
     final name = member['name'] as String? ?? sid;
     final newIdController = TextEditingController();
-    final ok = await showDialog<bool>(
+    final autoSup = <bool>[false];
+    final dialogResult = await showDialog<Map<String, dynamic>?>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardDark,
-        title: const Text('Promote to supervisor?', style: TextStyle(color: AppTheme.textPrimary)),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '$name ($sid) will become a supervisor. Same email and password; they will see the supervisor dashboard. '
-                'Other staff can be assigned to report to this supervisor ID (see field below, or the current ID if unchanged).\n\n'
-                'Optional: set a new Staff ID now (e.g. SUP001). Leave blank to keep $sid.',
-                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            backgroundColor: AppTheme.cardDark,
+            title: const Text('Promote to supervisor?', style: TextStyle(color: AppTheme.textPrimary)),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '$name ($sid) will become a supervisor. Same email and password.\n\n'
+                    'Choose whether to keep ID $sid, set a custom supervisor ID, or auto-generate the next SUP### ID. '
+                    'If you change the ID, all existing records move to the new ID and the old ID is no longer used.',
+                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                  ),
+                  const SizedBox(height: 12),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: autoSup[0],
+                    onChanged: (v) => setDialogState(() {
+                      autoSup[0] = v ?? false;
+                      if (autoSup[0]) newIdController.clear();
+                    }),
+                    title: const Text(
+                      'Auto-generate supervisor ID (SUP…)',
+                      style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                    ),
+                    subtitle: const Text(
+                      'Replaces current ID in attendance, leave, OT, etc.',
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                    ),
+                    activeColor: AppTheme.accentBlue,
+                  ),
+                  if (!autoSup[0]) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      'New supervisor ID (optional)',
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: newIdController,
+                      style: const TextStyle(color: AppTheme.textPrimary),
+                      decoration: const InputDecoration(
+                        hintText: 'Leave empty to keep current ID',
+                        hintStyle: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              const SizedBox(height: 14),
-              const Text(
-                'New Staff ID (optional)',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-              ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: newIdController,
-                style: const TextStyle(color: AppTheme.textPrimary),
-                decoration: const InputDecoration(
-                  hintText: 'Leave empty to keep current ID',
-                  hintStyle: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-                ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, null), child: const Text('Cancel')),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, {'ok': true}),
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue),
+                child: const Text('Promote'),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue),
-            child: const Text('Promote'),
-          ),
-        ],
+          );
+        },
       ),
     );
-    final newStaffId = newIdController.text.trim();
+    if (dialogResult == null || dialogResult['ok'] != true || !mounted) {
+      newIdController.dispose();
+      return;
+    }
+    final useAutoSup = autoSup[0];
+    final manualId = newIdController.text.trim();
     newIdController.dispose();
-    if (ok != true || !mounted) return;
     setState(() => _promotingStaffId = sid);
     try {
       final result = await ApiService.promoteStaffToSupervisor(
         sid,
-        newStaffId: newStaffId.isEmpty ? null : newStaffId,
+        newStaffId: useAutoSup ? 'auto' : (manualId.isEmpty ? null : manualId),
       );
       if (!mounted) return;
       if (result['success'] == true) {
@@ -319,6 +350,74 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       }
     } finally {
       if (mounted) setState(() => _promotingStaffId = null);
+    }
+  }
+
+  Future<void> _openAdminScheduleEditor(Map<String, dynamic> member) async {
+    final staffId = member['staffId'] as String? ?? '';
+    final name = member['name'] as String? ?? staffId;
+    final role = member['role'] as String?;
+    if (role == 'admin') return;
+    List<Map<String, dynamic>> days = [];
+    List<Map<String, dynamic>> dateEntries = [];
+    String notes = '';
+    try {
+      final custom = await ApiService.getAdminStaffSchedule(staffId);
+      if (custom['success'] == true && custom['data'] != null) {
+        final data = custom['data'] as Map<String, dynamic>;
+        notes = (data['notes'] as String?) ?? '';
+        final raw = data['days'];
+        if (raw is List && raw.isNotEmpty) {
+          days = raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        }
+        final de = data['dateEntries'];
+        if (de is List && de.isNotEmpty) {
+          dateEntries = de.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        }
+      }
+    } catch (_) {}
+    if (days.isEmpty) {
+      try {
+        final w = await ApiService.getWorkSchedule();
+        final weekly = (w['data']?['weeklySchedule'] as List?) ?? [];
+        for (final raw in weekly) {
+          final r = raw as Map<String, dynamic>;
+          days.add({
+            'day': r['day'],
+            'isWorkingDay': r['isWorkingDay'] == true,
+            'workStart': r['workStart'] ?? '09:00',
+            'workEnd': r['workEnd'] ?? '18:00',
+            'shiftType': r['shiftType'],
+          });
+        }
+      } catch (_) {}
+    }
+    if (days.isEmpty) {
+      days = defaultWeekSchedule();
+    }
+    if (!mounted) return;
+    final saved = await showDialog<bool?>(
+      context: context,
+      builder: (ctx) => StaffScheduleEditorDialog(
+        staffName: name,
+        initialDays: days,
+        initialDateEntries: dateEntries.isNotEmpty ? dateEntries : null,
+        initialNotes: notes,
+        onSave: (clean, notesText) async {
+          final res = await ApiService.putAdminStaffSchedule(
+            staffId,
+            dateEntries: clean,
+            notes: notesText,
+          );
+          return res['success'] == true;
+        },
+      ),
+    );
+    if (!mounted) return;
+    if (saved == true) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schedule saved')));
+    } else if (saved == false) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to save schedule')));
     }
   }
 
@@ -357,7 +456,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   Text(
-                    'Ringkasan operasi',
+                    'Operations overview',
                     style: TextStyle(
                       color: AppTheme.textSecondary.withValues(alpha: 0.95),
                       fontSize: 13,
@@ -369,7 +468,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       Expanded(
                         child: _HomeStatCard(
                           icon: Icons.event_note_rounded,
-                          label: 'Cuti menunggu',
+                          label: 'Leave pending',
                           value: '$pendingLeave',
                           color: Colors.amber.shade200,
                         ),
@@ -378,7 +477,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       Expanded(
                         child: _HomeStatCard(
                           icon: Icons.more_time_rounded,
-                          label: 'OT menunggu',
+                          label: 'OT pending',
                           value: '$pendingOt',
                           color: AppTheme.accentBlue,
                         ),
@@ -387,7 +486,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       Expanded(
                         child: _HomeStatCard(
                           icon: Icons.fact_check_rounded,
-                          label: 'Rekod kehadiran',
+                          label: 'Attendance records',
                           value: '${_homeAttendanceStats?['total'] ?? _homeAttendance.length}',
                           color: Colors.greenAccent.shade100,
                         ),
@@ -399,11 +498,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     children: [
                       TextButton(
                         onPressed: () => _selectSection(2),
-                        child: const Text('Kehadiran penuh'),
+                        child: const Text('Full attendance'),
                       ),
                       TextButton(
                         onPressed: () => _selectSection(3),
-                        child: const Text('Permohonan cuti'),
+                        child: const Text('Leave requests'),
                       ),
                       TextButton(
                         onPressed: () {
@@ -411,13 +510,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             MaterialPageRoute(builder: (_) => const AdminOvertimeScreen()),
                           );
                         },
-                        child: const Text('OT lengkap'),
+                        child: const Text('All overtime'),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Aktiviti kehadiran (7 hari lepas)',
+                    'Attendance activity (last 7 days)',
                     style: TextStyle(
                       color: AppTheme.textPrimary,
                       fontSize: 16,
@@ -428,19 +527,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   if (attSlice.isEmpty)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Text('Tiada rekod kehadiran dalam tempoh ini.', style: TextStyle(color: AppTheme.textSecondary)),
+                      child: Text('No attendance records in this period.', style: TextStyle(color: AppTheme.textSecondary)),
                     )
                   else
                     ...attSlice.map((r) => _HomeAttendanceRow(
                           staffName: _staffDisplayName(r['staffId'] as String?, r['staffName'] as String?),
                           staffId: r['staffId'] as String? ?? '',
                           dateText: _formatDate(r['date']),
-                          timeLine: 'Masuk ${r['clockInTime'] ?? '-'} · Keluar ${r['clockOutTime'] ?? '-'}',
+                          timeLine: 'In ${r['clockInTime'] ?? '-'} · Out ${r['clockOutTime'] ?? '-'}',
                           late: (r['status'] as String?) == 'late',
                         )),
                   const SizedBox(height: 20),
                   const Text(
-                    'Permohonan cuti & penyelia',
+                    'Leave requests & supervisors',
                     style: TextStyle(
                       color: AppTheme.textPrimary,
                       fontSize: 16,
@@ -449,18 +548,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Menunggu: tunjuk penyelia (laporan). Selesai: siapa meluluskan.',
+                    'Pending: shows reporting supervisor. Completed: who approved.',
                     style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.9), fontSize: 12),
                   ),
                   const SizedBox(height: 10),
                   if (leavePending.isEmpty && leaveRecentDone.isEmpty)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Text('Tiada permohonan cuti.', style: TextStyle(color: AppTheme.textSecondary)),
+                      child: Text('No leave requests.', style: TextStyle(color: AppTheme.textSecondary)),
                     )
                   else ...[
                     if (leavePending.isNotEmpty) ...[
-                      const Text('Menunggu kelulusan', style: TextStyle(color: AppTheme.accentBlue, fontSize: 13, fontWeight: FontWeight.w600)),
+                      const Text('Awaiting approval', style: TextStyle(color: AppTheme.accentBlue, fontSize: 13, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 6),
                       ...leavePending.map((l) => _HomeLeaveCard(
                             staffName: l['staffName'] as String? ?? l['staffId'] as String? ?? '',
@@ -474,7 +573,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ],
                     if (leaveRecentDone.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      const Text('Keputusan terkini', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                      const Text('Recent decisions', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 6),
                       ...leaveRecentDone.map((l) => _HomeLeaveCard(
                             staffName: l['staffName'] as String? ?? l['staffId'] as String? ?? '',
@@ -489,7 +588,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ],
                   const SizedBox(height: 20),
                   const Text(
-                    'Lebih masa (OT)',
+                    'Overtime (OT)',
                     style: TextStyle(
                       color: AppTheme.textPrimary,
                       fontSize: 16,
@@ -498,18 +597,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Menunggu: penyelia yang dilapor. Selesai: nama pelulus.',
+                    'Pending: reported supervisor. Completed: approver name.',
                     style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.9), fontSize: 12),
                   ),
                   const SizedBox(height: 10),
                   if (otPending.isEmpty && otRecentDone.isEmpty)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Text('Tiada permohonan OT.', style: TextStyle(color: AppTheme.textSecondary)),
+                      child: Text('No overtime requests.', style: TextStyle(color: AppTheme.textSecondary)),
                     )
                   else ...[
                     if (otPending.isNotEmpty) ...[
-                      const Text('Menunggu penyelia', style: TextStyle(color: AppTheme.accentBlue, fontSize: 13, fontWeight: FontWeight.w600)),
+                      const Text('Awaiting supervisor', style: TextStyle(color: AppTheme.accentBlue, fontSize: 13, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 6),
                       ...otPending.map((o) => _HomeOtCard(
                             staffName: o['staffName'] as String? ?? o['staffId'] as String? ?? '',
@@ -522,7 +621,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ],
                     if (otRecentDone.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      const Text('Kelulusan / tolak terkini', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                      const Text('Recent approvals / rejections', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 6),
                       ...otRecentDone.map((o) => _HomeOtCard(
                             staffName: o['staffName'] as String? ?? o['staffId'] as String? ?? '',
@@ -558,9 +657,38 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ? ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(24),
-                children: const [
-                  SizedBox(height: 48),
-                  Center(child: Text('No staff or supervisors yet.', style: TextStyle(color: AppTheme.textSecondary))),
+                children: [
+                  const SizedBox(height: 48),
+                  Icon(Icons.groups_outlined, size: 56, color: AppTheme.textSecondary.withValues(alpha: 0.6)),
+                  const SizedBox(height: 16),
+                  const Center(
+                    child: Text(
+                      'No staff or supervisors yet.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 15),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      'Create accounts from Register staff — same email/password they use to log in.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.85), fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Center(
+                    child: FilledButton.icon(
+                      onPressed: () => setState(() => _selectedIndex = 7),
+                      icon: const Icon(Icons.person_add_alt_1_rounded, size: 20),
+                      label: const Text('Add staff'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.primaryBlue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      ),
+                    ),
+                  ),
                 ],
               )
             : ListView.builder(
@@ -570,9 +698,28 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   if (i == 0) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 14),
-                      child: Text(
-                        'All staff and supervisors (${_staffList.length}). Names, roles, and reporting lines.',
-                        style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.95), fontSize: 13),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'All staff and supervisors (${_staffList.length}). Names, roles, and reporting lines.',
+                              style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.95), fontSize: 13),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton.icon(
+                            onPressed: () => setState(() => _selectedIndex = 7),
+                            icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                            label: const Text('Add staff'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppTheme.primaryBlue,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   }
@@ -651,21 +798,33 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         const SizedBox(height: 10),
                         Align(
                           alignment: Alignment.centerRight,
-                          child: TextButton.icon(
-                            onPressed: () async {
-                              final updated = await Navigator.push<bool>(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => AdminStaffEditScreen(
-                                    staff: Map<String, dynamic>.from(s),
-                                    allStaff: _staffList,
-                                  ),
-                                ),
-                              );
-                              if (updated == true && mounted) await _loadStaff();
-                            },
-                            icon: const Icon(Icons.edit_outlined, size: 18, color: AppTheme.accentBlue),
-                            label: const Text('Edit', style: TextStyle(color: AppTheme.accentBlue)),
+                          child: Wrap(
+                            alignment: WrapAlignment.end,
+                            spacing: 4,
+                            runSpacing: 4,
+                            children: [
+                              TextButton.icon(
+                                onPressed: () => _openAdminScheduleEditor(s),
+                                icon: const Icon(Icons.schedule_rounded, size: 18, color: AppTheme.accentBlue),
+                                label: const Text('Weekly schedule', style: TextStyle(color: AppTheme.accentBlue)),
+                              ),
+                              TextButton.icon(
+                                onPressed: () async {
+                                  final updated = await Navigator.push<bool>(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => AdminStaffEditScreen(
+                                        staff: Map<String, dynamic>.from(s),
+                                        allStaff: _staffList,
+                                      ),
+                                    ),
+                                  );
+                                  if (updated == true && mounted) await _loadStaff();
+                                },
+                                icon: const Icon(Icons.edit_outlined, size: 18, color: AppTheme.accentBlue),
+                                label: const Text('Edit', style: TextStyle(color: AppTheme.accentBlue)),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -720,7 +879,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const StaffHubLogo(height: 52),
+                    const StaffHubLogo(height: 62),
                     const SizedBox(height: 14),
                     const Text(
                       'Admin Hub',
@@ -759,6 +918,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
               ),
               const Divider(color: AppTheme.borderBlue, height: 1),
+              ListTile(
+                leading: const Icon(Icons.settings_outlined, color: AppTheme.accentBlue),
+                title: const Text('Settings', style: TextStyle(color: AppTheme.textPrimary)),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  );
+                },
+              ),
               ListTile(
                 leading: const Icon(Icons.person_outline, color: AppTheme.accentBlue),
                 title: const Text('Admin profile', style: TextStyle(color: AppTheme.textPrimary)),
@@ -821,6 +990,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, color: AppTheme.accentBlue),
+            tooltip: 'Settings',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: AppTheme.accentBlue),
             tooltip: 'Refresh data',
@@ -1450,7 +1626,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 14),
                       child: Text(
-                        'Admin only: choose a staff member to promote. Optional: give them a new Staff ID in the dialog (e.g. supervisor prefix). Otherwise assign staff to report to their existing ID.',
+                        'Admin only: choose a staff member to promote. In the dialog you can keep their ID, set a custom supervisor ID, or auto-generate SUP###. Records move to the new ID if changed.',
                         style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.95), fontSize: 13),
                       ),
                     );
@@ -1599,7 +1775,7 @@ class _HomeAttendanceRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              late ? 'LEWAT' : 'TEPAT',
+              late ? 'LATE' : 'ON TIME',
               style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: late ? Colors.amber : Colors.green),
             ),
           ),
@@ -1632,7 +1808,7 @@ class _HomeLeaveCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final pending = status == 'pending';
     final roleLabel = decidedByRole == 'supervisor'
-        ? 'Penyelia'
+        ? 'Supervisor'
         : decidedByRole == 'admin'
             ? 'Admin'
             : '';
@@ -1659,7 +1835,7 @@ class _HomeLeaveCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  pending ? 'MENUNGGU' : status.toUpperCase(),
+                  pending ? 'PENDING' : status.toUpperCase(),
                   style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: pending ? Colors.amber : AppTheme.textSecondary),
                 ),
               ),
@@ -1669,12 +1845,12 @@ class _HomeLeaveCard extends StatelessWidget {
           Text('$type · $range', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
           if (pending && supervisorName != null && supervisorName!.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Text('Penyelia (laporan): $supervisorName', style: const TextStyle(color: AppTheme.accentBlue, fontSize: 12)),
+            Text('Reporting supervisor: $supervisorName', style: const TextStyle(color: AppTheme.accentBlue, fontSize: 12)),
           ],
           if (!pending && decidedByName != null && decidedByName!.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
-              'Keputusan: $decidedByName${roleLabel.isNotEmpty ? ' ($roleLabel)' : ''}',
+              'Decision: $decidedByName${roleLabel.isNotEmpty ? ' ($roleLabel)' : ''}',
               style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
             ),
           ],
@@ -1727,23 +1903,23 @@ class _HomeOtCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  pending ? 'MENUNGGU' : status.toUpperCase(),
+                  pending ? 'PENDING' : status.toUpperCase(),
                   style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: pending ? Colors.amber : AppTheme.textSecondary),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 4),
-          Text('OT $otDate · $hours jam', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+          Text('OT $otDate · $hours h', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
           if (pending && supervisorLabel != null && supervisorLabel!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: Text('Menunggu penyelia: $supervisorLabel', style: const TextStyle(color: AppTheme.accentBlue, fontSize: 12)),
+              child: Text('Awaiting supervisor: $supervisorLabel', style: const TextStyle(color: AppTheme.accentBlue, fontSize: 12)),
             ),
           if (!pending && approverName != null && approverName!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: Text('Pelulus: $approverName', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+              child: Text('Approved by: $approverName', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
             ),
         ],
       ),
@@ -1785,9 +1961,9 @@ class _AdminRegisterStaffFormState extends State<_AdminRegisterStaffForm> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    if (staffId.isEmpty || name.isEmpty || email.isEmpty || password.isEmpty) {
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
       setState(() {
-        _message = 'Please fill all fields';
+        _message = 'Please fill name, email, and password';
         _success = false;
       });
       return;
@@ -1805,13 +1981,22 @@ class _AdminRegisterStaffFormState extends State<_AdminRegisterStaffForm> {
       _message = null;
     });
     try {
-      final result = await ApiService.registerStaffByAdmin(staffId, name, email, password);
+      final result = await ApiService.registerStaffByAdmin(
+        staffId.isEmpty ? null : staffId,
+        name,
+        email,
+        password,
+      );
       if (!mounted) return;
       if (result['success'] == true) {
+        final data = result['data'] as Map<String, dynamic>?;
+        final assignedId = data?['staffId'] as String?;
         setState(() {
           _isLoading = false;
           _success = true;
-          _message = result['message'] as String? ?? 'Staff registered successfully';
+          _message = assignedId != null && assignedId.isNotEmpty
+              ? 'Staff registered. Assigned Staff ID: $assignedId'
+              : (result['message'] as String? ?? 'Staff registered successfully');
         });
         _staffIdController.clear();
         _nameController.clear();
@@ -1883,8 +2068,8 @@ class _AdminRegisterStaffFormState extends State<_AdminRegisterStaffForm> {
                     controller: _staffIdController,
                     style: const TextStyle(color: AppTheme.textPrimary),
                     decoration: InputDecoration(
-                      labelText: 'Staff ID',
-                      hintText: 'e.g. staff002',
+                      labelText: 'Staff ID (optional)',
+                      hintText: 'Leave empty to auto-generate (STF001, …)',
                       prefixIcon: const Icon(Icons.badge_outlined, color: AppTheme.accentBlue),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,

@@ -12,6 +12,8 @@ class WorkScheduleScreen extends StatefulWidget {
 
 class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
   Future<Map<String, dynamic>>? _future;
+  int _year = DateTime.now().year;
+  int _month = DateTime.now().month;
 
   @override
   void initState() {
@@ -26,12 +28,45 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
     final token = await AuthService.getToken();
     if (token != null) {
       try {
-        final r = await ApiService.getMyWorkSchedule();
+        final r = await ApiService.getMyWorkSchedule(year: _year, month: _month);
         if (r['success'] == true) return r;
       } catch (_) {}
     }
     return ApiService.getWorkSchedule();
   }
+
+  void _shiftMonth(int delta) {
+    var m = _month + delta;
+    var y = _year;
+    if (m > 12) {
+      m = 1;
+      y++;
+    }
+    if (m < 1) {
+      m = 12;
+      y--;
+    }
+    setState(() {
+      _month = m;
+      _year = y;
+      _future = _fetch();
+    });
+  }
+
+  static const _monthNames = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +109,9 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
             final expected = data['expectedClockIn'] as String? ?? '—';
             final weekly = (data['weeklySchedule'] as List<dynamic>?) ?? [];
             final source = data['source'] as String?;
+            final scheduleMode = data['scheduleMode'] as String?;
+            final calendarMonth = (data['calendarMonth'] as List<dynamic>?) ?? [];
+            final hasCalendar = calendarMonth.isNotEmpty;
 
             return RefreshIndicator(
               color: AppTheme.accentBlue,
@@ -97,7 +135,20 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
                         const Text('Expected clock-in', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
                         const SizedBox(height: 6),
                         Text(expected, style: const TextStyle(color: AppTheme.accentBlue, fontSize: 28, fontWeight: FontWeight.bold)),
-                        if (source == 'supervisor') ...[
+                        if (scheduleMode == 'byDate') ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.deepPurple.withOpacity(0.25),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'Jadual ikut tarikh (setiap hari boleh berbeza)',
+                              style: TextStyle(color: Colors.deepPurpleAccent, fontSize: 12),
+                            ),
+                          ),
+                        ] else if (source == 'custom' || source == 'supervisor') ...[
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -106,7 +157,7 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text(
-                              'Includes schedule from your supervisor',
+                              'Custom schedule (admin or supervisor)',
                               style: TextStyle(color: Colors.tealAccent, fontSize: 12),
                             ),
                           ),
@@ -121,16 +172,55 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
                       ],
                     ),
                   ),
+                  if (hasCalendar) ...[
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () => _shiftMonth(-1),
+                          icon: const Icon(Icons.chevron_left, color: AppTheme.accentBlue),
+                        ),
+                        Expanded(
+                          child: Text(
+                            '${_monthNames[_month - 1]} $_year',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => _shiftMonth(1),
+                          icon: const Icon(Icons.chevron_right, color: AppTheme.accentBlue),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Kalendar',
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                    ),
+                    const SizedBox(height: 8),
+                    _CalendarMonthGrid(
+                      year: _year,
+                      month: _month,
+                      days: calendarMonth,
+                    ),
+                  ],
                   const SizedBox(height: 20),
-                  const Text(
-                    'Weekly',
-                    style: TextStyle(color: AppTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    hasCalendar ? 'Ringkasan mingguan (lalai / fallback)' : 'Weekly',
+                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
                   ...weekly.map((raw) {
                     final row = raw as Map<String, dynamic>;
                     final day = row['day'] as String? ?? '';
+                    final label = row['shiftLabel'] as String?;
                     final working = row['isWorkingDay'] == true;
+                    final line1 = label ?? (working ? 'Shift' : 'Hari cuti');
+                    final line2 = working
+                        ? '${row['workStart']} – ${row['workEnd']}'
+                            '${row['breakMinutes'] != null ? '\nBreak ~${row['breakMinutes']} min' : ''}'
+                        : '';
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -151,10 +241,10 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
                             flex: 3,
                             child: working
                                 ? Text(
-                                    '${row['workStart']} – ${row['workEnd']}\nBreak ~${row['breakMinutes']} min',
+                                    line2.isNotEmpty ? '$line1\n$line2' : line1,
                                     style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.3),
                                   )
-                                : const Text('Off', style: TextStyle(color: AppTheme.textSecondary)),
+                                : Text(line1, style: const TextStyle(color: AppTheme.textSecondary)),
                           ),
                         ],
                       ),
@@ -166,6 +256,93 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
           },
         ),
       ),
+    );
+  }
+}
+
+class _CalendarMonthGrid extends StatelessWidget {
+  const _CalendarMonthGrid({
+    required this.year,
+    required this.month,
+    required this.days,
+  });
+
+  final int year;
+  final int month;
+  final List<dynamic> days;
+
+  @override
+  Widget build(BuildContext context) {
+    final first = DateTime(year, month, 1);
+    final startOffset = first.weekday - 1;
+    final cells = <Widget>[];
+    for (var i = 0; i < startOffset; i++) {
+      cells.add(const SizedBox());
+    }
+    for (var i = 0; i < days.length; i++) {
+      final row = days[i] as Map<String, dynamic>;
+      final dayNum = i + 1;
+      final label = row['shiftLabel'] as String? ?? '';
+      final src = row['source'] as String? ?? '';
+      final working = row['isWorkingDay'] == true;
+      final color = !working
+          ? AppTheme.textSecondary
+          : (row['shiftType'] == 'afternoon' ? Colors.orangeAccent : AppTheme.accentBlue);
+      cells.add(
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceDark,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: src == 'date' ? AppTheme.accentBlue.withOpacity(0.5) : AppTheme.borderBlue.withOpacity(0.2),
+              width: src == 'date' ? 1.2 : 1,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '$dayNum',
+                style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 9, color: color.withOpacity(0.95), height: 1.1),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            for (final w in ['Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab', 'Aha'])
+              Expanded(
+                child: Center(
+                  child: Text(w, style: TextStyle(fontSize: 10, color: AppTheme.textSecondary.withOpacity(0.85))),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        GridView.count(
+          crossAxisCount: 7,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 6,
+          crossAxisSpacing: 6,
+          childAspectRatio: 0.9,
+          children: cells,
+        ),
+      ],
     );
   }
 }

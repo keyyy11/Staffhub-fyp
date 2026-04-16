@@ -77,7 +77,7 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
     final email = _emailController.text.trim();
     if (name.isEmpty || email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nama dan e-mel diperlukan.')),
+        const SnackBar(content: Text('Name and email are required.')),
       );
       return;
     }
@@ -86,13 +86,13 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
     if (pw.isNotEmpty || pw2.isNotEmpty) {
       if (pw != pw2) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Kata laluan tidak sepadan.')),
+          const SnackBar(content: Text('Passwords do not match.')),
         );
         return;
       }
       if (pw.length < 6) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Kata laluan sekurang-kurangnya 6 aksara.')),
+          const SnackBar(content: Text('Password must be at least 6 characters.')),
         );
         return;
       }
@@ -112,7 +112,7 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
       if (update['success'] != true) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(update['message']?.toString() ?? 'Kemaskini gagal')),
+          SnackBar(content: Text(update['message']?.toString() ?? 'Update failed')),
         );
         return;
       }
@@ -126,7 +126,7 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  assign['message']?.toString() ?? 'Profil dikemaskini tetapi penugasan penyelia gagal',
+                  assign['message']?.toString() ?? 'Profile updated but supervisor assignment failed',
                 ),
               ),
             );
@@ -138,13 +138,13 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Berjaya dikemaskini')),
+        const SnackBar(content: Text('Saved successfully')),
       );
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ralat: $e')),
+        SnackBar(content: Text('Error: $e')),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -158,7 +158,7 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit staf'),
+        title: const Text('Edit staff'),
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -181,7 +181,7 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
               controller: _nameController,
               style: const TextStyle(color: AppTheme.textPrimary),
               decoration: const InputDecoration(
-                labelText: 'Nama',
+                labelText: 'Name',
                 labelStyle: TextStyle(color: AppTheme.textSecondary),
               ),
             ),
@@ -191,7 +191,7 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
               keyboardType: TextInputType.emailAddress,
               style: const TextStyle(color: AppTheme.textPrimary),
               decoration: const InputDecoration(
-                labelText: 'E-mel',
+                labelText: 'Email',
                 labelStyle: TextStyle(color: AppTheme.textSecondary),
               ),
             ),
@@ -201,7 +201,7 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
               keyboardType: TextInputType.phone,
               style: const TextStyle(color: AppTheme.textPrimary),
               decoration: const InputDecoration(
-                labelText: 'Telefon',
+                labelText: 'Phone',
                 labelStyle: TextStyle(color: AppTheme.textSecondary),
               ),
             ),
@@ -210,7 +210,7 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
               controller: _departmentController,
               style: const TextStyle(color: AppTheme.textPrimary),
               decoration: const InputDecoration(
-                labelText: 'Jabatan',
+                labelText: 'Department',
                 labelStyle: TextStyle(color: AppTheme.textSecondary),
               ),
             ),
@@ -219,14 +219,14 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
               controller: _positionController,
               style: const TextStyle(color: AppTheme.textPrimary),
               decoration: const InputDecoration(
-                labelText: 'Jawatan',
+                labelText: 'Position',
                 labelStyle: TextStyle(color: AppTheme.textSecondary),
               ),
             ),
             if (isStaff) ...[
               const SizedBox(height: 20),
               const Text(
-                'Penyelia (laporan)',
+                'Reporting supervisor',
                 style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
               ),
               const SizedBox(height: 8),
@@ -237,13 +237,13 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
                   final items = <DropdownMenuItem<String?>>[
                     const DropdownMenuItem<String?>(
                       value: null,
-                      child: Text('— Tiada —', style: TextStyle(color: AppTheme.textPrimary)),
+                      child: Text('— None —', style: TextStyle(color: AppTheme.textPrimary)),
                     ),
                     if (orphan)
                       DropdownMenuItem<String?>(
                         value: _supervisorStaffId,
                         child: Text(
-                          '$_supervisorStaffId (ID sedia ada)',
+                          '$_supervisorStaffId (current ID)',
                           style: const TextStyle(color: AppTheme.textSecondary),
                         ),
                       ),
@@ -276,7 +276,7 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
             ],
             const SizedBox(height: 20),
             const Text(
-              'Tukar kata laluan (pilihan)',
+              'Change password (optional)',
               style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 8),
@@ -285,7 +285,7 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
               obscureText: true,
               style: const TextStyle(color: AppTheme.textPrimary),
               decoration: const InputDecoration(
-                labelText: 'Kata laluan baharu',
+                labelText: 'New password',
                 labelStyle: TextStyle(color: AppTheme.textSecondary),
               ),
             ),
@@ -295,7 +295,7 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
               obscureText: true,
               style: const TextStyle(color: AppTheme.textPrimary),
               decoration: const InputDecoration(
-                labelText: 'Sahkan kata laluan',
+                labelText: 'Confirm password',
                 labelStyle: TextStyle(color: AppTheme.textSecondary),
               ),
             ),
@@ -313,7 +313,7 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
                       width: 22,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
-                  : const Text('Simpan'),
+                  : const Text('Save'),
             ),
           ],
         ),

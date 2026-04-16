@@ -17,6 +17,8 @@ router.post('/register-staff', adminController.registerStaff);
 router.put('/staff/:staffId/salary', adminController.updateStaffSalary);
 router.put('/staff/:staffId/supervisor', adminController.assignSupervisor);
 router.put('/staff/:staffId/promote-supervisor', adminController.promoteStaffToSupervisor);
+router.get('/staff/:staffId/schedule', adminController.getStaffSchedule);
+router.put('/staff/:staffId/schedule', adminController.putStaffSchedule);
 router.put('/staff/:staffId', adminController.updateStaffByAdmin);
 router.get('/config', adminController.getConfig);
 router.get('/leave-requests', adminController.getLeaveRequests);

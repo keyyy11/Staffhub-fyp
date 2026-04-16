@@ -13,6 +13,7 @@ import 'apply_overtime_screen.dart';
 import 'attendance_history_screen.dart';
 import 'payslip_screen.dart';
 import 'profile_screen.dart';
+import 'settings_screen.dart';
 import 'work_schedule_screen.dart';
 import '../widgets/staffhub_logo.dart';
 
@@ -171,7 +172,13 @@ class _HomeScreenState extends State<HomeScreen> {
         _showMessage(result['message'] ?? 'Auto clock out failed', false);
       }
     } catch (e) {
-      _showMessage('Error: Please ensure API is running', false);
+      final s = e.toString();
+      _showMessage(
+        s.contains('SocketException') || s.contains('TimeoutException')
+            ? 'Cannot reach API. Check base URL and that staffhub-api is running.'
+            : 'Error: $s',
+        false,
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -216,21 +223,38 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _loadWorkplaceInfo() async {
+  /// Loads workplace circle from API. Returns false if coords could not be set (never use 0,0 as fallback).
+  Future<bool> _loadWorkplaceInfo() async {
     try {
       final result = await ApiService.getWorkplaceInfo();
       if (result['success'] == true && result['data'] != null && mounted) {
+        final data = result['data'] as Map<String, dynamic>;
+        final lat = (data['lat'] as num).toDouble();
+        final lng = (data['lng'] as num).toDouble();
+        final r = data['radiusMeters'];
         setState(() {
-          _workplaceLat = (result['data']['lat'] as num).toDouble();
-          _workplaceLng = (result['data']['lng'] as num).toDouble();
-          _radiusMeters = result['data']['radiusMeters'] ?? 60;
+          _workplaceLat = lat;
+          _workplaceLng = lng;
+          _radiusMeters = r is int ? r : (r as num?)?.toInt() ?? 60;
         });
         await _checkLocation();
+        return true;
       }
     } catch (_) {
       // API unreachable: still try location so the screen can show user coords without map center.
       if (mounted) await _checkLocation();
     }
+    return false;
+  }
+
+  /// Ensures workplace lat/lng are loaded before geofence checks (avoids treating null as 0,0 → bogus ~13,000 km distance).
+  Future<bool> _ensureWorkplaceReady() async {
+    if (_workplaceLat != null && _workplaceLng != null) return true;
+    if (await _loadWorkplaceInfo()) return true;
+    if (!mounted) return false;
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return false;
+    return _loadWorkplaceInfo();
   }
 
   Future<void> _checkLocation() async {
@@ -252,6 +276,7 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _userLat = position.latitude;
         _userLng = position.longitude;
+        _distance = null;
       });
     }
   }
@@ -272,13 +297,21 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
 
+      if (!await _ensureWorkplaceReady() || _workplaceLat == null || _workplaceLng == null) {
+        _showMessage(
+          'Could not load workplace location. Check API connection (same Wi‑Fi / API_BASE_URL), then try again.',
+          false,
+        );
+        return;
+      }
+
       await _checkLocation();
 
       if (!LocationService.isWithinRadius(
         position.latitude,
         position.longitude,
-        _workplaceLat ?? 0,
-        _workplaceLng ?? 0,
+        _workplaceLat!,
+        _workplaceLng!,
         _radiusMeters,
       )) {
         _showMessage(
@@ -301,7 +334,13 @@ class _HomeScreenState extends State<HomeScreen> {
         _showMessage(result['message'] ?? 'Clock in failed', false);
       }
     } catch (e) {
-      _showMessage('Error: Please ensure API is running and connection is OK', false);
+      final s = e.toString();
+      _showMessage(
+        s.contains('SocketException') || s.contains('TimeoutException') || s.contains('Failed host lookup')
+            ? 'Cannot reach API. Set API URL (Android emulator: 10.0.2.2:3000/api). Ensure staffhub-api is running on your PC.'
+            : 'Error: $s',
+        false,
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -323,13 +362,21 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
 
+      if (!await _ensureWorkplaceReady() || _workplaceLat == null || _workplaceLng == null) {
+        _showMessage(
+          'Could not load workplace location. Check API connection (same Wi‑Fi / API_BASE_URL), then try again.',
+          false,
+        );
+        return;
+      }
+
       await _checkLocation();
 
       if (!LocationService.isWithinRadius(
         position.latitude,
         position.longitude,
-        _workplaceLat ?? 0,
-        _workplaceLng ?? 0,
+        _workplaceLat!,
+        _workplaceLng!,
         _radiusMeters,
       )) {
         _showMessage(
@@ -352,7 +399,13 @@ class _HomeScreenState extends State<HomeScreen> {
         _showMessage(result['message'] ?? 'Clock out failed', false);
       }
     } catch (e) {
-      _showMessage('Error: Please ensure API is running and connection is OK', false);
+      final s = e.toString();
+      _showMessage(
+        s.contains('SocketException') || s.contains('TimeoutException') || s.contains('Failed host lookup')
+            ? 'Cannot reach API. Set API URL (Android emulator: 10.0.2.2:3000/api). Ensure staffhub-api is running on your PC.'
+            : 'Error: $s',
+        false,
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -394,7 +447,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    const StaffHubLogo(height: 48),
+                    const StaffHubLogo(height: 58),
                     const SizedBox(height: 12),
                     if (_staffId.isNotEmpty)
                       Text(
@@ -455,6 +508,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const Divider(color: AppTheme.borderBlue),
               ListTile(
+                leading: const Icon(Icons.settings_outlined, color: AppTheme.accentBlue),
+                title: const Text('Settings', style: TextStyle(color: AppTheme.textPrimary)),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                },
+              ),
+              ListTile(
                 leading: const Icon(Icons.person_outline, color: AppTheme.accentBlue),
                 title: const Text('Profile', style: TextStyle(color: AppTheme.textPrimary)),
                 onTap: () {
@@ -478,12 +539,19 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const FittedBox(
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
-          child: StaffHubLogo(height: 28),
+          child: StaffHubLogo(height: 36),
         ),
         backgroundColor: AppTheme.surfaceDark,
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, color: AppTheme.accentBlue),
+            tooltip: 'Settings',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.person_outline, color: AppTheme.accentBlue),
             onPressed: () => Navigator.of(context).push(
@@ -670,6 +738,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: const TextStyle(
                             fontSize: 14,
                             color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      if (_distance != null && _distance! > 100000)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Text(
+                            'This usually means your GPS is far from the workplace (common on emulators: default US vs Malaysia site). Set a mock location near the blue pin, or use a real device at the office.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              height: 1.35,
+                              color: Colors.amber.shade200,
+                            ),
                           ),
                         ),
                     ],

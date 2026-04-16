@@ -5,7 +5,7 @@ import '../app_assets.dart';
 class StaffHubLogo extends StatelessWidget {
   const StaffHubLogo({
     super.key,
-    this.height = 120,
+    this.height = 132,
     this.width,
     this.fit = BoxFit.contain,
   });
@@ -18,8 +18,8 @@ class StaffHubLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     // Cap decoded bitmap size so a large source PNG cannot freeze the UI on first paint.
     final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0;
-    final maxLogical = (width ?? height * 2).clamp(48.0, 240.0);
-    final cachePx = (maxLogical * dpr).round().clamp(128, 512);
+    final maxLogical = (width ?? height * 2).clamp(48.0, 280.0);
+    final cachePx = (maxLogical * dpr).round().clamp(128, 640);
 
     return Image.asset(
       AppAssets.staffhubLogo,

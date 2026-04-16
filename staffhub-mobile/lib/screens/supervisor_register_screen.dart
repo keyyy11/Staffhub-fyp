@@ -42,9 +42,9 @@ class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
     final password = _passwordController.text;
     final secret = _secretController.text;
 
-    if (staffId.isEmpty || name.isEmpty || email.isEmpty || password.isEmpty || secret.isEmpty) {
+    if (name.isEmpty || email.isEmpty || password.isEmpty || secret.isEmpty) {
       setState(() {
-        _errorMessage = 'Please fill all fields';
+        _errorMessage = 'Please fill name, email, password, and supervisor secret';
         _isLoading = false;
       });
       return;
@@ -58,7 +58,13 @@ class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
       return;
     }
 
-    final result = await AuthService.registerSupervisor(staffId, name, email, password, secret);
+    final result = await AuthService.registerSupervisor(
+      staffId.isEmpty ? null : staffId,
+      name,
+      email,
+      password,
+      secret,
+    );
 
     if (!mounted) return;
     setState(() => _isLoading = false);
@@ -119,7 +125,10 @@ class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
                 TextField(
                   controller: _staffIdController,
                   style: const TextStyle(color: AppTheme.textPrimary),
-                  decoration: _decoration('Staff ID'),
+                  decoration: _decoration('Supervisor ID (optional)').copyWith(
+                    hintText: 'Leave empty for auto SUP001…',
+                    hintStyle: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(

@@ -4,5 +4,5 @@ abstract final class AppAssets {
 
   /// Path must not start with `assets/` — on Flutter Web the engine prepends `assets/`,
   /// which would otherwise produce a broken `assets/assets/...` URL.
-  static const String staffhubLogo = 'images/staffhub_logo.png';
+  static const String staffhubLogo = 'images/logo.png';
 }

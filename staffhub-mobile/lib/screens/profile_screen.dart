@@ -7,6 +7,7 @@ import '../app_theme.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import 'home_screen.dart';
+import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -310,6 +311,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, color: AppTheme.accentBlue),
+            tooltip: 'Settings',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+          ),
           if (_isEditing)
             TextButton(
               onPressed: _isSaving ? null : () => setState(() => _isEditing = false),

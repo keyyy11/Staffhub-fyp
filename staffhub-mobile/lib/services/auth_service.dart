@@ -48,7 +48,7 @@ class AuthService {
   }
 
   static Future<LoginResult> registerSupervisor(
-    String staffId, String name, String email, String password, String supervisorSecret,
+    String? staffId, String name, String email, String password, String supervisorSecret,
   ) async {
     try {
       final response = await ApiService.registerSupervisor(staffId, name, email, password, supervisorSecret);
@@ -68,7 +68,7 @@ class AuthService {
   }
 
   static Future<LoginResult> registerAdmin(
-    String staffId, String name, String email, String password, String adminSecret,
+    String? staffId, String name, String email, String password, String adminSecret,
   ) async {
     try {
       final response = await ApiService.registerAdmin(staffId, name, email, password, adminSecret);
@@ -92,7 +92,7 @@ class AuthService {
 
   /// Returns (success, errorMessage). errorMessage is null on success.
   static Future<LoginResult> register(
-    String staffId,
+    String? staffId,
     String name,
     String email,
     String password,

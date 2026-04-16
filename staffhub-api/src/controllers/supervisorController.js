@@ -5,6 +5,7 @@ const LeaveBalance = require('../models/LeaveBalance');
 const Notification = require('../models/Notification');
 const StaffSchedule = require('../models/StaffSchedule');
 const workplace = require('../config/workplace');
+const { normalizeScheduleDays, normalizeDateEntries } = require('../utils/scheduleDays');
 
 async function getOrCreateBalance(staffId, year) {
   let balance = await LeaveBalance.findOne({ staffId, year });
@@ -279,25 +280,25 @@ exports.getStaffSchedule = async (req, res) => {
 exports.putStaffSchedule = async (req, res) => {
   try {
     const { staffId } = req.params;
-    const { days, notes } = req.body;
+    const { days, dateEntries, notes } = req.body;
     const teamIds = await getTeamStaffIds(req.user.staffId);
     if (!teamIds.includes(staffId)) {
       return res.status(403).json({ success: false, message: 'Not your team member' });
     }
-    if (!Array.isArray(days) || days.length === 0) {
-      return res.status(400).json({ success: false, message: 'days array required (Mon–Sun)' });
+    if (!Array.isArray(days) && !Array.isArray(dateEntries)) {
+      return res.status(400).json({ success: false, message: 'Provide days (weekly) and/or dateEntries (ikut tarikh)' });
     }
-    const doc = await StaffSchedule.findOneAndUpdate(
-      { staffId },
-      {
-        $set: {
-          days,
-          notes: notes != null ? String(notes) : '',
-          updatedBy: req.user._id,
-        },
-      },
-      { upsert: true, new: true },
-    );
+    const $set = {
+      notes: notes != null ? String(notes) : '',
+      updatedBy: req.user._id,
+    };
+    if (Array.isArray(days)) {
+      $set.days = normalizeScheduleDays(days);
+    }
+    if (Array.isArray(dateEntries)) {
+      $set.dateEntries = normalizeDateEntries(dateEntries);
+    }
+    const doc = await StaffSchedule.findOneAndUpdate({ staffId }, { $set }, { upsert: true, new: true });
     res.json({ success: true, message: 'Schedule saved', data: doc });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

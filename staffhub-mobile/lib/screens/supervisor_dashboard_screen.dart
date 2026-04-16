@@ -4,21 +4,9 @@ import '../app_theme.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/staffhub_logo.dart';
+import '../widgets/staff_schedule_editor_dialog.dart';
 import 'login_screen.dart';
-
-/// Default Mon–Sun row when no company API — supervisor can still create a schedule.
-List<Map<String, dynamic>> _defaultWeekSchedule() {
-  const names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  return [
-    for (final d in names)
-      <String, dynamic>{
-        'day': d,
-        'isWorkingDay': d != 'Saturday' && d != 'Sunday',
-        'workStart': '09:00',
-        'workEnd': '18:00',
-      },
-  ];
-}
+import 'settings_screen.dart';
 
 /// Supervisor: team attendance, leave, per-staff schedules, clock-in/out notifications.
 class SupervisorDashboardScreen extends StatefulWidget {
@@ -220,6 +208,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
     final staffId = member['staffId'] as String? ?? '';
     final name = member['name'] as String? ?? staffId;
     List<Map<String, dynamic>> days = [];
+    List<Map<String, dynamic>> dateEntries = [];
     String notes = '';
     try {
       final custom = await ApiService.getSupervisorStaffSchedule(staffId);
@@ -229,6 +218,10 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
         final raw = data['days'];
         if (raw is List && raw.isNotEmpty) {
           days = raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        }
+        final de = data['dateEntries'];
+        if (de is List && de.isNotEmpty) {
+          dateEntries = de.map((e) => Map<String, dynamic>.from(e as Map)).toList();
         }
       }
     } catch (_) {}
@@ -243,21 +236,30 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
             'isWorkingDay': r['isWorkingDay'] == true,
             'workStart': r['workStart'] ?? '09:00',
             'workEnd': r['workEnd'] ?? '18:00',
+            'shiftType': r['shiftType'],
           });
         }
       } catch (_) {}
     }
     if (days.isEmpty) {
-      days = _defaultWeekSchedule();
+      days = defaultWeekSchedule();
     }
     if (!mounted) return;
     final saved = await showDialog<bool?>(
       context: context,
-      builder: (ctx) => _ScheduleEditorDialog(
-        staffId: staffId,
+      builder: (ctx) => StaffScheduleEditorDialog(
         staffName: name,
         initialDays: days,
+        initialDateEntries: dateEntries.isNotEmpty ? dateEntries : null,
         initialNotes: notes,
+        onSave: (clean, notesText) async {
+          final res = await ApiService.putSupervisorStaffSchedule(
+            staffId,
+            dateEntries: clean,
+            notes: notesText,
+          );
+          return res['success'] == true;
+        },
       ),
     );
     if (!mounted) return;
@@ -284,7 +286,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    StaffHubLogo(height: 48),
+                    StaffHubLogo(height: 58),
                     SizedBox(height: 12),
                     Text('Supervisor', style: TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold)),
                     Text('Home & organisation', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
@@ -326,6 +328,14 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                 ),
               ),
               ListTile(
+                leading: const Icon(Icons.settings_outlined, color: AppTheme.accentBlue),
+                title: const Text('Settings', style: TextStyle(color: AppTheme.textPrimary)),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                },
+              ),
+              ListTile(
                 leading: const Icon(Icons.logout, color: Colors.redAccent),
                 title: const Text('Log out', style: TextStyle(color: Colors.redAccent)),
                 onTap: _logout,
@@ -340,6 +350,11 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, color: AppTheme.accentBlue),
+            tooltip: 'Settings',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+          ),
           if (_unreadNotifications > 0 && _selectedIndex != 5)
             Center(
               child: Padding(
@@ -1188,228 +1203,6 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ScheduleEditorDialog extends StatefulWidget {
-  const _ScheduleEditorDialog({
-    required this.staffId,
-    required this.staffName,
-    required this.initialDays,
-    required this.initialNotes,
-  });
-
-  final String staffId;
-  final String staffName;
-  final List<Map<String, dynamic>> initialDays;
-  final String initialNotes;
-
-  @override
-  State<_ScheduleEditorDialog> createState() => _ScheduleEditorDialogState();
-}
-
-class _ScheduleEditorDialogState extends State<_ScheduleEditorDialog> {
-  late List<Map<String, dynamic>> _days;
-  late List<TextEditingController> _startControllers;
-  late List<TextEditingController> _endControllers;
-  late TextEditingController _notesController;
-
-  @override
-  void initState() {
-    super.initState();
-    final seed = widget.initialDays.isNotEmpty ? widget.initialDays : _defaultWeekSchedule();
-    _days = seed.map((e) => Map<String, dynamic>.from(e)).toList();
-    _startControllers = [];
-    _endControllers = [];
-    for (final d in _days) {
-      _startControllers.add(TextEditingController(text: d['workStart']?.toString() ?? '09:00'));
-      _endControllers.add(TextEditingController(text: d['workEnd']?.toString() ?? '18:00'));
-    }
-    _notesController = TextEditingController(text: widget.initialNotes);
-  }
-
-  @override
-  void dispose() {
-    for (final c in _startControllers) {
-      c.dispose();
-    }
-    for (final c in _endControllers) {
-      c.dispose();
-    }
-    _notesController.dispose();
-    super.dispose();
-  }
-
-  void _replaceDays(List<Map<String, dynamic>> newDays) {
-    for (final c in _startControllers) {
-      c.dispose();
-    }
-    for (final c in _endControllers) {
-      c.dispose();
-    }
-    _startControllers = [];
-    _endControllers = [];
-    _days = newDays.map((e) => Map<String, dynamic>.from(e)).toList();
-    for (final d in _days) {
-      _startControllers.add(TextEditingController(text: d['workStart']?.toString() ?? '09:00'));
-      _endControllers.add(TextEditingController(text: d['workEnd']?.toString() ?? '18:00'));
-    }
-    setState(() {});
-  }
-
-  Future<void> _loadCompanyTemplate() async {
-    try {
-      final w = await ApiService.getWorkSchedule();
-      final weekly = (w['data']?['weeklySchedule'] as List?) ?? [];
-      if (weekly.isEmpty) return;
-      final newDays = <Map<String, dynamic>>[];
-      for (final raw in weekly) {
-        final r = raw as Map<String, dynamic>;
-        newDays.add({
-          'day': r['day'],
-          'isWorkingDay': r['isWorkingDay'] == true,
-          'workStart': r['workStart'] ?? '09:00',
-          'workEnd': r['workEnd'] ?? '18:00',
-        });
-      }
-      _replaceDays(newDays);
-    } catch (_) {}
-  }
-
-  Future<void> _save() async {
-    for (var i = 0; i < _days.length; i++) {
-      _days[i]['workStart'] = _startControllers[i].text.trim();
-      _days[i]['workEnd'] = _endControllers[i].text.trim();
-    }
-    final clean = _days
-        .map(
-          (d) => {
-            'day': d['day'],
-            'isWorkingDay': d['isWorkingDay'] == true,
-            'workStart': (d['workStart'] ?? '09:00').toString(),
-            'workEnd': (d['workEnd'] ?? '18:00').toString(),
-          },
-        )
-        .toList();
-    try {
-      final res = await ApiService.putSupervisorStaffSchedule(
-        widget.staffId,
-        clean,
-        notes: _notesController.text.trim(),
-      );
-      if (!mounted) return;
-      Navigator.pop(context, res['success'] == true);
-    } catch (_) {
-      if (mounted) Navigator.pop(context, false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: AppTheme.cardDark,
-      title: Text('New / edit schedule · ${widget.staffName}', style: const TextStyle(color: AppTheme.textPrimary)),
-      content: SizedBox(
-        width: double.maxFinite,
-        height: 460,
-        child: ListView(
-          children: [
-            Text(
-              'Create a weekly pattern, then Save. Use buttons below to start from the company default or a standard week.',
-              style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.95), fontSize: 12),
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: _loadCompanyTemplate,
-                  icon: const Icon(Icons.business, size: 18, color: AppTheme.accentBlue),
-                  label: const Text('Company template'),
-                  style: OutlinedButton.styleFrom(foregroundColor: AppTheme.accentBlue),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => _replaceDays(_defaultWeekSchedule()),
-                  icon: const Icon(Icons.calendar_view_week, size: 18, color: AppTheme.accentBlue),
-                  label: const Text('Mon–Fri 9–6'),
-                  style: OutlinedButton.styleFrom(foregroundColor: AppTheme.accentBlue),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ..._days.asMap().entries.map((entry) {
-              final i = entry.key;
-              final row = entry.value;
-              final day = row['day'] as String? ?? '';
-              return Card(
-                color: AppTheme.surfaceDark,
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(day, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
-                      SwitchListTile(
-                        dense: true,
-                        title: const Text('Working day', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-                        value: row['isWorkingDay'] == true,
-                        activeColor: AppTheme.accentBlue,
-                        onChanged: (v) => setState(() => _days[i]['isWorkingDay'] = v),
-                      ),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _startControllers[i],
-                              decoration: const InputDecoration(
-                                labelText: 'Start',
-                                labelStyle: TextStyle(color: AppTheme.textSecondary),
-                                isDense: true,
-                              ),
-                              style: const TextStyle(color: AppTheme.textPrimary),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: _endControllers[i],
-                              decoration: const InputDecoration(
-                                labelText: 'End',
-                                labelStyle: TextStyle(color: AppTheme.textSecondary),
-                                isDense: true,
-                              ),
-                              style: const TextStyle(color: AppTheme.textPrimary),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-            TextField(
-              controller: _notesController,
-              maxLines: 2,
-              style: const TextStyle(color: AppTheme.textPrimary),
-              decoration: const InputDecoration(
-                labelText: 'Notes for staff',
-                labelStyle: TextStyle(color: AppTheme.textSecondary),
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        ElevatedButton(
-          onPressed: _save,
-          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue),
-          child: const Text('Save schedule'),
-        ),
-      ],
     );
   }
 }

@@ -42,9 +42,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    if (staffId.isEmpty || name.isEmpty || email.isEmpty || password.isEmpty) {
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
       setState(() {
-        _errorMessage = 'Please fill in all fields';
+        _errorMessage = 'Please fill name, email, and password';
         _isLoading = false;
       });
       return;
@@ -59,7 +59,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     final result = await AuthService.register(
-      staffId,
+      staffId.isEmpty ? null : staffId,
       name,
       email,
       password,
@@ -156,8 +156,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _staffIdController,
                           style: const TextStyle(color: AppTheme.textPrimary),
                           decoration: InputDecoration(
-                            labelText: 'Staff ID',
-                            hintText: 'staff001',
+                            labelText: 'Staff ID (optional)',
+                            hintText: 'Leave empty to auto-generate (STF001, …)',
                             prefixIcon: const Icon(Icons.badge_outlined, color: AppTheme.accentBlue),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),

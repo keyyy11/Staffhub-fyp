@@ -38,6 +38,8 @@ app.get('/api/capabilities', (req, res) => {
       api: 'staffhub-api',
       adminStaffUpdatePut: true,
       adminStaffSupervisorPut: true,
+      /** Set when auth routes accept empty staffId + autoStaffId (ADM/STF/SUP). */
+      authOptionalStaffId: true,
     },
   });
 });
