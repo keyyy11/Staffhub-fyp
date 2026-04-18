@@ -158,14 +158,14 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit staff'),
+        title: Text('Edit staff'),
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+            colors: [context.appColors.surface, context.appColors.background],
             stops: [0.0, 0.25],
           ),
         ),
@@ -174,77 +174,77 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
           children: [
             Text(
               '$_staffId · $roleLabel',
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+              style: TextStyle(color: context.appColors.textSecondary, fontSize: 14),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             TextField(
               controller: _nameController,
-              style: const TextStyle(color: AppTheme.textPrimary),
-              decoration: const InputDecoration(
+              style: TextStyle(color: context.appColors.textPrimary),
+              decoration: InputDecoration(
                 labelText: 'Name',
-                labelStyle: TextStyle(color: AppTheme.textSecondary),
+                labelStyle: TextStyle(color: context.appColors.textSecondary),
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              style: const TextStyle(color: AppTheme.textPrimary),
-              decoration: const InputDecoration(
+              style: TextStyle(color: context.appColors.textPrimary),
+              decoration: InputDecoration(
                 labelText: 'Email',
-                labelStyle: TextStyle(color: AppTheme.textSecondary),
+                labelStyle: TextStyle(color: context.appColors.textSecondary),
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
-              style: const TextStyle(color: AppTheme.textPrimary),
-              decoration: const InputDecoration(
+              style: TextStyle(color: context.appColors.textPrimary),
+              decoration: InputDecoration(
                 labelText: 'Phone',
-                labelStyle: TextStyle(color: AppTheme.textSecondary),
+                labelStyle: TextStyle(color: context.appColors.textSecondary),
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextField(
               controller: _departmentController,
-              style: const TextStyle(color: AppTheme.textPrimary),
-              decoration: const InputDecoration(
+              style: TextStyle(color: context.appColors.textPrimary),
+              decoration: InputDecoration(
                 labelText: 'Department',
-                labelStyle: TextStyle(color: AppTheme.textSecondary),
+                labelStyle: TextStyle(color: context.appColors.textSecondary),
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextField(
               controller: _positionController,
-              style: const TextStyle(color: AppTheme.textPrimary),
-              decoration: const InputDecoration(
+              style: TextStyle(color: context.appColors.textPrimary),
+              decoration: InputDecoration(
                 labelText: 'Position',
-                labelStyle: TextStyle(color: AppTheme.textSecondary),
+                labelStyle: TextStyle(color: context.appColors.textSecondary),
               ),
             ),
             if (isStaff) ...[
-              const SizedBox(height: 20),
-              const Text(
+              SizedBox(height: 20),
+              Text(
                 'Reporting supervisor',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Builder(
                 builder: (context) {
                   final orphan = _supervisorStaffId.isNotEmpty &&
                       !_supervisors.any((m) => (m['staffId'] as String?) == _supervisorStaffId);
                   final items = <DropdownMenuItem<String?>>[
-                    const DropdownMenuItem<String?>(
+                    DropdownMenuItem<String?>(
                       value: null,
-                      child: Text('— None —', style: TextStyle(color: AppTheme.textPrimary)),
+                      child: Text('— None —', style: TextStyle(color: context.appColors.textPrimary)),
                     ),
                     if (orphan)
                       DropdownMenuItem<String?>(
                         value: _supervisorStaffId,
                         child: Text(
                           '$_supervisorStaffId (current ID)',
-                          style: const TextStyle(color: AppTheme.textSecondary),
+                          style: TextStyle(color: context.appColors.textSecondary),
                         ),
                       ),
                     ..._supervisors.map((sup) {
@@ -252,17 +252,17 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
                       final nm = sup['name'] as String? ?? sid;
                       return DropdownMenuItem<String?>(
                         value: sid,
-                        child: Text('$nm ($sid)', style: const TextStyle(color: AppTheme.textPrimary)),
+                        child: Text('$nm ($sid)', style: TextStyle(color: context.appColors.textPrimary)),
                       );
                     }),
                   ];
                   return DropdownButtonFormField<String?>(
                     value: _supervisorStaffId.isEmpty ? null : _supervisorStaffId,
-                    dropdownColor: AppTheme.cardDark,
-                    style: const TextStyle(color: AppTheme.textPrimary),
-                    decoration: const InputDecoration(
+                    dropdownColor: context.appColors.card,
+                    style: TextStyle(color: context.appColors.textPrimary),
+                    decoration: InputDecoration(
                       labelText: 'Supervisor',
-                      labelStyle: TextStyle(color: AppTheme.textSecondary),
+                      labelStyle: TextStyle(color: context.appColors.textSecondary),
                     ),
                     items: items,
                     onChanged: _saving
@@ -274,46 +274,46 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
                 },
               ),
             ],
-            const SizedBox(height: 20),
-            const Text(
+            SizedBox(height: 20),
+            Text(
               'Change password (optional)',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+              style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             TextField(
               controller: _passwordController,
               obscureText: true,
-              style: const TextStyle(color: AppTheme.textPrimary),
-              decoration: const InputDecoration(
+              style: TextStyle(color: context.appColors.textPrimary),
+              decoration: InputDecoration(
                 labelText: 'New password',
-                labelStyle: TextStyle(color: AppTheme.textSecondary),
+                labelStyle: TextStyle(color: context.appColors.textSecondary),
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextField(
               controller: _confirmPasswordController,
               obscureText: true,
-              style: const TextStyle(color: AppTheme.textPrimary),
-              decoration: const InputDecoration(
+              style: TextStyle(color: context.appColors.textPrimary),
+              decoration: InputDecoration(
                 labelText: 'Confirm password',
-                labelStyle: TextStyle(color: AppTheme.textSecondary),
+                labelStyle: TextStyle(color: context.appColors.textSecondary),
               ),
             ),
-            const SizedBox(height: 28),
+            SizedBox(height: 28),
             FilledButton(
               onPressed: _saving ? null : _save,
               style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.primaryBlue,
+                backgroundColor: context.appColors.primaryBlue,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               child: _saving
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 22,
                       width: 22,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
-                  : const Text('Save'),
+                  : Text('Save'),
             ),
           ],
         ),

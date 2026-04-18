@@ -53,29 +53,29 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: const Text('Attendance history', style: TextStyle(color: AppTheme.textPrimary)),
-        backgroundColor: AppTheme.surfaceDark,
-        foregroundColor: AppTheme.textPrimary,
+        title: Text('Attendance history', style: TextStyle(color: context.appColors.textPrimary)),
+        backgroundColor: context.appColors.surface,
+        foregroundColor: context.appColors.textPrimary,
         elevation: 0,
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+            colors: [context.appColors.surface, context.appColors.background],
             stops: [0.0, 0.35],
           ),
         ),
         child: _staffId.isEmpty
-            ? const Center(child: Text('No Staff ID', style: TextStyle(color: AppTheme.textSecondary)))
+            ? Center(child: Text('No Staff ID', style: TextStyle(color: context.appColors.textSecondary)))
             : FutureBuilder<Map<String, dynamic>>(
                 future: _future,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator(color: AppTheme.accentBlue));
+                    return Center(child: CircularProgressIndicator(color: context.appColors.accentBlue));
                   }
                   final body = snapshot.data;
                   if (body == null || body['success'] != true) {
@@ -88,10 +88,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                   }
                   final list = (body['data'] as List<dynamic>?) ?? [];
                   if (list.isEmpty) {
-                    return const Center(child: Text('No attendance records yet.', style: TextStyle(color: AppTheme.textSecondary)));
+                    return Center(child: Text('No attendance records yet.', style: TextStyle(color: context.appColors.textSecondary)));
                   }
                   return RefreshIndicator(
-                    color: AppTheme.accentBlue,
+                    color: context.appColors.accentBlue,
                     onRefresh: () async {
                       setState(() => _future = ApiService.getMyAttendance(_staffId));
                       await _future;
@@ -105,26 +105,26 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppTheme.cardDark,
+                            color: context.appColors.card,
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: AppTheme.borderBlue.withOpacity(0.35)),
+                            border: Border.all(color: context.appColors.borderBlue.withOpacity(0.35)),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.calendar_today, color: AppTheme.accentBlue, size: 22),
-                              const SizedBox(width: 14),
+                              Icon(Icons.calendar_today, color: context.appColors.accentBlue, size: 22),
+                              SizedBox(width: 14),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       _fmtDate(row['date']),
-                                      style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+                                      style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
                                     ),
-                                    const SizedBox(height: 6),
+                                    SizedBox(height: 6),
                                     Text(
                                       'In: ${_fmtTime(row['clockIn'])}  ·  Out: ${_fmtTime(row['clockOut'])}',
-                                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                                      style: TextStyle(color: context.appColors.textSecondary, fontSize: 14),
                                     ),
                                   ],
                                 ),

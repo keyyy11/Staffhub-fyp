@@ -81,25 +81,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: const Text('Register'),
-        backgroundColor: AppTheme.surfaceDark,
-        foregroundColor: AppTheme.textPrimary,
+        title: Text('Register'),
+        backgroundColor: context.appColors.surface,
+        foregroundColor: context.appColors.textPrimary,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              AppTheme.surfaceDark,
-              AppTheme.backgroundBlack,
+              context.appColors.surface,
+              context.appColors.background,
             ],
             stops: [0.0, 0.4],
           ),
@@ -112,16 +112,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: AppTheme.cardDark,
+                      color: context.appColors.card,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
+                      border: Border.all(color: context.appColors.borderBlue.withOpacity(0.5)),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primaryBlue.withOpacity(0.2),
+                          color: context.appColors.primaryBlue.withOpacity(0.2),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -141,11 +141,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             child: Row(
                               children: [
                                 Icon(Icons.error_outline, color: Colors.red.shade700),
-                                const SizedBox(width: 12),
+                                SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
                                     _errorMessage!,
-                                    style: const TextStyle(color: Colors.redAccent),
+                                    style: TextStyle(color: Colors.redAccent),
                                   ),
                                 ),
                               ],
@@ -154,57 +154,57 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ],
                         TextFormField(
                           controller: _staffIdController,
-                          style: const TextStyle(color: AppTheme.textPrimary),
+                          style: TextStyle(color: context.appColors.textPrimary),
                           decoration: InputDecoration(
                             labelText: 'Staff ID (optional)',
                             hintText: 'Leave empty to auto-generate (STF001, …)',
-                            prefixIcon: const Icon(Icons.badge_outlined, color: AppTheme.accentBlue),
+                            prefixIcon: Icon(Icons.badge_outlined, color: context.appColors.accentBlue),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             filled: true,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         TextFormField(
                           controller: _nameController,
-                          style: const TextStyle(color: AppTheme.textPrimary),
+                          style: TextStyle(color: context.appColors.textPrimary),
                           decoration: InputDecoration(
                             labelText: 'Full Name',
                             hintText: 'John Doe',
-                            prefixIcon: const Icon(Icons.person_outlined, color: AppTheme.accentBlue),
+                            prefixIcon: Icon(Icons.person_outlined, color: context.appColors.accentBlue),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             filled: true,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           autocorrect: false,
-                          cursorColor: AppTheme.accentBlue,
-                          style: const TextStyle(color: AppTheme.textPrimary),
+                          cursorColor: context.appColors.accentBlue,
+                          style: TextStyle(color: context.appColors.textPrimary),
                           decoration: InputDecoration(
                             labelText: 'Email',
                             hintText: 'name@email.com',
-                            prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.accentBlue),
+                            prefixIcon: Icon(Icons.email_outlined, color: context.appColors.accentBlue),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             filled: true,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
-                          style: const TextStyle(color: AppTheme.textPrimary),
+                          style: TextStyle(color: context.appColors.textPrimary),
                           decoration: InputDecoration(
                             labelText: 'Password (min 6 characters)',
                             hintText: '••••••••',
-                            prefixIcon: const Icon(Icons.lock_outlined, color: AppTheme.accentBlue),
+                            prefixIcon: Icon(Icons.lock_outlined, color: context.appColors.accentBlue),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword
@@ -221,21 +221,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             filled: true,
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24),
                         SizedBox(
                           width: double.infinity,
                           height: 52,
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _register,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primaryBlue,
+                              backgroundColor: context.appColors.primaryBlue,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
                             child: _isLoading
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 24,
                                     height: 24,
                                     child: CircularProgressIndicator(
@@ -243,14 +243,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Text('Register'),
+                                : Text('Register'),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text('Already have an account? ', style: TextStyle(color: AppTheme.textSecondary)),
+                            Text('Already have an account? ', style: TextStyle(color: context.appColors.textSecondary)),
                             TextButton(
                               onPressed: () {
                                 Navigator.of(context).pushReplacement(
@@ -259,7 +259,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                 );
                               },
-                              child: const Text('Sign In', style: TextStyle(color: AppTheme.accentBlue)),
+                              child: Text('Sign In', style: TextStyle(color: context.appColors.accentBlue)),
                             ),
                           ],
                         ),

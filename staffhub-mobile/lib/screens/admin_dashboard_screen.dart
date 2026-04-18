@@ -256,8 +256,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
           return AlertDialog(
-            backgroundColor: AppTheme.cardDark,
-            title: const Text('Promote to supervisor?', style: TextStyle(color: AppTheme.textPrimary)),
+            backgroundColor: context.appColors.card,
+            title: Text('Promote to supervisor?', style: TextStyle(color: context.appColors.textPrimary)),
             content: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,9 +267,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     '$name ($sid) will become a supervisor. Same email and password.\n\n'
                     'Choose whether to keep ID $sid, set a custom supervisor ID, or auto-generate the next SUP### ID. '
                     'If you change the ID, all existing records move to the new ID and the old ID is no longer used.',
-                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                    style: TextStyle(color: context.appColors.textSecondary, fontSize: 14),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
                     value: autoSup[0],
@@ -277,29 +277,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       autoSup[0] = v ?? false;
                       if (autoSup[0]) newIdController.clear();
                     }),
-                    title: const Text(
+                    title: Text(
                       'Auto-generate supervisor ID (SUP…)',
-                      style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                      style: TextStyle(color: context.appColors.textPrimary, fontSize: 14),
                     ),
-                    subtitle: const Text(
+                    subtitle: Text(
                       'Replaces current ID in attendance, leave, OT, etc.',
-                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                      style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
                     ),
-                    activeColor: AppTheme.accentBlue,
+                    activeColor: context.appColors.accentBlue,
                   ),
                   if (!autoSup[0]) ...[
-                    const SizedBox(height: 8),
-                    const Text(
+                    SizedBox(height: 8),
+                    Text(
                       'New supervisor ID (optional)',
-                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                      style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     TextField(
                       controller: newIdController,
-                      style: const TextStyle(color: AppTheme.textPrimary),
-                      decoration: const InputDecoration(
+                      style: TextStyle(color: context.appColors.textPrimary),
+                      decoration: InputDecoration(
                         hintText: 'Leave empty to keep current ID',
-                        hintStyle: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                        hintStyle: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
                       ),
                     ),
                   ],
@@ -307,11 +307,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, null), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.pop(ctx, null), child: Text('Cancel')),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, {'ok': true}),
-                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue),
-                child: const Text('Promote'),
+                style: ElevatedButton.styleFrom(backgroundColor: context.appColors.primaryBlue),
+                child: Text('Promote'),
               ),
             ],
           );
@@ -431,11 +431,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final otRecentDone = _homeOvertime.where((o) => o['status'] != 'pending').take(6).toList();
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+          colors: [context.appColors.surface, context.appColors.background],
           stops: [0.0, 0.2],
         ),
       ),
@@ -443,13 +443,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         onRefresh: () async {
           await Future.wait([_loadHome(), _loadStaff()]);
         },
-        color: AppTheme.accentBlue,
+        color: context.appColors.accentBlue,
         child: _homeLoading && _homeAttendance.isEmpty && _homeLeave.isEmpty && _homeOvertime.isEmpty
             ? ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                children: const [
+                children: [
                   SizedBox(height: 120),
-                  Center(child: CircularProgressIndicator(color: AppTheme.accentBlue)),
+                  Center(child: CircularProgressIndicator(color: context.appColors.accentBlue)),
                 ],
               )
             : ListView(
@@ -458,11 +458,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   Text(
                     'Operations overview',
                     style: TextStyle(
-                      color: AppTheme.textSecondary.withValues(alpha: 0.95),
+                      color: context.appColors.textSecondary.withValues(alpha: 0.95),
                       fontSize: 13,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
@@ -473,16 +473,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           color: Colors.amber.shade200,
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       Expanded(
                         child: _HomeStatCard(
                           icon: Icons.more_time_rounded,
                           label: 'OT pending',
                           value: '$pendingOt',
-                          color: AppTheme.accentBlue,
+                          color: context.appColors.accentBlue,
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       Expanded(
                         child: _HomeStatCard(
                           icon: Icons.fact_check_rounded,
@@ -493,16 +493,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   Row(
                     children: [
                       TextButton(
                         onPressed: () => _selectSection(2),
-                        child: const Text('Full attendance'),
+                        child: Text('Full attendance'),
                       ),
                       TextButton(
                         onPressed: () => _selectSection(3),
-                        child: const Text('Leave requests'),
+                        child: Text('Leave requests'),
                       ),
                       TextButton(
                         onPressed: () {
@@ -510,24 +510,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             MaterialPageRoute(builder: (_) => const AdminOvertimeScreen()),
                           );
                         },
-                        child: const Text('All overtime'),
+                        child: Text('All overtime'),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
+                  SizedBox(height: 8),
+                  Text(
                     'Attendance activity (last 7 days)',
                     style: TextStyle(
-                      color: AppTheme.textPrimary,
+                      color: context.appColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   if (attSlice.isEmpty)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Text('No attendance records in this period.', style: TextStyle(color: AppTheme.textSecondary)),
+                      child: Text('No attendance records in this period.', style: TextStyle(color: context.appColors.textSecondary)),
                     )
                   else
                     ...attSlice.map((r) => _HomeAttendanceRow(
@@ -537,30 +537,30 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           timeLine: 'In ${r['clockInTime'] ?? '-'} · Out ${r['clockOutTime'] ?? '-'}',
                           late: (r['status'] as String?) == 'late',
                         )),
-                  const SizedBox(height: 20),
-                  const Text(
+                  SizedBox(height: 20),
+                  Text(
                     'Leave requests & supervisors',
                     style: TextStyle(
-                      color: AppTheme.textPrimary,
+                      color: context.appColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                   Text(
                     'Pending: shows reporting supervisor. Completed: who approved.',
-                    style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.9), fontSize: 12),
+                    style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.9), fontSize: 12),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   if (leavePending.isEmpty && leaveRecentDone.isEmpty)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Text('No leave requests.', style: TextStyle(color: AppTheme.textSecondary)),
+                      child: Text('No leave requests.', style: TextStyle(color: context.appColors.textSecondary)),
                     )
                   else ...[
                     if (leavePending.isNotEmpty) ...[
-                      const Text('Awaiting approval', style: TextStyle(color: AppTheme.accentBlue, fontSize: 13, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 6),
+                      Text('Awaiting approval', style: TextStyle(color: context.appColors.accentBlue, fontSize: 13, fontWeight: FontWeight.w600)),
+                      SizedBox(height: 6),
                       ...leavePending.map((l) => _HomeLeaveCard(
                             staffName: l['staffName'] as String? ?? l['staffId'] as String? ?? '',
                             type: _leaveTypeLabel(l['leaveType'] as String?),
@@ -572,9 +572,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           )),
                     ],
                     if (leaveRecentDone.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      const Text('Recent decisions', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 12),
+                      Text('Recent decisions', style: TextStyle(color: context.appColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                      SizedBox(height: 6),
                       ...leaveRecentDone.map((l) => _HomeLeaveCard(
                             staffName: l['staffName'] as String? ?? l['staffId'] as String? ?? '',
                             type: _leaveTypeLabel(l['leaveType'] as String?),
@@ -586,30 +586,30 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           )),
                     ],
                   ],
-                  const SizedBox(height: 20),
-                  const Text(
+                  SizedBox(height: 20),
+                  Text(
                     'Overtime (OT)',
                     style: TextStyle(
-                      color: AppTheme.textPrimary,
+                      color: context.appColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                   Text(
                     'Pending: reported supervisor. Completed: approver name.',
-                    style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.9), fontSize: 12),
+                    style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.9), fontSize: 12),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   if (otPending.isEmpty && otRecentDone.isEmpty)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Text('No overtime requests.', style: TextStyle(color: AppTheme.textSecondary)),
+                      child: Text('No overtime requests.', style: TextStyle(color: context.appColors.textSecondary)),
                     )
                   else ...[
                     if (otPending.isNotEmpty) ...[
-                      const Text('Awaiting supervisor', style: TextStyle(color: AppTheme.accentBlue, fontSize: 13, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 6),
+                      Text('Awaiting supervisor', style: TextStyle(color: context.appColors.accentBlue, fontSize: 13, fontWeight: FontWeight.w600)),
+                      SizedBox(height: 6),
                       ...otPending.map((o) => _HomeOtCard(
                             staffName: o['staffName'] as String? ?? o['staffId'] as String? ?? '',
                             otDate: _formatDate(o['otDate']),
@@ -620,9 +620,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           )),
                     ],
                     if (otRecentDone.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      const Text('Recent approvals / rejections', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 12),
+                      Text('Recent approvals / rejections', style: TextStyle(color: context.appColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                      SizedBox(height: 6),
                       ...otRecentDone.map((o) => _HomeOtCard(
                             staffName: o['staffName'] as String? ?? o['staffId'] as String? ?? '',
                             otDate: _formatDate(o['otDate']),
@@ -633,7 +633,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           )),
                     ],
                   ],
-                  const SizedBox(height: 32),
+                  SizedBox(height: 32),
                 ],
               ),
       ),
@@ -642,48 +642,48 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Widget _buildStaffDirectoryTab() {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+          colors: [context.appColors.surface, context.appColors.background],
           stops: [0.0, 0.2],
         ),
       ),
       child: RefreshIndicator(
         onRefresh: _loadStaff,
-        color: AppTheme.accentBlue,
+        color: context.appColors.accentBlue,
         child: _staffList.isEmpty
             ? ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(24),
                 children: [
-                  const SizedBox(height: 48),
-                  Icon(Icons.groups_outlined, size: 56, color: AppTheme.textSecondary.withValues(alpha: 0.6)),
-                  const SizedBox(height: 16),
-                  const Center(
+                  SizedBox(height: 48),
+                  Icon(Icons.groups_outlined, size: 56, color: context.appColors.textSecondary.withValues(alpha: 0.6)),
+                  SizedBox(height: 16),
+                  Center(
                     child: Text(
                       'No staff or supervisors yet.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 15),
+                      style: TextStyle(color: context.appColors.textSecondary, fontSize: 15),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Center(
                     child: Text(
                       'Create accounts from Register staff — same email/password they use to log in.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.85), fontSize: 13),
+                      style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.85), fontSize: 13),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
                   Center(
                     child: FilledButton.icon(
                       onPressed: () => setState(() => _selectedIndex = 7),
-                      icon: const Icon(Icons.person_add_alt_1_rounded, size: 20),
-                      label: const Text('Add staff'),
+                      icon: Icon(Icons.person_add_alt_1_rounded, size: 20),
+                      label: Text('Add staff'),
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppTheme.primaryBlue,
+                        backgroundColor: context.appColors.primaryBlue,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       ),
@@ -704,16 +704,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           Expanded(
                             child: Text(
                               'All staff and supervisors (${_staffList.length}). Names, roles, and reporting lines.',
-                              style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.95), fontSize: 13),
+                              style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.95), fontSize: 13),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           FilledButton.icon(
                             onPressed: () => setState(() => _selectedIndex = 7),
-                            icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-                            label: const Text('Add staff'),
+                            icon: Icon(Icons.person_add_alt_1_rounded, size: 18),
+                            label: Text('Add staff'),
                             style: FilledButton.styleFrom(
-                              backgroundColor: AppTheme.primaryBlue,
+                              backgroundColor: context.appColors.primaryBlue,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                               visualDensity: VisualDensity.compact,
@@ -734,9 +734,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppTheme.cardDark,
+                      color: context.appColors.card,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppTheme.borderBlue.withValues(alpha: 0.45)),
+                      border: Border.all(color: context.appColors.borderBlue.withValues(alpha: 0.45)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -746,26 +746,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           children: [
                             Icon(
                               isSupervisor ? Icons.supervisor_account_rounded : Icons.person_outline_rounded,
-                              color: AppTheme.accentBlue,
+                              color: context.appColors.accentBlue,
                               size: 28,
                             ),
-                            const SizedBox(width: 12),
+                            SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     name,
-                                    style: const TextStyle(
-                                      color: AppTheme.textPrimary,
+                                    style: TextStyle(
+                                      color: context.appColors.textPrimary,
                                       fontSize: 17,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(sid, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                                  SizedBox(height: 2),
+                                  Text(sid, style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
                                   if (email.isNotEmpty)
-                                    Text(email, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                                    Text(email, style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
                                 ],
                               ),
                             ),
@@ -775,13 +775,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
-                                  color: isSupervisor ? Colors.deepPurpleAccent.shade100 : AppTheme.textPrimary,
+                                  color: isSupervisor ? Colors.deepPurpleAccent.shade100 : context.appColors.textPrimary,
                                 ),
                               ),
                               backgroundColor: isSupervisor
                                   ? Colors.deepPurple.withValues(alpha: 0.25)
-                                  : AppTheme.surfaceDark,
-                              side: BorderSide(color: AppTheme.borderBlue.withValues(alpha: 0.5)),
+                                  : context.appColors.surface,
+                              side: BorderSide(color: context.appColors.borderBlue.withValues(alpha: 0.5)),
                               padding: const EdgeInsets.symmetric(horizontal: 6),
                               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               visualDensity: VisualDensity.compact,
@@ -789,13 +789,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           ],
                         ),
                         if (!isSupervisor && reportsTo.isNotEmpty) ...[
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           Text(
                             'Reports to supervisor ID: $reportsTo',
-                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                            style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
                           ),
                         ],
-                        const SizedBox(height: 10),
+                        SizedBox(height: 10),
                         Align(
                           alignment: Alignment.centerRight,
                           child: Wrap(
@@ -805,8 +805,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             children: [
                               TextButton.icon(
                                 onPressed: () => _openAdminScheduleEditor(s),
-                                icon: const Icon(Icons.schedule_rounded, size: 18, color: AppTheme.accentBlue),
-                                label: const Text('Weekly schedule', style: TextStyle(color: AppTheme.accentBlue)),
+                                icon: Icon(Icons.schedule_rounded, size: 18, color: context.appColors.accentBlue),
+                                label: Text('Weekly schedule', style: TextStyle(color: context.appColors.accentBlue)),
                               ),
                               TextButton.icon(
                                 onPressed: () async {
@@ -821,8 +821,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                   );
                                   if (updated == true && mounted) await _loadStaff();
                                 },
-                                icon: const Icon(Icons.edit_outlined, size: 18, color: AppTheme.accentBlue),
-                                label: const Text('Edit', style: TextStyle(color: AppTheme.accentBlue)),
+                                icon: Icon(Icons.edit_outlined, size: 18, color: context.appColors.accentBlue),
+                                label: Text('Edit', style: TextStyle(color: context.appColors.accentBlue)),
                               ),
                             ],
                           ),
@@ -844,18 +844,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final selected = _selectedIndex == index;
     return ListTile(
       selected: selected,
-      selectedColor: AppTheme.accentBlue,
-      selectedTileColor: AppTheme.primaryBlue.withValues(alpha: 0.12),
+      selectedColor: context.appColors.accentBlue,
+      selectedTileColor: context.appColors.primaryBlue.withValues(alpha: 0.12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       leading: Icon(
         icon,
-        color: selected ? AppTheme.accentBlue : AppTheme.textSecondary,
+        color: selected ? context.appColors.accentBlue : context.appColors.textSecondary,
         size: 22,
       ),
       title: Text(
         label,
         style: TextStyle(
-          color: selected ? AppTheme.accentBlue : AppTheme.textPrimary,
+          color: selected ? context.appColors.accentBlue : context.appColors.textPrimary,
           fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
           fontSize: 15,
         ),
@@ -867,9 +867,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
+      backgroundColor: context.appColors.background,
       drawer: Drawer(
-        backgroundColor: AppTheme.surfaceDark,
+        backgroundColor: context.appColors.surface,
         child: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -880,28 +880,28 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const StaffHubLogo(height: 62),
-                    const SizedBox(height: 14),
-                    const Text(
+                    SizedBox(height: 14),
+                    Text(
                       'Admin Hub',
                       style: TextStyle(
-                        color: AppTheme.textPrimary,
+                        color: context.appColors.textPrimary,
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       'Staff Hub management',
-                      style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.9), fontSize: 13),
+                      style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.9), fontSize: 13),
                     ),
                   ],
                 ),
               ),
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Divider(color: AppTheme.borderBlue, height: 1),
+                child: Divider(color: context.appColors.borderBlue, height: 1),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -917,10 +917,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ],
                 ),
               ),
-              const Divider(color: AppTheme.borderBlue, height: 1),
+              Divider(color: context.appColors.borderBlue, height: 1),
               ListTile(
-                leading: const Icon(Icons.settings_outlined, color: AppTheme.accentBlue),
-                title: const Text('Settings', style: TextStyle(color: AppTheme.textPrimary)),
+                leading: Icon(Icons.settings_outlined, color: context.appColors.accentBlue),
+                title: Text('Settings', style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.of(context).pop();
                   Navigator.of(context).push(
@@ -929,8 +929,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.person_outline, color: AppTheme.accentBlue),
-                title: const Text('Admin profile', style: TextStyle(color: AppTheme.textPrimary)),
+                leading: Icon(Icons.person_outline, color: context.appColors.accentBlue),
+                title: Text('Admin profile', style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.of(context).pop();
                   Navigator.of(context).push(
@@ -939,8 +939,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.gavel_rounded, color: AppTheme.accentBlue),
-                title: const Text('Discipline & warnings', style: TextStyle(color: AppTheme.textPrimary)),
+                leading: Icon(Icons.gavel_rounded, color: context.appColors.accentBlue),
+                title: Text('Discipline & warnings', style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.of(context).pop();
                   Navigator.of(context).push(
@@ -949,8 +949,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.more_time_rounded, color: AppTheme.accentBlue),
-                title: const Text('Overtime (audit)', style: TextStyle(color: AppTheme.textPrimary)),
+                leading: Icon(Icons.more_time_rounded, color: context.appColors.accentBlue),
+                title: Text('Overtime (audit)', style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.of(context).pop();
                   Navigator.of(context).push(
@@ -959,8 +959,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.person_add_alt_outlined, color: AppTheme.accentBlue),
-                title: const Text('Add admin account', style: TextStyle(color: AppTheme.textPrimary)),
+                leading: Icon(Icons.person_add_alt_outlined, color: context.appColors.accentBlue),
+                title: Text('Add admin account', style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.of(context).pop();
                   Navigator.of(context).push(
@@ -969,14 +969,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.logout, color: Colors.redAccent),
-                title: const Text('Log out', style: TextStyle(color: Colors.redAccent)),
+                leading: Icon(Icons.logout, color: Colors.redAccent),
+                title: Text('Log out', style: TextStyle(color: Colors.redAccent)),
                 onTap: () {
                   Navigator.of(context).pop();
                   _logout();
                 },
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
             ],
           ),
         ),
@@ -984,21 +984,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       appBar: AppBar(
         title: Text(
           _sectionTitles[_selectedIndex],
-          style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold),
+          style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: AppTheme.surfaceDark,
-        foregroundColor: AppTheme.textPrimary,
+        backgroundColor: context.appColors.surface,
+        foregroundColor: context.appColors.textPrimary,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: AppTheme.accentBlue),
+            icon: Icon(Icons.settings_outlined, color: context.appColors.accentBlue),
             tooltip: 'Settings',
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.refresh, color: AppTheme.accentBlue),
+            icon: Icon(Icons.refresh, color: context.appColors.accentBlue),
             tooltip: 'Refresh data',
             onPressed: () {
               _loadHome();
@@ -1028,7 +1028,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Widget _buildAttendanceTab() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppTheme.accentBlue));
+      return Center(child: CircularProgressIndicator(color: context.appColors.accentBlue));
     }
     if (_errorMessage != null) {
       return Center(
@@ -1038,8 +1038,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
-              const SizedBox(height: 16),
-              Text(_errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.textSecondary)),
+              SizedBox(height: 16),
+              Text(_errorMessage!, textAlign: TextAlign.center, style: TextStyle(color: context.appColors.textSecondary)),
             ],
           ),
         ),
@@ -1047,17 +1047,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+          colors: [context.appColors.surface, context.appColors.background],
           stops: [0.0, 0.2],
         ),
       ),
       child: RefreshIndicator(
         onRefresh: _loadAttendance,
-        color: AppTheme.accentBlue,
+        color: context.appColors.accentBlue,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -1066,26 +1066,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 padding: const EdgeInsets.all(20),
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: AppTheme.cardDark,
+                  color: context.appColors.card,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
+                  border: Border.all(color: context.appColors.borderBlue.withOpacity(0.5)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _statItem('Total', _attendanceStats!['total']?.toString() ?? '0', AppTheme.accentBlue),
+                    _statItem('Total', _attendanceStats!['total']?.toString() ?? '0', context.appColors.accentBlue),
                     _statItem('On Time', _attendanceStats!['onTime']?.toString() ?? '0', Colors.green),
                     _statItem('Late', _attendanceStats!['late']?.toString() ?? '0', Colors.amber),
                   ],
                 ),
               ),
-            Text('Expected clock-in: ${_expectedTime ?? '09:00'}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-            const SizedBox(height: 8),
+            Text('Expected clock-in: ${_expectedTime ?? '09:00'}', style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
+            SizedBox(height: 8),
             ..._attendanceReport.map((r) => Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.cardDark,
+                color: context.appColors.card,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: ((r['status'] as String?) == 'late' ? Colors.amber : Colors.green).withOpacity(0.5),
@@ -1098,20 +1098,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     color: (r['status'] as String?) == 'late' ? Colors.amber : Colors.green,
                     size: 32,
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           _staffDisplayName(r['staffId'] as String?, r['staffName'] as String?),
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: context.appColors.textPrimary),
                         ),
                         Text(
                           '${r['staffId']} • ${_formatDate(r['date'])}',
-                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                          style: TextStyle(fontSize: 12, color: context.appColors.textSecondary),
                         ),
-                        Text('Clock In: ${r['clockInTime'] ?? '-'} | Out: ${r['clockOutTime'] ?? '-'}', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                        Text('Clock In: ${r['clockInTime'] ?? '-'} | Out: ${r['clockOutTime'] ?? '-'}', style: TextStyle(fontSize: 12, color: context.appColors.textSecondary)),
                       ],
                     ),
                   ),
@@ -1130,9 +1130,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
             )),
             if (_attendanceReport.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.all(32),
-                child: Center(child: Text('No attendance records', style: TextStyle(color: AppTheme.textSecondary))),
+                child: Center(child: Text('No attendance records', style: TextStyle(color: context.appColors.textSecondary))),
               ),
           ],
         ),
@@ -1144,7 +1144,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return Column(
       children: [
         Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-        Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+        Text(label, style: TextStyle(fontSize: 12, color: context.appColors.textSecondary)),
       ],
     );
   }
@@ -1185,11 +1185,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Widget _buildLeaveRequestsTab() {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+          colors: [context.appColors.surface, context.appColors.background],
           stops: [0.0, 0.2],
         ),
       ),
@@ -1202,54 +1202,54 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               spacing: 8,
               children: [
                 ChoiceChip(
-                  label: const Text('All'),
+                  label: Text('All'),
                   selected: _leaveStatusFilter == null,
                   onSelected: (_) {
                     setState(() => _leaveStatusFilter = null);
                     _loadLeaveRequests();
                   },
-                  selectedColor: AppTheme.primaryBlue,
-                  labelStyle: TextStyle(color: _leaveStatusFilter == null ? Colors.white : AppTheme.textSecondary),
+                  selectedColor: context.appColors.primaryBlue,
+                  labelStyle: TextStyle(color: _leaveStatusFilter == null ? Colors.white : context.appColors.textSecondary),
                 ),
                 ChoiceChip(
-                  label: const Text('Pending'),
+                  label: Text('Pending'),
                   selected: _leaveStatusFilter == 'pending',
                   onSelected: (_) {
                     setState(() => _leaveStatusFilter = 'pending');
                     _loadLeaveRequests();
                   },
-                  selectedColor: AppTheme.primaryBlue,
-                  labelStyle: TextStyle(color: _leaveStatusFilter == 'pending' ? Colors.white : AppTheme.textSecondary),
+                  selectedColor: context.appColors.primaryBlue,
+                  labelStyle: TextStyle(color: _leaveStatusFilter == 'pending' ? Colors.white : context.appColors.textSecondary),
                 ),
                 ChoiceChip(
-                  label: const Text('Approved'),
+                  label: Text('Approved'),
                   selected: _leaveStatusFilter == 'approved',
                   onSelected: (_) {
                     setState(() => _leaveStatusFilter = 'approved');
                     _loadLeaveRequests();
                   },
-                  selectedColor: AppTheme.primaryBlue,
-                  labelStyle: TextStyle(color: _leaveStatusFilter == 'approved' ? Colors.white : AppTheme.textSecondary),
+                  selectedColor: context.appColors.primaryBlue,
+                  labelStyle: TextStyle(color: _leaveStatusFilter == 'approved' ? Colors.white : context.appColors.textSecondary),
                 ),
                 ChoiceChip(
-                  label: const Text('Rejected'),
+                  label: Text('Rejected'),
                   selected: _leaveStatusFilter == 'rejected',
                   onSelected: (_) {
                     setState(() => _leaveStatusFilter = 'rejected');
                     _loadLeaveRequests();
                   },
-                  selectedColor: AppTheme.primaryBlue,
-                  labelStyle: TextStyle(color: _leaveStatusFilter == 'rejected' ? Colors.white : AppTheme.textSecondary),
+                  selectedColor: context.appColors.primaryBlue,
+                  labelStyle: TextStyle(color: _leaveStatusFilter == 'rejected' ? Colors.white : context.appColors.textSecondary),
                 ),
               ],
             ),
           ),
           Expanded(
             child: _leaveLoading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.accentBlue))
+                ? Center(child: CircularProgressIndicator(color: context.appColors.accentBlue))
                 : RefreshIndicator(
                     onRefresh: _loadLeaveRequests,
-                    color: AppTheme.accentBlue,
+                    color: context.appColors.accentBlue,
                     child: ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: _leaveRequests.length,
@@ -1258,7 +1258,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         final id = r['_id']?.toString() ?? '';
                         final pending = (r['status'] as String?) == 'pending';
                         final st = r['status'] as String? ?? '';
-                        Color stColor = AppTheme.textSecondary;
+                        Color stColor = context.appColors.textSecondary;
                         if (st == 'approved') stColor = Colors.green;
                         if (st == 'rejected') stColor = Colors.redAccent;
                         if (st == 'pending') stColor = Colors.amber;
@@ -1266,9 +1266,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppTheme.cardDark,
+                            color: context.appColors.card,
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: AppTheme.borderBlue.withOpacity(0.45)),
+                            border: Border.all(color: context.appColors.borderBlue.withOpacity(0.45)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1278,7 +1278,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                   Expanded(
                                     child: Text(
                                       _staffDisplayName(r['staffId'] as String?, r['staffName'] as String?),
-                                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: context.appColors.textPrimary),
                                     ),
                                   ),
                                   Container(
@@ -1291,34 +1291,34 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 6),
-                              Text('${_leaveTypeLabel(r['leaveType'] as String?)} · ${r['totalDays'] ?? '-'} working days', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+                              SizedBox(height: 6),
+                              Text('${_leaveTypeLabel(r['leaveType'] as String?)} · ${r['totalDays'] ?? '-'} working days', style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
                               Text(
                                 '${_formatDate(r['startDate'])} → ${_formatDate(r['endDate'])}',
-                                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                                style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
                               ),
                               if ((r['reason'] as String?)?.isNotEmpty == true)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 8),
-                                  child: Text('Reason: ${r['reason']}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                                  child: Text('Reason: ${r['reason']}', style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
                                 ),
                               if (pending && id.isNotEmpty) ...[
-                                const SizedBox(height: 12),
+                                SizedBox(height: 12),
                                 Row(
                                   children: [
                                     Expanded(
                                       child: OutlinedButton(
                                         onPressed: () => _approveLeave(id, false),
                                         style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
-                                        child: const Text('Reject'),
+                                        child: Text('Reject'),
                                       ),
                                     ),
-                                    const SizedBox(width: 12),
+                                    SizedBox(width: 12),
                                     Expanded(
                                       child: ElevatedButton(
                                         onPressed: () => _approveLeave(id, true),
                                         style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700),
-                                        child: const Text('Approve'),
+                                        child: Text('Approve'),
                                       ),
                                     ),
                                   ],
@@ -1379,15 +1379,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Widget _buildAdminPayslipTab() {
     if (_staffList.isEmpty) {
-      return const Center(child: Text('No staff in list. Register a staff account first.', style: TextStyle(color: AppTheme.textSecondary)));
+      return Center(child: Text('No staff in list. Register a staff account first.', style: TextStyle(color: context.appColors.textSecondary)));
     }
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+          colors: [context.appColors.surface, context.appColors.background],
           stops: [0.0, 0.2],
         ),
       ),
@@ -1400,34 +1400,34 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 await _loadStaff();
                 await _loadPayslipRecords();
               },
-              color: AppTheme.accentBlue,
+              color: context.appColors.accentBlue,
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
                   Text(
                     'Enter payslip details for staff. They will see net pay and notes on their Payslip screen.',
-                    style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.95), fontSize: 13),
+                    style: TextStyle(color: context.appColors.textSecondary.withOpacity(0.95), fontSize: 13),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.cardDark,
+                      color: context.appColors.card,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
+                      border: Border.all(color: context.appColors.borderBlue.withOpacity(0.5)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         DropdownButtonFormField<String>(
                           value: _payslipSelectedStaffId,
-                          dropdownColor: AppTheme.cardDark,
-                          decoration: const InputDecoration(
+                          dropdownColor: context.appColors.card,
+                          decoration: InputDecoration(
                             labelText: 'Staff',
-                            labelStyle: TextStyle(color: AppTheme.textSecondary),
+                            labelStyle: TextStyle(color: context.appColors.textSecondary),
                             border: OutlineInputBorder(),
                           ),
-                          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16),
+                          style: TextStyle(color: context.appColors.textPrimary, fontSize: 16),
                           items: _staffList.map((s) {
                             final id = s['staffId'] as String? ?? '';
                             final name = s['name'] as String? ?? '';
@@ -1436,24 +1436,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           }).toList(),
                           onChanged: (v) => setState(() => _payslipSelectedStaffId = v),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         Row(
                           children: [
                             Expanded(
                               child: DropdownButtonFormField<int>(
                                 value: _payslipMonth,
-                                dropdownColor: AppTheme.cardDark,
-                                decoration: const InputDecoration(labelText: 'Month', border: OutlineInputBorder()),
+                                dropdownColor: context.appColors.card,
+                                decoration: InputDecoration(labelText: 'Month', border: OutlineInputBorder()),
                                 items: List.generate(12, (i) => DropdownMenuItem(value: i + 1, child: Text('${i + 1}'))),
                                 onChanged: (v) => setState(() => _payslipMonth = v ?? 1),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            SizedBox(width: 12),
                             Expanded(
                               child: DropdownButtonFormField<int>(
                                 value: _payslipYear,
-                                dropdownColor: AppTheme.cardDark,
-                                decoration: const InputDecoration(labelText: 'Year', border: OutlineInputBorder()),
+                                dropdownColor: context.appColors.card,
+                                decoration: InputDecoration(labelText: 'Year', border: OutlineInputBorder()),
                                 items: List.generate(5, (i) {
                                   final y = DateTime.now().year - 2 + i;
                                   return DropdownMenuItem(value: y, child: Text('$y'));
@@ -1463,65 +1463,65 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         TextField(
                           controller: _payslipNetController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          style: const TextStyle(color: AppTheme.textPrimary),
-                          decoration: const InputDecoration(
+                          style: TextStyle(color: context.appColors.textPrimary),
+                          decoration: InputDecoration(
                             labelText: 'Net pay (RM) *',
                             border: OutlineInputBorder(),
                             filled: true,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         TextField(
                           controller: _payslipGrossController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          style: const TextStyle(color: AppTheme.textPrimary),
-                          decoration: const InputDecoration(
+                          style: TextStyle(color: context.appColors.textPrimary),
+                          decoration: InputDecoration(
                             labelText: 'Gross salary (RM) — optional',
                             helperText: 'Leave empty to use staff monthly salary',
                             border: OutlineInputBorder(),
                             filled: true,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         TextField(
                           controller: _payslipRemarksController,
                           maxLines: 2,
-                          style: const TextStyle(color: AppTheme.textPrimary),
-                          decoration: const InputDecoration(
+                          style: TextStyle(color: context.appColors.textPrimary),
+                          decoration: InputDecoration(
                             labelText: 'HR notes',
                             border: OutlineInputBorder(),
                             filled: true,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         SizedBox(
                           height: 48,
                           child: ElevatedButton(
                             onPressed: _payslipSaving ? null : _saveAdminPayslip,
-                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue),
+                            style: ElevatedButton.styleFrom(backgroundColor: context.appColors.primaryBlue),
                             child: _payslipSaving
-                                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Text('Save payslip'),
+                                ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                : Text('Save payslip'),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  const Text('Recent records', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 24),
+                  Text('Recent records', style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                  SizedBox(height: 8),
                   ..._payslipRecords.take(20).map((p) {
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppTheme.surfaceDark,
+                        color: context.appColors.surface,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppTheme.borderBlue.withOpacity(0.3)),
+                        border: Border.all(color: context.appColors.borderBlue.withOpacity(0.3)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1529,21 +1529,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           Expanded(
                             child: Text(
                               '${p['staffId']} · ${p['month']}/${p['year']}',
-                              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                              style: TextStyle(color: context.appColors.textSecondary, fontSize: 14),
                             ),
                           ),
                           Text(
                             'RM ${(p['netPay'] as num?)?.toStringAsFixed(2) ?? '-'}',
-                            style: const TextStyle(color: AppTheme.accentBlue, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: context.appColors.accentBlue, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
                     );
                   }),
                   if (_payslipRecords.isEmpty)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.all(16),
-                      child: Text('No payslip records yet.', style: TextStyle(color: AppTheme.textSecondary)),
+                      child: Text('No payslip records yet.', style: TextStyle(color: context.appColors.textSecondary)),
                     ),
                 ],
               ),
@@ -1556,17 +1556,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Widget _buildSalaryTab() {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+          colors: [context.appColors.surface, context.appColors.background],
           stops: [0.0, 0.2],
         ),
       ),
       child: RefreshIndicator(
         onRefresh: _loadStaff,
-        color: AppTheme.accentBlue,
+        color: context.appColors.accentBlue,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -1574,7 +1574,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
                 'Set monthly salary for staff and supervisors. To change a staff member into a supervisor, use the Promote to supervisor section.',
-                style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.95), fontSize: 13),
+                style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.95), fontSize: 13),
               ),
             ),
             ..._staffList.map((s) => _StaffSalaryCard(
@@ -1590,31 +1590,31 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _buildPromoteSupervisorTab() {
     final staffOnly = _staffList.where((s) => (s['role'] as String?) != 'supervisor').toList();
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+          colors: [context.appColors.surface, context.appColors.background],
           stops: [0.0, 0.2],
         ),
       ),
       child: RefreshIndicator(
         onRefresh: _loadStaff,
-        color: AppTheme.accentBlue,
+        color: context.appColors.accentBlue,
         child: staffOnly.isEmpty
             ? ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(24),
                 children: [
-                  const SizedBox(height: 32),
-                  Icon(Icons.supervisor_account_outlined, size: 56, color: AppTheme.textSecondary.withValues(alpha: 0.6)),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 32),
+                  Icon(Icons.supervisor_account_outlined, size: 56, color: context.appColors.textSecondary.withValues(alpha: 0.6)),
+                  SizedBox(height: 16),
                   Text(
                     _staffList.isEmpty
                         ? 'No accounts yet. Register staff first.'
                         : 'Everyone is already a supervisor. Register new staff if you need to promote someone.',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                    style: TextStyle(color: context.appColors.textSecondary, fontSize: 14),
                   ),
                 ],
               )
@@ -1627,7 +1627,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       padding: const EdgeInsets.only(bottom: 14),
                       child: Text(
                         'Admin only: choose a staff member to promote. In the dialog you can keep their ID, set a custom supervisor ID, or auto-generate SUP###. Records move to the new ID if changed.',
-                        style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.95), fontSize: 13),
+                        style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.95), fontSize: 13),
                       ),
                     );
                   }
@@ -1640,41 +1640,41 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.cardDark,
+                      color: context.appColors.card,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppTheme.borderBlue.withValues(alpha: 0.45)),
+                      border: Border.all(color: context.appColors.borderBlue.withValues(alpha: 0.45)),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.person_outline_rounded, color: AppTheme.accentBlue, size: 36),
-                        const SizedBox(width: 12),
+                        Icon(Icons.person_outline_rounded, color: context.appColors.accentBlue, size: 36),
+                        SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(name, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 17, fontWeight: FontWeight.bold)),
-                              Text(sid, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                              Text(name, style: TextStyle(color: context.appColors.textPrimary, fontSize: 17, fontWeight: FontWeight.bold)),
+                              Text(sid, style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
                               if (email.isNotEmpty)
-                                Text(email, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                                Text(email, style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         FilledButton.icon(
                           onPressed: busy ? null : () => _confirmPromoteStaffToSupervisor(s),
                           style: FilledButton.styleFrom(
-                            backgroundColor: AppTheme.primaryBlue,
+                            backgroundColor: context.appColors.primaryBlue,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           ),
                           icon: busy
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 18,
                                   height: 18,
                                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                 )
-                              : const Icon(Icons.arrow_upward_rounded, size: 18),
+                              : Icon(Icons.arrow_upward_rounded, size: 18),
                           label: Text(busy ? 'Wait…' : 'Promote'),
                         ),
                       ],
@@ -1712,17 +1712,17 @@ class _HomeStatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       decoration: BoxDecoration(
-        color: AppTheme.cardDark,
+        color: context.appColors.card,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderBlue.withValues(alpha: 0.45)),
+        border: Border.all(color: context.appColors.borderBlue.withValues(alpha: 0.45)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: color, size: 22),
-          const SizedBox(height: 8),
-          Text(value, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 22, fontWeight: FontWeight.bold)),
-          Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+          SizedBox(height: 8),
+          Text(value, style: TextStyle(color: context.appColors.textPrimary, fontSize: 22, fontWeight: FontWeight.bold)),
+          Text(label, style: TextStyle(color: context.appColors.textSecondary, fontSize: 11)),
         ],
       ),
     );
@@ -1750,21 +1750,21 @@ class _HomeAttendanceRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.cardDark,
+        color: context.appColors.card,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: (late ? Colors.amber : Colors.green).withValues(alpha: 0.45)),
       ),
       child: Row(
         children: [
           Icon(late ? Icons.schedule_rounded : Icons.check_circle_outline_rounded, color: late ? Colors.amber : Colors.green, size: 26),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(staffName, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
-                Text('$staffId · $dateText', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-                Text(timeLine, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                Text(staffName, style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.w600)),
+                Text('$staffId · $dateText', style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
+                Text(timeLine, style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
               ],
             ),
           ),
@@ -1816,9 +1816,9 @@ class _HomeLeaveCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.cardDark,
+        color: context.appColors.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderBlue.withValues(alpha: 0.4)),
+        border: Border.all(color: context.appColors.borderBlue.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1826,7 +1826,7 @@ class _HomeLeaveCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(staffName, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
+                child: Text(staffName, style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.w600)),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -1836,22 +1836,22 @@ class _HomeLeaveCard extends StatelessWidget {
                 ),
                 child: Text(
                   pending ? 'PENDING' : status.toUpperCase(),
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: pending ? Colors.amber : AppTheme.textSecondary),
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: pending ? Colors.amber : context.appColors.textSecondary),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text('$type · $range', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+          SizedBox(height: 4),
+          Text('$type · $range', style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
           if (pending && supervisorName != null && supervisorName!.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text('Reporting supervisor: $supervisorName', style: const TextStyle(color: AppTheme.accentBlue, fontSize: 12)),
+            SizedBox(height: 6),
+            Text('Reporting supervisor: $supervisorName', style: TextStyle(color: context.appColors.accentBlue, fontSize: 12)),
           ],
           if (!pending && decidedByName != null && decidedByName!.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(
               'Decision: $decidedByName${roleLabel.isNotEmpty ? ' ($roleLabel)' : ''}',
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+              style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
             ),
           ],
         ],
@@ -1884,9 +1884,9 @@ class _HomeOtCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.cardDark,
+        color: context.appColors.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderBlue.withValues(alpha: 0.4)),
+        border: Border.all(color: context.appColors.borderBlue.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1894,7 +1894,7 @@ class _HomeOtCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(staffName, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
+                child: Text(staffName, style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.w600)),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -1904,22 +1904,22 @@ class _HomeOtCard extends StatelessWidget {
                 ),
                 child: Text(
                   pending ? 'PENDING' : status.toUpperCase(),
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: pending ? Colors.amber : AppTheme.textSecondary),
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: pending ? Colors.amber : context.appColors.textSecondary),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text('OT $otDate · $hours h', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+          SizedBox(height: 4),
+          Text('OT $otDate · $hours h', style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
           if (pending && supervisorLabel != null && supervisorLabel!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: Text('Awaiting supervisor: $supervisorLabel', style: const TextStyle(color: AppTheme.accentBlue, fontSize: 12)),
+              child: Text('Awaiting supervisor: $supervisorLabel', style: TextStyle(color: context.appColors.accentBlue, fontSize: 12)),
             ),
           if (!pending && approverName != null && approverName!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: Text('Approved by: $approverName', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+              child: Text('Approved by: $approverName', style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
             ),
         ],
       ),
@@ -2024,11 +2024,11 @@ class _AdminRegisterStaffFormState extends State<_AdminRegisterStaffForm> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+          colors: [context.appColors.surface, context.appColors.background],
           stops: [0.0, 0.2],
         ),
       ),
@@ -2039,15 +2039,15 @@ class _AdminRegisterStaffFormState extends State<_AdminRegisterStaffForm> {
           children: [
             Text(
               'Create a new staff account. They can sign in with the email and password you set.',
-              style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.95), fontSize: 14),
+              style: TextStyle(color: context.appColors.textSecondary.withOpacity(0.95), fontSize: 14),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.cardDark,
+                color: context.appColors.card,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
+                border: Border.all(color: context.appColors.borderBlue.withOpacity(0.5)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2066,48 +2066,48 @@ class _AdminRegisterStaffFormState extends State<_AdminRegisterStaffForm> {
                   ],
                   TextField(
                     controller: _staffIdController,
-                    style: const TextStyle(color: AppTheme.textPrimary),
+                    style: TextStyle(color: context.appColors.textPrimary),
                     decoration: InputDecoration(
                       labelText: 'Staff ID (optional)',
                       hintText: 'Leave empty to auto-generate (STF001, …)',
-                      prefixIcon: const Icon(Icons.badge_outlined, color: AppTheme.accentBlue),
+                      prefixIcon: Icon(Icons.badge_outlined, color: context.appColors.accentBlue),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   TextField(
                     controller: _nameController,
-                    style: const TextStyle(color: AppTheme.textPrimary),
+                    style: TextStyle(color: context.appColors.textPrimary),
                     decoration: InputDecoration(
                       labelText: 'Full name',
-                      prefixIcon: const Icon(Icons.person_outline, color: AppTheme.accentBlue),
+                      prefixIcon: Icon(Icons.person_outline, color: context.appColors.accentBlue),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   TextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     autocorrect: false,
-                    style: const TextStyle(color: AppTheme.textPrimary),
+                    style: TextStyle(color: context.appColors.textPrimary),
                     decoration: InputDecoration(
                       labelText: 'Email',
-                      prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.accentBlue),
+                      prefixIcon: Icon(Icons.email_outlined, color: context.appColors.accentBlue),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   TextField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    style: const TextStyle(color: AppTheme.textPrimary),
+                    style: TextStyle(color: context.appColors.textPrimary),
                     decoration: InputDecoration(
                       labelText: 'Temporary password',
                       helperText: 'Minimum 6 characters',
-                      prefixIcon: const Icon(Icons.lock_outline, color: AppTheme.accentBlue),
+                      prefixIcon: Icon(Icons.lock_outline, color: context.appColors.accentBlue),
                       suffixIcon: IconButton(
                         icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
@@ -2116,19 +2116,19 @@ class _AdminRegisterStaffFormState extends State<_AdminRegisterStaffForm> {
                       filled: true,
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
                   SizedBox(
                     height: 48,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _submit,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryBlue,
+                        backgroundColor: context.appColors.primaryBlue,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: _isLoading
-                          ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Text('Register staff'),
+                          ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : Text('Register staff'),
                     ),
                   ),
                 ],
@@ -2190,9 +2190,9 @@ class _StaffSalaryCardState extends State<_StaffSalaryCard> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.cardDark,
+        color: context.appColors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
+        border: Border.all(color: context.appColors.borderBlue.withOpacity(0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2200,24 +2200,24 @@ class _StaffSalaryCardState extends State<_StaffSalaryCard> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.person, color: AppTheme.accentBlue, size: 32),
-              const SizedBox(width: 16),
+              Icon(Icons.person, color: context.appColors.accentBlue, size: 32),
+              SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(widget.staff['name'] ?? '-', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                    Text(widget.staff['staffId'] ?? '-', style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
-                    const SizedBox(height: 6),
+                    Text(widget.staff['name'] ?? '-', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: context.appColors.textPrimary)),
+                    Text(widget.staff['staffId'] ?? '-', style: TextStyle(fontSize: 13, color: context.appColors.textSecondary)),
+                    SizedBox(height: 6),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Chip(
                         label: Text(
                           _roleLabel(widget.staff['role']),
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: context.appColors.textPrimary),
                         ),
-                        backgroundColor: AppTheme.surfaceDark,
-                        side: BorderSide(color: AppTheme.borderBlue.withValues(alpha: 0.5)),
+                        backgroundColor: context.appColors.surface,
+                        side: BorderSide(color: context.appColors.borderBlue.withValues(alpha: 0.5)),
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         visualDensity: VisualDensity.compact,
@@ -2226,7 +2226,7 @@ class _StaffSalaryCardState extends State<_StaffSalaryCard> {
                     if (widget.staff['department'] != null && (widget.staff['department'] as String).isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
-                        child: Text(widget.staff['department'], style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                        child: Text(widget.staff['department'], style: TextStyle(fontSize: 12, color: context.appColors.textSecondary)),
                       ),
                   ],
                 ),
@@ -2234,41 +2234,41 @@ class _StaffSalaryCardState extends State<_StaffSalaryCard> {
               if (!_isEditing)
                 Text(
                   'RM ${(widget.staff['salary'] ?? 0).toStringAsFixed(2)}',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.accentBlue),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: context.appColors.accentBlue),
                 ),
             ],
           ),
           if (_isEditing) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _salaryController,
                     keyboardType: TextInputType.number,
-                    style: const TextStyle(color: AppTheme.textPrimary),
+                    style: TextStyle(color: context.appColors.textPrimary),
                     decoration: InputDecoration(
                       labelText: 'Monthly Salary (RM)',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
-                      fillColor: AppTheme.surfaceDark,
+                      fillColor: context.appColors.surface,
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 ElevatedButton(
                   onPressed: _isSaving ? null : _saveSalary,
-                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue),
-                  child: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Save'),
+                  style: ElevatedButton.styleFrom(backgroundColor: context.appColors.primaryBlue),
+                  child: _isSaving ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : Text('Save'),
                 ),
               ],
             ),
           ] else ...[
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextButton.icon(
               onPressed: () => setState(() => _isEditing = true),
-              icon: const Icon(Icons.edit, size: 18, color: AppTheme.accentBlue),
-              label: const Text('Edit Salary', style: TextStyle(color: AppTheme.accentBlue)),
+              icon: Icon(Icons.edit, size: 18, color: context.appColors.accentBlue),
+              label: Text('Edit Salary', style: TextStyle(color: context.appColors.accentBlue)),
             ),
           ],
         ],

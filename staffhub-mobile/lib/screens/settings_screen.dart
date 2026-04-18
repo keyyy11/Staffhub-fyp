@@ -34,7 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       label: Text(label),
       selected: sel,
       onSelected: (_) => s.setThemeMode(mode),
-      selectedColor: AppTheme.accentBlue.withValues(alpha: 0.35),
+      selectedColor: context.appColors.accentBlue.withValues(alpha: 0.35),
     );
   }
 
@@ -115,7 +115,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.all(20),
             children: [
               Text(tr('language'), style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 14)),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               SegmentedButton<String>(
                 segments: [
                   ButtonSegment(value: 'ms', label: Text(tr('lang_ms'))),
@@ -128,11 +128,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   setState(() {});
                 },
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               Text(tr('appearance'), style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 14)),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(tr('theme'), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.75), fontSize: 13)),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -142,48 +142,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _themeChip(ThemeMode.system, tr('theme_system'), s),
                 ],
               ),
-              const SizedBox(height: 28),
+              SizedBox(height: 28),
               Text(tr('security'), style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 14)),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Text(tr('change_password'), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.9), fontSize: 15)),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               TextField(
                 controller: _currentPw,
                 obscureText: true,
                 decoration: InputDecoration(labelText: tr('current_password')),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               TextField(
                 controller: _newPw,
                 obscureText: true,
                 decoration: InputDecoration(labelText: tr('new_password')),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               TextField(
                 controller: _confirmPw,
                 obscureText: true,
                 decoration: InputDecoration(labelText: tr('confirm_password')),
               ),
               if (_pwMessage != null) ...[
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 Text(_pwMessage!, style: TextStyle(color: _pwOk ? Colors.green : Colors.redAccent, fontSize: 13)),
               ],
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               FilledButton(
                 onPressed: _savingPw ? null : () => _submitPassword(lang),
                 child: _savingPw
-                    ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))
                     : Text(tr('save_password')),
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: 32),
               Text(tr('notifications'), style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 14)),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(tr('notifications_hint'), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.75), fontSize: 13, height: 1.4)),
-              const SizedBox(height: 28),
+              SizedBox(height: 28),
               Text(tr('about'), style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 14)),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(tr('version'), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.85))),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Text('1.0.0+1', style: TextStyle(color: cs.onSurface.withValues(alpha: 0.6), fontSize: 12)),
             ],
           ),

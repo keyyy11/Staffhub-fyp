@@ -431,72 +431,72 @@ class _HomeScreenState extends State<HomeScreen> {
     final isWithinRange = _distance != null && _distance! <= _radiusMeters;
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
+      backgroundColor: context.appColors.background,
       drawer: Drawer(
-        backgroundColor: AppTheme.surfaceDark,
+        backgroundColor: context.appColors.surface,
         child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.symmetric(vertical: 8),
             children: [
               DrawerHeader(
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue.withOpacity(0.15),
-                  border: Border(bottom: BorderSide(color: AppTheme.borderBlue.withOpacity(0.3))),
+                  color: context.appColors.primaryBlue.withOpacity(0.15),
+                  border: Border(bottom: BorderSide(color: context.appColors.borderBlue.withOpacity(0.3))),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     const StaffHubLogo(height: 58),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     if (_staffId.isNotEmpty)
                       Text(
                         'ID: $_staffId',
-                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                        style: TextStyle(color: context.appColors.textSecondary, fontSize: 14),
                       ),
                   ],
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.home_outlined, color: AppTheme.accentBlue),
-                title: const Text('Home', style: TextStyle(color: AppTheme.textPrimary)),
+                leading: Icon(Icons.home_outlined, color: context.appColors.accentBlue),
+                title: Text('Home', style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () => Navigator.pop(context),
               ),
               ListTile(
-                leading: const Icon(Icons.calendar_month_outlined, color: AppTheme.accentBlue),
-                title: const Text('Work schedule', style: TextStyle(color: AppTheme.textPrimary)),
+                leading: Icon(Icons.calendar_month_outlined, color: context.appColors.accentBlue),
+                title: Text('Work schedule', style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WorkScheduleScreen()));
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.receipt_long_outlined, color: AppTheme.accentBlue),
-                title: const Text('Payslip', style: TextStyle(color: AppTheme.textPrimary)),
+                leading: Icon(Icons.receipt_long_outlined, color: context.appColors.accentBlue),
+                title: Text('Payslip', style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PayslipScreen()));
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.history, color: AppTheme.accentBlue),
-                title: const Text('Attendance history', style: TextStyle(color: AppTheme.textPrimary)),
+                leading: Icon(Icons.history, color: context.appColors.accentBlue),
+                title: Text('Attendance history', style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AttendanceHistoryScreen()));
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.event_available_outlined, color: AppTheme.accentBlue),
-                title: const Text('Apply leave', style: TextStyle(color: AppTheme.textPrimary)),
+                leading: Icon(Icons.event_available_outlined, color: context.appColors.accentBlue),
+                title: Text('Apply leave', style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ApplyLeaveScreen()));
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.more_time_rounded, color: AppTheme.accentBlue),
-                title: const Text('Apply overtime (OT)', style: TextStyle(color: AppTheme.textPrimary)),
+                leading: Icon(Icons.more_time_rounded, color: context.appColors.accentBlue),
+                title: Text('Apply overtime (OT)', style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.of(context)
@@ -506,26 +506,26 @@ class _HomeScreenState extends State<HomeScreen> {
                       });
                 },
               ),
-              const Divider(color: AppTheme.borderBlue),
+              Divider(color: context.appColors.borderBlue),
               ListTile(
-                leading: const Icon(Icons.settings_outlined, color: AppTheme.accentBlue),
-                title: const Text('Settings', style: TextStyle(color: AppTheme.textPrimary)),
+                leading: Icon(Icons.settings_outlined, color: context.appColors.accentBlue),
+                title: Text('Settings', style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.person_outline, color: AppTheme.accentBlue),
-                title: const Text('Profile', style: TextStyle(color: AppTheme.textPrimary)),
+                leading: Icon(Icons.person_outline, color: context.appColors.accentBlue),
+                title: Text('Profile', style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.logout, color: Colors.redAccent),
-                title: const Text('Log out', style: TextStyle(color: Colors.redAccent)),
+                leading: Icon(Icons.logout, color: Colors.redAccent),
+                title: Text('Log out', style: TextStyle(color: Colors.redAccent)),
                 onTap: () {
                   Navigator.pop(context);
                   _logout();
@@ -541,37 +541,37 @@ class _HomeScreenState extends State<HomeScreen> {
           alignment: Alignment.centerLeft,
           child: StaffHubLogo(height: 36),
         ),
-        backgroundColor: AppTheme.surfaceDark,
-        foregroundColor: AppTheme.textPrimary,
+        backgroundColor: context.appColors.surface,
+        foregroundColor: context.appColors.textPrimary,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: AppTheme.accentBlue),
+            icon: Icon(Icons.settings_outlined, color: context.appColors.accentBlue),
             tooltip: 'Settings',
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.person_outline, color: AppTheme.accentBlue),
+            icon: Icon(Icons.person_outline, color: context.appColors.accentBlue),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const ProfileScreen()),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.logout, color: AppTheme.accentBlue),
+            icon: Icon(Icons.logout, color: context.appColors.accentBlue),
             onPressed: _logout,
           ),
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              AppTheme.surfaceDark,
-              AppTheme.backgroundBlack,
+              context.appColors.surface,
+              context.appColors.background,
             ],
             stops: [0.0, 0.3],
           ),
@@ -582,23 +582,23 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 4),
-                const Text(
+                SizedBox(height: 4),
+                Text(
                   'Welcome',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: AppTheme.textSecondary,
+                    color: context.appColors.textSecondary,
                     letterSpacing: 0.3,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 Text(
                   _staffName.isNotEmpty ? _staffName : 'Staff',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
+                    color: context.appColors.textPrimary,
                   ),
                 ),
                 if (_staffId.isNotEmpty)
@@ -606,29 +606,29 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
                       'Staff ID: $_staffId',
-                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                      style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
                     ),
                   ),
-                const SizedBox(height: 24),
-                const Text(
+                SizedBox(height: 24),
+                Text(
                   'Attendance',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
+                    color: context.appColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 if (_workplaceLat != null && _workplaceLng != null)
                   Container(
                     height: 300,
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
+                      border: Border.all(color: context.appColors.borderBlue.withOpacity(0.5)),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primaryBlue.withOpacity(0.2),
+                          color: context.appColors.primaryBlue.withOpacity(0.2),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -648,8 +648,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               circleId: const CircleId('workplace_radius'),
                               center: LatLng(_workplaceLat!, _workplaceLng!),
                               radius: _radiusMeters.toDouble(),
-                              fillColor: AppTheme.accentBlue.withOpacity(0.25),
-                              strokeColor: AppTheme.accentBlue.withOpacity(0.8),
+                              fillColor: context.appColors.accentBlue.withOpacity(0.25),
+                              strokeColor: context.appColors.accentBlue.withOpacity(0.8),
                               strokeWidth: 2,
                             ),
                           },
@@ -675,10 +675,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           top: 8,
                           right: 8,
                           child: Material(
-                            color: AppTheme.cardDark.withOpacity(0.9),
+                            color: context.appColors.card.withOpacity(0.9),
                             borderRadius: BorderRadius.circular(8),
                             child: IconButton(
-                              icon: const Icon(Icons.my_location, color: AppTheme.accentBlue, size: 24),
+                              icon: Icon(Icons.my_location, color: context.appColors.accentBlue, size: 24),
                               onPressed: _checkLocation,
                               tooltip: 'Refresh location',
                             ),
@@ -701,12 +701,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppTheme.cardDark,
+                    color: context.appColors.card,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
+                    border: Border.all(color: context.appColors.borderBlue.withOpacity(0.5)),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primaryBlue.withOpacity(0.15),
+                        color: context.appColors.primaryBlue.withOpacity(0.15),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),
@@ -718,10 +718,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         isWithinRange ? Icons.location_on : Icons.location_off,
                         size: 48,
                         color: isWithinRange
-                            ? AppTheme.accentBlue
+                            ? context.appColors.accentBlue
                             : Colors.amber.shade400,
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Text(
                         isWithinRange
                             ? 'Within ${_radiusMeters}m radius'
@@ -729,15 +729,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: isWithinRange ? AppTheme.accentBlue : Colors.amber.shade400,
+                          color: isWithinRange ? context.appColors.accentBlue : Colors.amber.shade400,
                         ),
                       ),
                       if (_distance != null)
                         Text(
                           'Distance: ${_distance!.toStringAsFixed(0)}m',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: AppTheme.textSecondary,
+                            color: context.appColors.textSecondary,
                           ),
                         ),
                       if (_distance != null && _distance! > 100000)
@@ -755,7 +755,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 if (_message != null)
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -776,7 +776,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: _isSuccess ? Colors.greenAccent : Colors.redAccent,
                           size: 24,
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             _message!,
@@ -794,7 +794,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: ElevatedButton.icon(
                     onPressed: _isLoading ? null : _clockIn,
                     icon: _isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 24,
                             height: 24,
                             child: CircularProgressIndicator(
@@ -802,10 +802,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Icon(Icons.login),
-                    label: const Text('Clock In'),
+                        : Icon(Icons.login),
+                    label: Text('Clock In'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryBlue,
+                      backgroundColor: context.appColors.primaryBlue,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -813,33 +813,33 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
                   height: 56,
                   child: OutlinedButton.icon(
                     onPressed: _isLoading ? null : _clockOut,
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Clock Out'),
+                    icon: Icon(Icons.logout),
+                    label: Text('Clock Out'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.accentBlue,
-                      side: const BorderSide(color: AppTheme.accentBlue),
+                      foregroundColor: context.appColors.accentBlue,
+                      side: BorderSide(color: context.appColors.accentBlue),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
-                const Text(
+                SizedBox(height: 32),
+                Text(
                   'Leave',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
+                    color: context.appColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 if (_leaveBalances.isNotEmpty)
                   SizedBox(
                     height: 128,
@@ -856,34 +856,34 @@ class _HomeScreenState extends State<HomeScreen> {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: AppTheme.cardDark.withOpacity(0.5),
+                      color: context.appColors.card.withOpacity(0.5),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.borderBlue.withOpacity(0.3)),
+                      border: Border.all(color: context.appColors.borderBlue.withOpacity(0.3)),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentBlue),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: context.appColors.accentBlue),
                         ),
                         SizedBox(width: 12),
-                        Text('Loading leave balance...', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+                        Text('Loading leave balance...', style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
                       ],
                     ),
                   ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 if (_leaveRequestsPreview.isNotEmpty) ...[
-                  const Text(
+                  Text(
                     'Leave request responses',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+                      color: context.appColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   ..._leaveRequestsPreview.map((r) {
                     final st = r['status'] as String? ?? 'pending';
                     final stColor = _leaveStatusColor(st);
@@ -897,7 +897,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       decoration: BoxDecoration(
-                        color: AppTheme.cardDark,
+                        color: context.appColors.card,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: stColor.withOpacity(0.35)),
                       ),
@@ -909,14 +909,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Text(
                                   range,
-                                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
+                                  style: TextStyle(color: context.appColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
                                 ),
                                 if (note != null && note.isNotEmpty)
                                   Text(
                                     'Admin: $note',
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                                    style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
                                   ),
                               ],
                             ),
@@ -936,7 +936,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     );
                   }),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                 ],
                 SizedBox(
                   width: double.infinity,
@@ -948,43 +948,43 @@ class _HomeScreenState extends State<HomeScreen> {
                         .then((_) {
                           if (mounted) _loadLeaveRequestsPreview(_staffId);
                         }),
-                    icon: const Icon(Icons.add_circle_outline, size: 20),
-                    label: const Text('Apply Leave'),
+                    icon: Icon(Icons.add_circle_outline, size: 20),
+                    label: Text('Apply Leave'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.accentBlue,
-                      side: const BorderSide(color: AppTheme.accentBlue),
+                      foregroundColor: context.appColors.accentBlue,
+                      side: BorderSide(color: context.appColors.accentBlue),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
-                const Text(
+                SizedBox(height: 32),
+                Text(
                   'Overtime (OT)',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
+                    color: context.appColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   'Your recent OT requests and status (supervisor approval).',
-                  style: TextStyle(fontSize: 13, color: AppTheme.textSecondary.withValues(alpha: 0.95)),
+                  style: TextStyle(fontSize: 13, color: context.appColors.textSecondary.withValues(alpha: 0.95)),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 if (_otRequestsPreview.isEmpty)
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.cardDark.withValues(alpha: 0.6),
+                      color: context.appColors.card.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.borderBlue.withValues(alpha: 0.35)),
+                      border: Border.all(color: context.appColors.borderBlue.withValues(alpha: 0.35)),
                     ),
-                    child: const Text(
+                    child: Text(
                       'No OT requests yet. Submit one to see it here.',
-                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                      style: TextStyle(color: context.appColors.textSecondary, fontSize: 14),
                     ),
                   )
                 else
@@ -997,28 +997,28 @@ class _HomeScreenState extends State<HomeScreen> {
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       decoration: BoxDecoration(
-                        color: AppTheme.cardDark,
+                        color: context.appColors.card,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: stColor.withValues(alpha: 0.35)),
                       ),
                       child: Row(
                         children: [
                           Icon(Icons.more_time_rounded, size: 22, color: stColor.withValues(alpha: 0.9)),
-                          const SizedBox(width: 10),
+                          SizedBox(width: 10),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   '${_shortDate(r['otDate'])} · $hLabel',
-                                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
+                                  style: TextStyle(color: context.appColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
                                 ),
                                 if ((r['reason'] as String?)?.trim().isNotEmpty == true)
                                   Text(
                                     r['reason'] as String,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                                    style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
                                   ),
                               ],
                             ),
@@ -1038,7 +1038,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     );
                   }),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
@@ -1049,11 +1049,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         .then((_) {
                           if (mounted) _loadOvertimePreview();
                         }),
-                    icon: const Icon(Icons.add_circle_outline, size: 20),
-                    label: const Text('Apply OT'),
+                    icon: Icon(Icons.add_circle_outline, size: 20),
+                    label: Text('Apply OT'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.accentBlue,
-                      side: const BorderSide(color: AppTheme.accentBlue),
+                      foregroundColor: context.appColors.accentBlue,
+                      side: BorderSide(color: context.appColors.accentBlue),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -1122,28 +1122,28 @@ class _WorkElapsedTickerState extends State<_WorkElapsedTicker> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppTheme.cardDark.withValues(alpha: 0.95),
+        color: context.appColors.card.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.accentBlue.withValues(alpha: 0.5)),
+        border: Border.all(color: context.appColors.accentBlue.withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.timer, color: AppTheme.accentBlue, size: 24),
-          const SizedBox(width: 12),
+          Icon(Icons.timer, color: context.appColors.accentBlue, size: 24),
+          SizedBox(width: 12),
           Text(
             _formatElapsed(elapsed),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: AppTheme.accentBlue,
+              color: context.appColors.accentBlue,
               letterSpacing: 2,
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Text(
             remaining.isNegative ? '' : '(${remaining.inHours}h ${remaining.inMinutes % 60}m left)',
-            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+            style: TextStyle(fontSize: 12, color: context.appColors.textSecondary),
           ),
         ],
       ),
@@ -1163,12 +1163,12 @@ class _LeaveCard extends StatelessWidget {
       margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardDark,
+        color: context.appColors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderBlue.withOpacity(0.4)),
+        border: Border.all(color: context.appColors.borderBlue.withOpacity(0.4)),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryBlue.withOpacity(0.1),
+            color: context.appColors.primaryBlue.withOpacity(0.1),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -1180,15 +1180,15 @@ class _LeaveCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(leave.iconData, color: AppTheme.accentBlue, size: 24),
-              const SizedBox(width: 8),
+              Icon(leave.iconData, color: context.appColors.accentBlue, size: 24),
+              SizedBox(width: 8),
               Expanded(
                 child: Text(
                   leave.label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
+                    color: context.appColors.textPrimary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1196,21 +1196,21 @@ class _LeaveCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Text(
             '${leave.remaining}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: AppTheme.accentBlue,
+              color: context.appColors.accentBlue,
               height: 1.2,
             ),
           ),
           Text(
             'remaining / ${leave.total} days',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: AppTheme.textSecondary,
+              color: context.appColors.textSecondary,
             ),
           ),
         ],

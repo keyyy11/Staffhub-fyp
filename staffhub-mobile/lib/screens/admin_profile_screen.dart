@@ -194,42 +194,42 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   Widget build(BuildContext context) {
     if (_loading) {
       return Scaffold(
-        backgroundColor: AppTheme.backgroundBlack,
+        backgroundColor: context.appColors.background,
         appBar: AppBar(
-          title: const Text('Admin profile', style: TextStyle(color: AppTheme.textPrimary)),
-          backgroundColor: AppTheme.surfaceDark,
-          foregroundColor: AppTheme.textPrimary,
+          title: Text('Admin profile', style: TextStyle(color: context.appColors.textPrimary)),
+          backgroundColor: context.appColors.surface,
+          foregroundColor: context.appColors.textPrimary,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
-        body: const Center(child: CircularProgressIndicator(color: AppTheme.accentBlue)),
+        body: Center(child: CircularProgressIndicator(color: context.appColors.accentBlue)),
       );
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: const Text('Admin profile', style: TextStyle(color: AppTheme.textPrimary)),
-        backgroundColor: AppTheme.surfaceDark,
-        foregroundColor: AppTheme.textPrimary,
+        title: Text('Admin profile', style: TextStyle(color: context.appColors.textPrimary)),
+        backgroundColor: context.appColors.surface,
+        foregroundColor: context.appColors.textPrimary,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: AppTheme.accentBlue),
+            icon: Icon(Icons.settings_outlined, color: context.appColors.accentBlue),
             tooltip: 'Settings',
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
           ),
           if (_isEditing)
             TextButton(
               onPressed: _isSaving ? null : () => setState(() => _isEditing = false),
-              child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+              child: Text('Cancel', style: TextStyle(color: context.appColors.textSecondary)),
             ),
           TextButton(
             onPressed: _isSaving
@@ -242,17 +242,17 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                     }
                   },
             child: _isSaving
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentBlue))
-                : Text(_isEditing ? 'Save' : 'Edit', style: const TextStyle(color: AppTheme.accentBlue, fontWeight: FontWeight.w600)),
+                ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: context.appColors.accentBlue))
+                : Text(_isEditing ? 'Save' : 'Edit', style: TextStyle(color: context.appColors.accentBlue, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+            colors: [context.appColors.surface, context.appColors.background],
             stops: [0.0, 0.3],
           ),
         ),
@@ -261,19 +261,19 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             child: Column(
               children: [
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 GestureDetector(
                   onTap: _isEditing ? _pickImage : null,
                   child: Stack(
                     children: [
                       CircleAvatar(
                         radius: 72,
-                        backgroundColor: AppTheme.cardDark,
+                        backgroundColor: context.appColors.card,
                         backgroundImage: _profileImageBase64.isNotEmpty ? _buildProfileImage() : null,
                         child: _buildProfileImage() == null
                             ? Text(
                                 _getInitials(),
-                                style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: AppTheme.accentBlue),
+                                style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: context.appColors.accentBlue),
                               )
                             : null,
                       ),
@@ -283,19 +283,19 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                           bottom: 0,
                           child: Container(
                             padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(color: AppTheme.primaryBlue, shape: BoxShape.circle),
-                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                            decoration: BoxDecoration(color: context.appColors.primaryBlue, shape: BoxShape.circle),
+                            child: Icon(Icons.camera_alt, color: Colors.white, size: 20),
                           ),
                         ),
                     ],
                   ),
                 ),
                 if (_isEditing)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(top: 8),
-                    child: Text('Tap to change photo', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                    child: Text('Tap to change photo', style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
                   ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 if (_message != null)
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -308,7 +308,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                     child: Row(
                       children: [
                         Icon(_isSuccess ? Icons.check_circle : Icons.error, color: _isSuccess ? Colors.greenAccent : Colors.redAccent, size: 22),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Expanded(child: Text(_message!, style: TextStyle(color: _isSuccess ? Colors.greenAccent : Colors.redAccent))),
                       ],
                     ),
@@ -327,25 +327,25 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppTheme.cardDark,
+        color: context.appColors.card,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5), width: 2),
+        border: Border.all(color: context.appColors.borderBlue.withOpacity(0.5), width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _field('Role', 'Administrator', false),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           _field('Staff ID', _staffId, false),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           _field('Full name', _nameController, _isEditing),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           _field('Email', _email, false),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           _field('Phone', _phoneController, _isEditing),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           _field('Department', _departmentController, _isEditing),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           _field('Position', _positionController, _isEditing),
         ],
       ),
@@ -357,19 +357,19 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 15, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
+          Text(label, style: TextStyle(color: context.appColors.textSecondary, fontSize: 15, fontWeight: FontWeight.w500)),
+          SizedBox(height: 8),
           TextField(
             controller: value,
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 18),
+            style: TextStyle(color: context.appColors.textPrimary, fontSize: 18),
             decoration: InputDecoration(
               filled: true,
-              fillColor: AppTheme.surfaceDark,
+              fillColor: context.appColors.surface,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: AppTheme.borderBlue.withOpacity(0.5), width: 1.5),
+                borderSide: BorderSide(color: context.appColors.borderBlue.withOpacity(0.5), width: 1.5),
               ),
             ),
           ),
@@ -379,11 +379,11 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 15, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 8),
+        Text(label, style: TextStyle(color: context.appColors.textSecondary, fontSize: 15, fontWeight: FontWeight.w500)),
+        SizedBox(height: 8),
         Text(
           value is TextEditingController ? value.text : (value as String? ?? '-'),
-          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 22, fontWeight: FontWeight.w600),
+          style: TextStyle(color: context.appColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w600),
         ),
       ],
     );

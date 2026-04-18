@@ -75,13 +75,13 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
+      backgroundColor: context.appColors.background,
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+            colors: [context.appColors.surface, context.appColors.background],
             stops: [0.0, 0.5],
           ),
         ),
@@ -94,28 +94,28 @@ class _LoginPageState extends State<LoginPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
                     const StaffHubLogo(height: 152),
-                    const SizedBox(height: 24),
-                    const Text(
+                    SizedBox(height: 24),
+                    Text(
                       'Login',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: AppTheme.accentBlue),
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: context.appColors.accentBlue),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
+                    SizedBox(height: 8),
+                    Text(
                       'Sign in with your email and password',
-                      style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+                      style: TextStyle(fontSize: 14, color: context.appColors.textSecondary),
                     ),
-                    const SizedBox(height: 40),
+                    SizedBox(height: 40),
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: AppTheme.cardDark,
+                        color: context.appColors.card,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
+                        border: Border.all(color: context.appColors.borderBlue.withOpacity(0.5)),
                         boxShadow: [
                           BoxShadow(
-                            color: AppTheme.primaryBlue.withOpacity(0.2),
+                            color: context.appColors.primaryBlue.withOpacity(0.2),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
@@ -135,9 +135,9 @@ class _LoginPageState extends State<LoginPage> {
                               child: Row(
                                 children: [
                                   Icon(Icons.error_outline, color: Colors.red.shade700),
-                                  const SizedBox(width: 12),
+                                  SizedBox(width: 12),
                                   Expanded(
-                                    child: Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
+                                    child: Text(_errorMessage!, style: TextStyle(color: Colors.redAccent)),
                                   ),
                                 ],
                               ),
@@ -147,25 +147,25 @@ class _LoginPageState extends State<LoginPage> {
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
                             autocorrect: false,
-                            cursorColor: AppTheme.accentBlue,
-                            style: const TextStyle(color: AppTheme.textPrimary),
+                            cursorColor: context.appColors.accentBlue,
+                            style: TextStyle(color: context.appColors.textPrimary),
                             decoration: InputDecoration(
                               labelText: 'Email',
                               hintText: 'name@email.com',
-                              prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.accentBlue),
+                              prefixIcon: Icon(Icons.email_outlined, color: context.appColors.accentBlue),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                               filled: true,
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
-                            style: const TextStyle(color: AppTheme.textPrimary),
+                            style: TextStyle(color: context.appColors.textPrimary),
                             decoration: InputDecoration(
                               labelText: 'Password',
                               hintText: '••••••••',
-                              prefixIcon: const Icon(Icons.lock_outlined, color: AppTheme.accentBlue),
+                              prefixIcon: Icon(Icons.lock_outlined, color: context.appColors.accentBlue),
                               suffixIcon: IconButton(
                                 icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
                                 onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
@@ -174,27 +174,27 @@ class _LoginPageState extends State<LoginPage> {
                               filled: true,
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          SizedBox(height: 24),
                           SizedBox(
                             width: double.infinity,
                             height: 52,
                             child: ElevatedButton(
                               onPressed: _isLoading ? null : _login,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primaryBlue,
+                                backgroundColor: context.appColors.primaryBlue,
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
                               child: _isLoading
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       width: 24,
                                       height: 24,
                                       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                     )
-                                  : const Text('Sign In'),
+                                  : Text('Sign In'),
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12),
                           TextButton(
                             onPressed: _isLoading
                                 ? null
@@ -205,21 +205,21 @@ class _LoginPageState extends State<LoginPage> {
                                       MaterialPageRoute(builder: (_) => const HomeScreen()),
                                     );
                                   },
-                            child: const Text(
+                            child: Text(
                               'Demo Mode (no API)',
-                              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                              style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text("Don't have an account? ", style: TextStyle(color: AppTheme.textSecondary)),
+                              Text("Don't have an account? ", style: TextStyle(color: context.appColors.textSecondary)),
                               TextButton(
                                 onPressed: () => Navigator.of(context).push(
                                   MaterialPageRoute(builder: (_) => const RegisterScreen()),
                                 ),
-                                child: const Text('Register as Staff', style: TextStyle(color: AppTheme.accentBlue)),
+                                child: Text('Register as Staff', style: TextStyle(color: context.appColors.accentBlue)),
                               ),
                             ],
                           ),
@@ -227,9 +227,9 @@ class _LoginPageState extends State<LoginPage> {
                             onPressed: () => Navigator.of(context).push(
                               MaterialPageRoute(builder: (_) => const AdminRegisterScreen()),
                             ),
-                            child: const Text(
+                            child: Text(
                               'Register as Admin',
-                              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                              style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
                             ),
                           ),
                         ],

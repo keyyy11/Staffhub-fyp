@@ -49,16 +49,26 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
       initialDate: _otDate ?? DateTime.now(),
       firstDate: DateTime.now().subtract(const Duration(days: 90)),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: AppTheme.accentBlue,
-            surface: AppTheme.cardDark,
-            onSurface: AppTheme.textPrimary,
+      builder: (context, child) {
+        final ac = context.appColors;
+        final dark = Theme.of(context).brightness == Brightness.dark;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: dark
+                ? ColorScheme.dark(
+                    primary: ac.accentBlue,
+                    surface: ac.card,
+                    onSurface: ac.textPrimary,
+                  )
+                : ColorScheme.light(
+                    primary: ac.primaryBlue,
+                    surface: ac.surface,
+                    onSurface: ac.textPrimary,
+                  ),
           ),
-        ),
-        child: child!,
-      ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && mounted) setState(() => _otDate = picked);
   }
@@ -135,38 +145,38 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: const Text('Overtime (OT)', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
-        backgroundColor: AppTheme.surfaceDark,
-        foregroundColor: AppTheme.textPrimary,
+        title: Text('Overtime (OT)', style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold)),
+        backgroundColor: context.appColors.surface,
+        foregroundColor: context.appColors.textPrimary,
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+            colors: [context.appColors.surface, context.appColors.background],
             stops: [0.0, 0.25],
           ),
         ),
         child: RefreshIndicator(
-          color: AppTheme.accentBlue,
+          color: context.appColors.accentBlue,
           onRefresh: _loadList,
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
               Text(
                 'Apply for overtime on a specific work date. Your supervisor (manager) will approve or reject.',
-                style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.95), fontSize: 13),
+                style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.95), fontSize: 13),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: AppTheme.cardDark,
+                  color: context.appColors.card,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.borderBlue.withValues(alpha: 0.45)),
+                  border: Border.all(color: context.appColors.borderBlue.withValues(alpha: 0.45)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -181,62 +191,62 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
                       ),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('OT work date', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                      title: Text('OT work date', style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
                       subtitle: Text(
                         _otDate != null ? _fmt(_otDate!.toIso8601String()) : 'Tap to choose',
-                        style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: context.appColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
                       ),
-                      trailing: const Icon(Icons.calendar_today, color: AppTheme.accentBlue),
+                      trailing: Icon(Icons.calendar_today, color: context.appColors.accentBlue),
                       onTap: _pickDate,
                     ),
                     TextField(
                       controller: _hoursController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(color: AppTheme.textPrimary),
-                      decoration: const InputDecoration(
+                      style: TextStyle(color: context.appColors.textPrimary),
+                      decoration: InputDecoration(
                         labelText: 'Hours (0.5–24)',
-                        labelStyle: TextStyle(color: AppTheme.textSecondary),
+                        labelStyle: TextStyle(color: context.appColors.textSecondary),
                         border: OutlineInputBorder(),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     TextField(
                       controller: _reasonController,
                       maxLines: 2,
-                      style: const TextStyle(color: AppTheme.textPrimary),
-                      decoration: const InputDecoration(
+                      style: TextStyle(color: context.appColors.textPrimary),
+                      decoration: InputDecoration(
                         labelText: 'Reason (optional)',
-                        labelStyle: TextStyle(color: AppTheme.textSecondary),
+                        labelStyle: TextStyle(color: context.appColors.textSecondary),
                         border: OutlineInputBorder(),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
                     SizedBox(
                       height: 46,
                       child: ElevatedButton(
                         onPressed: _loading ? null : _submit,
-                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue),
+                        style: ElevatedButton.styleFrom(backgroundColor: context.appColors.primaryBlue),
                         child: _loading
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 22,
                                 height: 22,
                                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                               )
-                            : const Text('Submit OT request'),
+                            : Text('Submit OT request'),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 28),
-              const Text('My OT requests', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 10),
+              SizedBox(height: 28),
+              Text('My OT requests', style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+              SizedBox(height: 10),
               if (_requests.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Text(
                     'No requests yet.',
-                    style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.9)),
+                    style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.9)),
                   ),
                 )
               else
@@ -246,9 +256,9 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceDark,
+                      color: context.appColors.surface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.borderBlue.withValues(alpha: 0.35)),
+                      border: Border.all(color: context.appColors.borderBlue.withValues(alpha: 0.35)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,7 +268,7 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
                             Expanded(
                               child: Text(
                                 '${_fmt(r['otDate'])} · ${r['hours'] ?? '-'} h',
-                                style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
+                                style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.w600),
                               ),
                             ),
                             Container(
@@ -274,14 +284,14 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
                         if ((r['reason'] as String?)?.isNotEmpty == true)
                           Padding(
                             padding: const EdgeInsets.only(top: 6),
-                            child: Text('${r['reason']}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                            child: Text('${r['reason']}', style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
                           ),
                         if (st != 'pending' && (r['approverName'] as String?)?.isNotEmpty == true)
                           Padding(
                             padding: const EdgeInsets.only(top: 6),
                             child: Text(
                               'By: ${r['approverName']} · ${_fmt(r['decidedAt'])}',
-                              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                              style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
                             ),
                           ),
                       ],

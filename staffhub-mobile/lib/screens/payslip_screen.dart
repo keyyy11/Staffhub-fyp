@@ -44,19 +44,19 @@ class _PayslipScreenState extends State<PayslipScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: const Text('Payslip', style: TextStyle(color: AppTheme.textPrimary)),
-        backgroundColor: AppTheme.surfaceDark,
-        foregroundColor: AppTheme.textPrimary,
+        title: Text('Payslip', style: TextStyle(color: context.appColors.textPrimary)),
+        backgroundColor: context.appColors.surface,
+        foregroundColor: context.appColors.textPrimary,
         elevation: 0,
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+            colors: [context.appColors.surface, context.appColors.background],
             stops: [0.0, 0.35],
           ),
         ),
@@ -69,15 +69,15 @@ class _PayslipScreenState extends State<PayslipScreen> {
                   Expanded(
                     child: DropdownButtonFormField<int>(
                       value: _month,
-                      dropdownColor: AppTheme.cardDark,
+                      dropdownColor: context.appColors.card,
                       decoration: InputDecoration(
                         labelText: 'Month',
-                        labelStyle: const TextStyle(color: AppTheme.textSecondary),
+                        labelStyle: TextStyle(color: context.appColors.textSecondary),
                         filled: true,
-                        fillColor: AppTheme.cardDark,
+                        fillColor: context.appColors.card,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      style: const TextStyle(color: AppTheme.textPrimary),
+                      style: TextStyle(color: context.appColors.textPrimary),
                       items: List.generate(12, (i) {
                         final m = i + 1;
                         return DropdownMenuItem(value: m, child: Text('$m'));
@@ -91,19 +91,19 @@ class _PayslipScreenState extends State<PayslipScreen> {
                       },
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<int>(
                       value: _year,
-                      dropdownColor: AppTheme.cardDark,
+                      dropdownColor: context.appColors.card,
                       decoration: InputDecoration(
                         labelText: 'Year',
-                        labelStyle: const TextStyle(color: AppTheme.textSecondary),
+                        labelStyle: TextStyle(color: context.appColors.textSecondary),
                         filled: true,
-                        fillColor: AppTheme.cardDark,
+                        fillColor: context.appColors.card,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      style: const TextStyle(color: AppTheme.textPrimary),
+                      style: TextStyle(color: context.appColors.textPrimary),
                       items: List.generate(5, (i) {
                         final y = DateTime.now().year - 2 + i;
                         return DropdownMenuItem(value: y, child: Text('$y'));
@@ -122,14 +122,14 @@ class _PayslipScreenState extends State<PayslipScreen> {
             ),
             Expanded(
               child: _booting
-                  ? const Center(child: CircularProgressIndicator(color: AppTheme.accentBlue))
+                  ? Center(child: CircularProgressIndicator(color: context.appColors.accentBlue))
                   : _staffId.isEmpty
-                      ? const Center(child: Text('No Staff ID', style: TextStyle(color: AppTheme.textSecondary)))
+                      ? Center(child: Text('No Staff ID', style: TextStyle(color: context.appColors.textSecondary)))
                       : FutureBuilder<Map<String, dynamic>>(
                       future: _future,
                       builder: (context, snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator(color: AppTheme.accentBlue));
+                          return Center(child: CircularProgressIndicator(color: context.appColors.accentBlue));
                         }
                         final body = snapshot.data;
                         if (body == null || body['success'] != true) {
@@ -152,7 +152,7 @@ class _PayslipScreenState extends State<PayslipScreen> {
                         final disclaimer = data['disclaimer'] as String?;
 
                         return RefreshIndicator(
-                          color: AppTheme.accentBlue,
+                          color: context.appColors.accentBlue,
                           onRefresh: () async {
                             setState(() => _future = _fetch());
                             await _future;
@@ -162,17 +162,17 @@ class _PayslipScreenState extends State<PayslipScreen> {
                             children: [
                               Text(
                                 data['periodLabel'] as String? ?? '',
-                                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
+                                style: TextStyle(color: context.appColors.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
                               ),
-                              const SizedBox(height: 8),
+                              SizedBox(height: 8),
                               Text(
                                 '${data['name']} · ${data['staffId']}',
-                                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 15),
+                                style: TextStyle(color: context.appColors.textSecondary, fontSize: 15),
                               ),
                               if ((data['department'] as String?)?.isNotEmpty == true)
-                                Text('Department: ${data['department']}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                                Text('Department: ${data['department']}', style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
                               if (data['fromAdmin'] == true) ...[
-                                const SizedBox(height: 10),
+                                SizedBox(height: 10),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
@@ -180,17 +180,17 @@ class _PayslipScreenState extends State<PayslipScreen> {
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(color: Colors.green.shade600.withOpacity(0.6)),
                                   ),
-                                  child: const Text('Confirmed by admin / HR', style: TextStyle(color: Colors.lightGreenAccent, fontSize: 13)),
+                                  child: Text('Confirmed by admin / HR', style: TextStyle(color: Colors.lightGreenAccent, fontSize: 13)),
                                 ),
                               ],
                               if ((data['adminRemarks'] as String?)?.isNotEmpty == true) ...[
-                                const SizedBox(height: 10),
+                                SizedBox(height: 10),
                                 Text(
                                   'HR note: ${data['adminRemarks']}',
-                                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, height: 1.35),
+                                  style: TextStyle(color: context.appColors.textSecondary, fontSize: 14, height: 1.35),
                                 ),
                               ],
-                              const SizedBox(height: 20),
+                              SizedBox(height: 20),
                               _card(
                                 'Attendance this month',
                                 [
@@ -198,14 +198,14 @@ class _PayslipScreenState extends State<PayslipScreen> {
                                   'Total hours worked: ${attendance['totalHoursWorked'] ?? 0}',
                                 ],
                               ),
-                              const SizedBox(height: 12),
+                              SizedBox(height: 12),
                               _card(
                                 'Earnings',
                                 [
                                   '${earnings['label'] ?? 'Salary'}: RM ${_fmt(earnings['grossSalary'])}',
                                 ],
                               ),
-                              const SizedBox(height: 12),
+                              SizedBox(height: 12),
                               _card(
                                 'Deductions',
                                 deductions.map((e) {
@@ -213,31 +213,31 @@ class _PayslipScreenState extends State<PayslipScreen> {
                                   return '${d['label']}: RM ${_fmt(d['amount'])}';
                                 }).toList(),
                               ),
-                              const SizedBox(height: 12),
+                              SizedBox(height: 12),
                               Container(
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(20),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primaryBlue.withOpacity(0.2),
+                                  color: context.appColors.primaryBlue.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: AppTheme.accentBlue.withOpacity(0.6)),
+                                  border: Border.all(color: context.appColors.accentBlue.withOpacity(0.6)),
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       data['fromAdmin'] == true ? 'Net pay' : 'Net pay (est.)',
-                                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
+                                      style: TextStyle(color: context.appColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
                                     ),
                                     Text(
                                       'RM ${_fmt(net)}',
-                                      style: const TextStyle(color: AppTheme.accentBlue, fontSize: 22, fontWeight: FontWeight.bold),
+                                      style: TextStyle(color: context.appColors.accentBlue, fontSize: 22, fontWeight: FontWeight.bold),
                                     ),
                                   ],
                                 ),
                               ),
                               if (disclaimer != null) ...[
-                                const SizedBox(height: 16),
+                                SizedBox(height: 16),
                                 Text(disclaimer, style: TextStyle(color: Colors.amber.shade200, fontSize: 12, height: 1.4)),
                               ],
                             ],
@@ -263,18 +263,18 @@ class _PayslipScreenState extends State<PayslipScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardDark,
+        color: context.appColors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderBlue.withOpacity(0.4)),
+        border: Border.all(color: context.appColors.borderBlue.withOpacity(0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: AppTheme.accentBlue, fontWeight: FontWeight.bold, fontSize: 15)),
-          const SizedBox(height: 10),
+          Text(title, style: TextStyle(color: context.appColors.accentBlue, fontWeight: FontWeight.bold, fontSize: 15)),
+          SizedBox(height: 10),
           ...lines.map((l) => Padding(
                 padding: const EdgeInsets.only(bottom: 6),
-                child: Text(l, style: const TextStyle(color: AppTheme.textSecondary, height: 1.35)),
+                child: Text(l, style: TextStyle(color: context.appColors.textSecondary, height: 1.35)),
               )),
         ],
       ),

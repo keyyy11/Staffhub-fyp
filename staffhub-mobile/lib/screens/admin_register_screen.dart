@@ -82,22 +82,22 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: const Text('Register Admin', style: TextStyle(color: AppTheme.textPrimary)),
-        backgroundColor: AppTheme.surfaceDark,
-        foregroundColor: AppTheme.textPrimary,
+        title: Text('Register Admin', style: TextStyle(color: context.appColors.textPrimary)),
+        backgroundColor: context.appColors.surface,
+        foregroundColor: context.appColors.textPrimary,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+            colors: [context.appColors.surface, context.appColors.background],
             stops: [0.0, 0.4],
           ),
         ),
@@ -107,9 +107,9 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppTheme.cardDark,
+                color: context.appColors.card,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
+                border: Border.all(color: context.appColors.borderBlue.withOpacity(0.5)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -126,7 +126,7 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
+                            Text(_errorMessage!, style: TextStyle(color: Colors.redAccent)),
                             if (_errorMessage!.contains('API') || _errorMessage!.contains('Connection'))
                               Padding(
                                 padding: const EdgeInsets.only(top: 8),
@@ -136,23 +136,23 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
                         ),
                       ),
                   _buildField('Admin ID (optional)', _staffIdController, 'Leave empty for auto ADM001…'),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   _buildField('Full Name', _nameController, 'Admin Name'),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   _buildField('Email', _emailController, 'admin@staffhub.com', keyboardType: TextInputType.emailAddress),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   _buildField('Password (min 6)', _passwordController, '••••••', obscure: _obscurePassword, onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword)),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   _buildField('Admin Secret', _adminSecretController, 'admin123', obscure: true),
-                  const SizedBox(height: 8),
-                  const Text('Default secret: admin123 (set ADMIN_SECRET in .env to change)', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 8),
+                  Text('Default secret: admin123 (set ADMIN_SECRET in .env to change)', style: TextStyle(color: context.appColors.textSecondary, fontSize: 11)),
+                  SizedBox(height: 24),
                   SizedBox(
                     height: 52,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _registerAdmin,
-                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: _isLoading ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Create Admin'),
+                      style: ElevatedButton.styleFrom(backgroundColor: context.appColors.primaryBlue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      child: _isLoading ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : Text('Create Admin'),
                     ),
                   ),
                 ],
@@ -168,23 +168,23 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
-        const SizedBox(height: 6),
+        Text(label, style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
+        SizedBox(height: 6),
         TextField(
           controller: controller,
           obscureText: obscure,
           keyboardType: keyboardType ?? TextInputType.text,
           autocorrect: keyboardType != TextInputType.emailAddress,
           enableSuggestions: !obscure,
-          cursorColor: AppTheme.accentBlue,
-          style: const TextStyle(color: AppTheme.textPrimary),
+          cursorColor: context.appColors.accentBlue,
+          style: TextStyle(color: context.appColors.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
             filled: true,
-            fillColor: AppTheme.surfaceDark,
+            fillColor: context.appColors.surface,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             suffixIcon: onToggleObscure != null
-                ? IconButton(icon: Icon(obscure ? Icons.visibility_off : Icons.visibility, color: AppTheme.textSecondary), onPressed: onToggleObscure)
+                ? IconButton(icon: Icon(obscure ? Icons.visibility_off : Icons.visibility, color: context.appColors.textSecondary), onPressed: onToggleObscure)
                 : null,
           ),
         ),

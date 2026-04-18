@@ -3,6 +3,7 @@ const Attendance = require('../models/Attendance');
 const PayslipRecord = require('../models/PayslipRecord');
 const StaffSchedule = require('../models/StaffSchedule');
 const workplace = require('../config/workplace');
+const { enrichCalendarDays, PAY_NOTE_MS } = require('../config/publicHolidays');
 const { coerceWorkingDay, deriveShiftTypeForApiRow, SHIFT_LABEL_MS, buildCalendarMonth } = require('../utils/scheduleDays');
 
 function pad2(n) {
@@ -34,6 +35,17 @@ exports.getWorkSchedule = (req, res) => {
     return { ...def, shiftType: st, shiftLabel: SHIFT_LABEL_MS[st] };
   });
 
+  const cy = req.query.year ? parseInt(req.query.year, 10) : NaN;
+  const cm = req.query.month ? parseInt(req.query.month, 10) : NaN;
+  let calendarMonth = [];
+  let calendarYear = null;
+  let calendarMonthNum = null;
+  if (!Number.isNaN(cy) && !Number.isNaN(cm) && cm >= 1 && cm <= 12) {
+    calendarMonth = enrichCalendarDays(buildCalendarMonth(cy, cm, {}, days));
+    calendarYear = cy;
+    calendarMonthNum = cm;
+  }
+
   res.json({
     success: true,
     data: {
@@ -41,6 +53,14 @@ exports.getWorkSchedule = (req, res) => {
       expectedClockIn: expectedIn,
       notes: 'Ideal clock-in: on or before the expected time. Lunch break is included in the working window.',
       weeklySchedule,
+      publicHolidayPayNote: PAY_NOTE_MS,
+      ...(calendarMonth.length > 0
+        ? {
+            calendarMonth,
+            calendarYear,
+            calendarMonthNum,
+          }
+        : {}),
     },
   });
 };
@@ -106,7 +126,7 @@ exports.getMyWorkSchedule = async (req, res) => {
     const cm = req.query.month ? parseInt(req.query.month, 10) : now.getMonth() + 1;
     const calendarMonth =
       !Number.isNaN(cy) && !Number.isNaN(cm) && cm >= 1 && cm <= 12
-        ? buildCalendarMonth(cy, cm, custom || {}, defaultDays)
+        ? enrichCalendarDays(buildCalendarMonth(cy, cm, custom || {}, defaultDays))
         : [];
 
     res.json({
@@ -122,6 +142,7 @@ exports.getMyWorkSchedule = async (req, res) => {
         calendarMonth,
         calendarYear: cy,
         calendarMonthNum: cm,
+        publicHolidayPayNote: PAY_NOTE_MS,
         notes:
           source === 'custom'
             ? hasDate

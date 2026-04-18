@@ -180,25 +180,25 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: const Text('Discipline & warnings', style: TextStyle(color: AppTheme.textPrimary)),
-        backgroundColor: AppTheme.surfaceDark,
-        foregroundColor: AppTheme.textPrimary,
+        title: Text('Discipline & warnings', style: TextStyle(color: context.appColors.textPrimary)),
+        backgroundColor: context.appColors.surface,
+        foregroundColor: context.appColors.textPrimary,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: _loadingStaff
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.accentBlue))
+          ? Center(child: CircularProgressIndicator(color: context.appColors.accentBlue))
           : Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+                  colors: [context.appColors.surface, context.appColors.background],
                   stops: [0.0, 0.25],
                 ),
               ),
@@ -208,7 +208,7 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
                         padding: const EdgeInsets.all(24),
                         child: Text(
                           _errorMessage ?? 'No staff registered yet.',
-                          style: const TextStyle(color: AppTheme.textSecondary),
+                          style: TextStyle(color: context.appColors.textSecondary),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -220,12 +220,12 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
                         children: [
                           DropdownButtonFormField<String>(
                             value: _selectedStaffId,
-                            dropdownColor: AppTheme.cardDark,
+                            dropdownColor: context.appColors.card,
                             decoration: InputDecoration(
                               labelText: 'Staff',
-                              labelStyle: const TextStyle(color: AppTheme.textSecondary),
+                              labelStyle: TextStyle(color: context.appColors.textSecondary),
                               filled: true,
-                              fillColor: AppTheme.cardDark,
+                              fillColor: context.appColors.card,
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                             items: _staffList
@@ -234,7 +234,7 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
                                     value: s['staffId'] as String?,
                                     child: Text(
                                       '${s['name'] ?? s['staffId']} (${s['staffId']})',
-                                      style: const TextStyle(color: AppTheme.textPrimary),
+                                      style: TextStyle(color: context.appColors.textPrimary),
                                     ),
                                   ),
                                 )
@@ -244,42 +244,42 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
                               _loadMetricsAndWarnings();
                             },
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                           if (_loadingMetrics)
-                            const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: AppTheme.accentBlue)))
+                            Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: context.appColors.accentBlue)))
                           else if (_metrics != null)
                             _buildMetricsCard(),
-                          const SizedBox(height: 20),
+                          SizedBox(height: 20),
                           Text(
                             'Issue warning letter',
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: AppTheme.textPrimary,
+                                  color: context.appColors.textPrimary,
                                   fontWeight: FontWeight.bold,
                                 ),
                           ),
-                          const SizedBox(height: 8),
-                          const Text(
+                          SizedBox(height: 8),
+                          Text(
                             'Use when the system flags repeated lateness or unsatisfactory attendance/leave. You may edit the letter text before sending.',
-                            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                            style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12),
                           DropdownButtonFormField<String>(
                             value: _category,
-                            dropdownColor: AppTheme.cardDark,
+                            dropdownColor: context.appColors.card,
                             decoration: InputDecoration(
                               labelText: 'Warning type',
-                              labelStyle: const TextStyle(color: AppTheme.textSecondary),
+                              labelStyle: TextStyle(color: context.appColors.textSecondary),
                               filled: true,
-                              fillColor: AppTheme.cardDark,
+                              fillColor: context.appColors.card,
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            items: const [
-                              DropdownMenuItem(value: 'late_five_times', child: Text('Late arrivals (5+ times)', style: TextStyle(color: AppTheme.textPrimary))),
+                            items: [
+                              DropdownMenuItem(value: 'late_five_times', child: Text('Late arrivals (5+ times)', style: TextStyle(color: context.appColors.textPrimary))),
                               DropdownMenuItem(
                                 value: 'attendance_leave_unsatisfactory',
-                                child: Text('Attendance / leave unsatisfactory', style: TextStyle(color: AppTheme.textPrimary)),
+                                child: Text('Attendance / leave unsatisfactory', style: TextStyle(color: context.appColors.textPrimary)),
                               ),
-                              DropdownMenuItem(value: 'other', child: Text('Other', style: TextStyle(color: AppTheme.textPrimary))),
+                              DropdownMenuItem(value: 'other', child: Text('Other', style: TextStyle(color: context.appColors.textPrimary))),
                             ],
                             onChanged: (v) {
                               if (v == null) return;
@@ -289,56 +289,56 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
                               });
                             },
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12),
                           TextField(
                             controller: _notesController,
                             maxLines: 8,
-                            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                            style: TextStyle(color: context.appColors.textPrimary, fontSize: 14),
                             decoration: InputDecoration(
                               labelText: 'Letter content',
-                              labelStyle: const TextStyle(color: AppTheme.textSecondary),
+                              labelStyle: TextStyle(color: context.appColors.textSecondary),
                               filled: true,
-                              fillColor: AppTheme.cardDark,
+                              fillColor: context.appColors.card,
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                           SizedBox(
                             height: 48,
                             child: ElevatedButton(
                               onPressed: _submitting ? null : _submitWarning,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primaryBlue,
+                                backgroundColor: context.appColors.primaryBlue,
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
                               child: _submitting
-                                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                  : const Text('Issue warning letter'),
+                                  ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : Text('Issue warning letter'),
                             ),
                           ),
-                          const SizedBox(height: 28),
+                          SizedBox(height: 28),
                           Row(
                             children: [
-                              const Text(
+                              Text(
                                 'History for this staff',
-                                style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+                                style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
                               ),
                               if (_loadingWarnings) ...[
-                                const SizedBox(width: 12),
-                                const SizedBox(
+                                SizedBox(width: 12),
+                                SizedBox(
                                   width: 16,
                                   height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentBlue),
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: context.appColors.accentBlue),
                                 ),
                               ],
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12),
                           if (_warnings.isEmpty && !_loadingWarnings)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.all(16),
-                              child: Text('No warnings issued yet.', style: TextStyle(color: AppTheme.textSecondary)),
+                              child: Text('No warnings issued yet.', style: TextStyle(color: context.appColors.textSecondary)),
                             )
                           else
                             ..._warnings.map(_warningTile),
@@ -362,31 +362,31 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardDark,
+        color: context.appColors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderBlue.withOpacity(0.4)),
+        border: Border.all(color: context.appColors.borderBlue.withOpacity(0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             m['staffName'] as String? ?? '',
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(color: context.appColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(
             'Last ${m['periodDays'] ?? 90} days',
-            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+            style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
           ),
-          const SizedBox(height: 4),
-          const Divider(color: AppTheme.borderBlue),
-          const SizedBox(height: 8),
+          SizedBox(height: 4),
+          Divider(color: context.appColors.borderBlue),
+          SizedBox(height: 8),
           _metricRow('Late clock-ins', '$late', Colors.amber),
           _metricRow('On time', '$onTime', Colors.green),
-          _metricRow('Total attendance days', '$total', AppTheme.textSecondary),
-          _metricRow('On-time ratio', '${(ratio * 100).toStringAsFixed(0)}%', AppTheme.accentBlue),
+          _metricRow('Total attendance days', '$total', context.appColors.textSecondary),
+          _metricRow('On-time ratio', '${(ratio * 100).toStringAsFixed(0)}%', context.appColors.accentBlue),
           _metricRow('Leave rejected (period)', '$rej', Colors.orangeAccent),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -406,7 +406,7 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+          Text(label, style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
           Text(value, style: TextStyle(color: valueColor, fontWeight: FontWeight.w600, fontSize: 14)),
         ],
       ),
@@ -417,13 +417,13 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: on ? color.withOpacity(0.25) : AppTheme.surfaceDark,
+        color: on ? color.withOpacity(0.25) : context.appColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: on ? color : AppTheme.borderBlue.withOpacity(0.3)),
+        border: Border.all(color: on ? color : context.appColors.borderBlue.withOpacity(0.3)),
       ),
       child: Text(
         label,
-        style: TextStyle(color: on ? color : AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+        style: TextStyle(color: on ? color : context.appColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -436,7 +436,7 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceDark,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.redAccent.withOpacity(0.35)),
       ),
@@ -445,26 +445,26 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
-              const SizedBox(width: 8),
+              Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
+              SizedBox(width: 8),
               Expanded(
                 child: Text(
                   _categoryLabel(cat),
-                  style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold),
                 ),
               ),
-              Text(dateStr, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+              Text(dateStr, style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             w['notes'] as String? ?? '',
-            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+            style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             'By: ${w['issuedByName'] ?? ''} (${w['issuedByEmail'] ?? ''})',
-            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+            style: TextStyle(color: context.appColors.textSecondary, fontSize: 11),
           ),
         ],
       ),

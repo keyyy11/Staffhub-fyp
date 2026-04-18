@@ -95,8 +95,12 @@ class ApiService {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
-  static Future<Map<String, dynamic>> getWorkSchedule() async {
-    final response = await http.get(Uri.parse('$baseUrl/staff/work-schedule'));
+  static Future<Map<String, dynamic>> getWorkSchedule({int? year, int? month}) async {
+    final q = <String>[];
+    if (year != null) q.add('year=$year');
+    if (month != null) q.add('month=$month');
+    final query = q.isEmpty ? '' : '?${q.join('&')}';
+    final response = await http.get(Uri.parse('$baseUrl/staff/work-schedule$query'));
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 

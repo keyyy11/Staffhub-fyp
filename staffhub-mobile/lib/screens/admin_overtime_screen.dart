@@ -72,14 +72,14 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: const Text('Overtime audit', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
-        backgroundColor: AppTheme.surfaceDark,
-        foregroundColor: AppTheme.textPrimary,
+        title: Text('Overtime audit', style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold)),
+        backgroundColor: context.appColors.surface,
+        foregroundColor: context.appColors.textPrimary,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: AppTheme.accentBlue),
+            icon: Icon(Icons.refresh, color: context.appColors.accentBlue),
             onPressed: _load,
           ),
         ],
@@ -91,7 +91,7 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Text(
               'All OT applications and approval flow (read-only). Supervisors approve; you monitor the full trail.',
-              style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.95), fontSize: 13),
+              style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.95), fontSize: 13),
             ),
           ),
           Padding(
@@ -100,60 +100,60 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
               spacing: 8,
               children: [
                 ChoiceChip(
-                  label: const Text('All'),
+                  label: Text('All'),
                   selected: _statusFilter == null,
                   onSelected: (_) {
                     setState(() => _statusFilter = null);
                     _load();
                   },
-                  selectedColor: AppTheme.primaryBlue,
-                  labelStyle: TextStyle(color: _statusFilter == null ? Colors.white : AppTheme.textSecondary),
+                  selectedColor: context.appColors.primaryBlue,
+                  labelStyle: TextStyle(color: _statusFilter == null ? Colors.white : context.appColors.textSecondary),
                 ),
                 ChoiceChip(
-                  label: const Text('Pending'),
+                  label: Text('Pending'),
                   selected: _statusFilter == 'pending',
                   onSelected: (_) {
                     setState(() => _statusFilter = 'pending');
                     _load();
                   },
-                  selectedColor: AppTheme.primaryBlue,
-                  labelStyle: TextStyle(color: _statusFilter == 'pending' ? Colors.white : AppTheme.textSecondary),
+                  selectedColor: context.appColors.primaryBlue,
+                  labelStyle: TextStyle(color: _statusFilter == 'pending' ? Colors.white : context.appColors.textSecondary),
                 ),
                 ChoiceChip(
-                  label: const Text('Approved'),
+                  label: Text('Approved'),
                   selected: _statusFilter == 'approved',
                   onSelected: (_) {
                     setState(() => _statusFilter = 'approved');
                     _load();
                   },
-                  selectedColor: AppTheme.primaryBlue,
-                  labelStyle: TextStyle(color: _statusFilter == 'approved' ? Colors.white : AppTheme.textSecondary),
+                  selectedColor: context.appColors.primaryBlue,
+                  labelStyle: TextStyle(color: _statusFilter == 'approved' ? Colors.white : context.appColors.textSecondary),
                 ),
                 ChoiceChip(
-                  label: const Text('Rejected'),
+                  label: Text('Rejected'),
                   selected: _statusFilter == 'rejected',
                   onSelected: (_) {
                     setState(() => _statusFilter = 'rejected');
                     _load();
                   },
-                  selectedColor: AppTheme.primaryBlue,
-                  labelStyle: TextStyle(color: _statusFilter == 'rejected' ? Colors.white : AppTheme.textSecondary),
+                  selectedColor: context.appColors.primaryBlue,
+                  labelStyle: TextStyle(color: _statusFilter == 'rejected' ? Colors.white : context.appColors.textSecondary),
                 ),
               ],
             ),
           ),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.accentBlue))
+                ? Center(child: CircularProgressIndicator(color: context.appColors.accentBlue))
                 : RefreshIndicator(
-                    color: AppTheme.accentBlue,
+                    color: context.appColors.accentBlue,
                     onRefresh: _load,
                     child: _list.isEmpty
                         ? ListView(
                             physics: const AlwaysScrollableScrollPhysics(),
-                            children: const [
+                            children: [
                               SizedBox(height: 48),
-                              Center(child: Text('No OT records', style: TextStyle(color: AppTheme.textSecondary))),
+                              Center(child: Text('No OT records', style: TextStyle(color: context.appColors.textSecondary))),
                             ],
                           )
                         : ListView.builder(
@@ -172,9 +172,9 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 12),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.cardDark,
+                                  color: context.appColors.card,
                                   borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: AppTheme.borderBlue.withValues(alpha: 0.4)),
+                                  border: Border.all(color: context.appColors.borderBlue.withValues(alpha: 0.4)),
                                 ),
                                 child: ExpansionTile(
                                   tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
@@ -184,7 +184,7 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
                                       Expanded(
                                         child: Text(
                                           r['staffName'] ?? r['staffId'] ?? '-',
-                                          style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+                                          style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
                                         ),
                                       ),
                                       Container(
@@ -201,14 +201,14 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
                                     padding: const EdgeInsets.only(top: 6),
                                     child: Text(
                                       'OT date ${_fmt(r['otDate'])} · ${r['hours'] ?? '-'} h · ID ${r['staffId']}',
-                                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                                      style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
                                     ),
                                   ),
                                   children: [
                                     if ((r['reason'] as String?)?.isNotEmpty == true)
                                       Align(
                                         alignment: Alignment.centerLeft,
-                                        child: Text('Reason: ${r['reason']}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                                        child: Text('Reason: ${r['reason']}', style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
                                       ),
                                     if ((r['supervisorStaffIdAtSubmit'] as String?)?.isNotEmpty == true)
                                       Padding(
@@ -217,15 +217,15 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
                                           alignment: Alignment.centerLeft,
                                           child: Text(
                                             'Supervisor at submit: ${r['supervisorStaffIdAtSubmit']}',
-                                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                                            style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
                                           ),
                                         ),
                                       ),
-                                    const Divider(color: AppTheme.borderBlue),
-                                    const Text('Activity flow', style: TextStyle(color: AppTheme.accentBlue, fontWeight: FontWeight.w600, fontSize: 13)),
-                                    const SizedBox(height: 8),
+                                    Divider(color: context.appColors.borderBlue),
+                                    Text('Activity flow', style: TextStyle(color: context.appColors.accentBlue, fontWeight: FontWeight.w600, fontSize: 13)),
+                                    SizedBox(height: 8),
                                     if (steps.isEmpty)
-                                      Text('Submitted ${_fmtDt(r['createdAt'])}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12))
+                                      Text('Submitted ${_fmtDt(r['createdAt'])}', style: TextStyle(color: context.appColors.textSecondary, fontSize: 12))
                                     else
                                       ...steps.map((s) {
                                         final action = s['action'] as String? ?? '';
@@ -238,20 +238,20 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
                                               Icon(
                                                 action == 'submitted' ? Icons.send : (action == 'approved' ? Icons.check_circle : Icons.cancel),
                                                 size: 18,
-                                                color: AppTheme.accentBlue,
+                                                color: context.appColors.accentBlue,
                                               ),
-                                              const SizedBox(width: 8),
+                                              SizedBox(width: 8),
                                               Expanded(
                                                 child: Column(
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
                                                     Text(
                                                       '$action · $role · ${s['actorStaffId'] ?? '-'}',
-                                                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+                                                      style: TextStyle(color: context.appColors.textPrimary, fontSize: 13),
                                                     ),
-                                                    Text(_fmtDt(s['at']), style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                                                    Text(_fmtDt(s['at']), style: TextStyle(color: context.appColors.textSecondary, fontSize: 11)),
                                                     if ((s['note'] as String?)?.isNotEmpty == true)
-                                                      Text(s['note'] as String, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                                                      Text(s['note'] as String, style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
                                                   ],
                                                 ),
                                               ),

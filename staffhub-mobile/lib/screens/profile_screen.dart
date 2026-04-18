@@ -304,22 +304,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: const Text('Profile', style: TextStyle(color: AppTheme.textPrimary)),
-        backgroundColor: AppTheme.surfaceDark,
-        foregroundColor: AppTheme.textPrimary,
+        title: Text('Profile', style: TextStyle(color: context.appColors.textPrimary)),
+        backgroundColor: context.appColors.surface,
+        foregroundColor: context.appColors.textPrimary,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: AppTheme.accentBlue),
+            icon: Icon(Icons.settings_outlined, color: context.appColors.accentBlue),
             tooltip: 'Settings',
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
           ),
           if (_isEditing)
             TextButton(
               onPressed: _isSaving ? null : () => setState(() => _isEditing = false),
-              child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+              child: Text('Cancel', style: TextStyle(color: context.appColors.textSecondary)),
             ),
           TextButton(
             onPressed: _isSaving
@@ -332,21 +332,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     }
                   },
             child: _isSaving
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentBlue))
-                : Text(_isEditing ? 'Save' : 'Edit', style: const TextStyle(color: AppTheme.accentBlue, fontWeight: FontWeight.w600)),
+                ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: context.appColors.accentBlue))
+                : Text(_isEditing ? 'Save' : 'Edit', style: TextStyle(color: context.appColors.accentBlue, fontWeight: FontWeight.w600)),
           ),
         ],
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen())),
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+            colors: [context.appColors.surface, context.appColors.background],
             stops: [0.0, 0.3],
           ),
         ),
@@ -355,21 +355,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             child: Column(
               children: [
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 GestureDetector(
                   onTap: _isEditing ? _pickImage : null,
                   child: Stack(
                     children: [
                       CircleAvatar(
                         radius: 80,
-                        backgroundColor: AppTheme.cardDark,
+                        backgroundColor: context.appColors.card,
                         backgroundImage: _profileImageBase64.isNotEmpty
                             ? _buildProfileImage()
                             : null,
                         child: _buildProfileImage() == null
                             ? Text(
                                 _getInitials(),
-                                style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: AppTheme.accentBlue),
+                                style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: context.appColors.accentBlue),
                               )
                             : null,
                       ),
@@ -379,19 +379,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           bottom: 0,
                           child: Container(
                             padding: const EdgeInsets.all(10),
-                            decoration: const BoxDecoration(color: AppTheme.primaryBlue, shape: BoxShape.circle),
-                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 24),
+                            decoration: BoxDecoration(color: context.appColors.primaryBlue, shape: BoxShape.circle),
+                            child: Icon(Icons.camera_alt, color: Colors.white, size: 24),
                           ),
                         ),
                     ],
                   ),
                 ),
                 if (_isEditing)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(top: 10),
-                    child: Text('Tap to change photo', style: TextStyle(color: AppTheme.textSecondary, fontSize: 15)),
+                    child: Text('Tap to change photo', style: TextStyle(color: context.appColors.textSecondary, fontSize: 15)),
                   ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 if (_message != null)
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -404,16 +404,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Row(
                       children: [
                         Icon(_isSuccess ? Icons.check_circle : Icons.error, color: _isSuccess ? Colors.greenAccent : Colors.redAccent, size: 24),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Expanded(child: Text(_message!, style: TextStyle(color: _isSuccess ? Colors.greenAccent : Colors.redAccent))),
                       ],
                     ),
                   ),
                 if (_showStaffWarnings) ...[
                   if (_warningsLoading)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(bottom: 16),
-                      child: Center(child: CircularProgressIndicator(color: AppTheme.accentBlue)),
+                      child: Center(child: CircularProgressIndicator(color: context.appColors.accentBlue)),
                     )
                   else if (_warnings.isNotEmpty) ...[
                     Container(
@@ -428,17 +428,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             children: [
                               Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 22),
                               SizedBox(width: 8),
                               Text(
                                 'Formal warnings',
-                                style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+                                style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12),
                           ..._warnings.map(
                             (w) => Padding(
                               padding: const EdgeInsets.only(bottom: 12),
@@ -447,18 +447,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 children: [
                                   Text(
                                     _warningCategoryLabel(w['category'] as String?),
-                                    style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600),
+                                    style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600),
                                   ),
-                                  const SizedBox(height: 4),
+                                  SizedBox(height: 4),
                                   Text(
                                     w['notes'] as String? ?? '',
-                                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                                    style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
                                   ),
                                   Text(
                                     w['createdAt'] != null
                                         ? DateTime.tryParse(w['createdAt'].toString()).toString().split(' ').first
                                         : '',
-                                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                                    style: TextStyle(color: context.appColors.textSecondary, fontSize: 11),
                                   ),
                                 ],
                               ),
@@ -483,23 +483,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: AppTheme.cardDark,
+        color: context.appColors.card,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5), width: 2),
+        border: Border.all(color: context.appColors.borderBlue.withOpacity(0.5), width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildField('Staff ID', _staffId, false),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           _buildField('Full Name', _nameController, _isEditing),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           _buildField('Email', _email, false),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           _buildField('Phone', _phoneController, _isEditing),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           _buildField('Department', _departmentController, _isEditing),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           _buildField('Position', _positionController, _isEditing),
         ],
       ),
@@ -511,17 +511,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 16, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
+          Text(label, style: TextStyle(color: context.appColors.textSecondary, fontSize: 16, fontWeight: FontWeight.w500)),
+          SizedBox(height: 8),
           TextField(
             controller: value,
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 20),
+            style: TextStyle(color: context.appColors.textPrimary, fontSize: 20),
             decoration: InputDecoration(
               filled: true,
-              fillColor: AppTheme.surfaceDark,
+              fillColor: context.appColors.surface,
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: AppTheme.borderBlue.withOpacity(0.5), width: 1.5)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: context.appColors.borderBlue.withOpacity(0.5), width: 1.5)),
             ),
           ),
         ],
@@ -530,11 +530,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 16, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 8),
+        Text(label, style: TextStyle(color: context.appColors.textSecondary, fontSize: 16, fontWeight: FontWeight.w500)),
+        SizedBox(height: 8),
         Text(
           value is TextEditingController ? value.text : (value as String? ?? '-'),
-          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 22, fontWeight: FontWeight.w600),
+          style: TextStyle(color: context.appColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w600),
         ),
       ],
     );

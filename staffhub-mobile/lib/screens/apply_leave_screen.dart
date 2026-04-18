@@ -65,16 +65,26 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
       initialDate: _startDate ?? DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: AppTheme.accentBlue,
-            surface: AppTheme.cardDark,
-            onSurface: AppTheme.textPrimary,
+      builder: (context, child) {
+        final ac = context.appColors;
+        final dark = Theme.of(context).brightness == Brightness.dark;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: dark
+                ? ColorScheme.dark(
+                    primary: ac.accentBlue,
+                    surface: ac.card,
+                    onSurface: ac.textPrimary,
+                  )
+                : ColorScheme.light(
+                    primary: ac.primaryBlue,
+                    surface: ac.surface,
+                    onSurface: ac.textPrimary,
+                  ),
           ),
-        ),
-        child: child!,
-      ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && mounted) {
       setState(() {
@@ -91,16 +101,26 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
       initialDate: initial,
       firstDate: _startDate ?? DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: AppTheme.accentBlue,
-            surface: AppTheme.cardDark,
-            onSurface: AppTheme.textPrimary,
+      builder: (context, child) {
+        final ac = context.appColors;
+        final dark = Theme.of(context).brightness == Brightness.dark;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: dark
+                ? ColorScheme.dark(
+                    primary: ac.accentBlue,
+                    surface: ac.card,
+                    onSurface: ac.textPrimary,
+                  )
+                : ColorScheme.light(
+                    primary: ac.primaryBlue,
+                    surface: ac.surface,
+                    onSurface: ac.textPrimary,
+                  ),
           ),
-        ),
-        child: child!,
-      ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && mounted) setState(() => _endDate = picked);
   }
@@ -224,7 +244,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardDark,
+        color: context.appColors.card,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: stColor.withOpacity(0.45), width: 1.2),
       ),
@@ -243,16 +263,16 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                 color: stColor,
                 size: 22,
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       _getLeaveTypeLabel(r['leaveType'] as String? ?? ''),
-                      style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary, fontSize: 16),
+                      style: TextStyle(fontWeight: FontWeight.w700, color: context.appColors.textPrimary, fontSize: 16),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       _statusResponseText(status),
                       style: TextStyle(color: stColor, fontSize: 13, fontWeight: FontWeight.w500),
@@ -273,46 +293,46 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           if (start != null && end != null)
             Text(
               '${_formatDate(start)} → ${_formatDate(end)} · ${r['totalDays'] ?? '-'} working day(s)',
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+              style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
             ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             'Submitted: ${_formatDateTime(r['createdAt'])}',
-            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+            style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
           ),
           if (status != 'pending') ...[
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(
               'Response time: ${_formatDateTime(r['updatedAt'])}',
-              style: const TextStyle(color: AppTheme.accentBlue, fontSize: 12, fontWeight: FontWeight.w500),
+              style: TextStyle(color: context.appColors.accentBlue, fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ],
           if (reason.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            const Text('Your reason', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-            const SizedBox(height: 2),
-            Text(reason, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
+            SizedBox(height: 10),
+            Text('Your reason', style: TextStyle(color: context.appColors.textSecondary, fontSize: 11)),
+            SizedBox(height: 2),
+            Text(reason, style: TextStyle(color: context.appColors.textPrimary, fontSize: 13)),
           ],
           if (adminComment.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceDark,
+                color: context.appColors.surface,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppTheme.borderBlue.withOpacity(0.35)),
+                border: Border.all(color: context.appColors.borderBlue.withOpacity(0.35)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Admin response', style: TextStyle(color: AppTheme.accentBlue, fontSize: 11, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  Text(adminComment, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
+                  Text('Admin response', style: TextStyle(color: context.appColors.accentBlue, fontSize: 11, fontWeight: FontWeight.w600)),
+                  SizedBox(height: 4),
+                  Text(adminComment, style: TextStyle(color: context.appColors.textPrimary, fontSize: 13)),
                 ],
               ),
             ),
@@ -325,31 +345,31 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: const Text('Apply Leave', style: TextStyle(color: AppTheme.textPrimary)),
-        backgroundColor: AppTheme.surfaceDark,
-        foregroundColor: AppTheme.textPrimary,
+        title: Text('Apply Leave', style: TextStyle(color: context.appColors.textPrimary)),
+        backgroundColor: context.appColors.surface,
+        foregroundColor: context.appColors.textPrimary,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => const HomeScreen()),
           ),
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+            colors: [context.appColors.surface, context.appColors.background],
             stops: [0.0, 0.3],
           ),
         ),
         child: SafeArea(
           child: RefreshIndicator(
-            color: AppTheme.accentBlue,
+            color: context.appColors.accentBlue,
             onRefresh: _loadMyRequests,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -357,124 +377,124 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Your leave requests & responses',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: context.appColors.textPrimary),
                   ),
-                  const SizedBox(height: 6),
-                  const Text(
+                  SizedBox(height: 6),
+                  Text(
                     'See admin decision (approved / rejected) and any note below.',
-                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                    style: TextStyle(fontSize: 13, color: context.appColors.textSecondary),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   if (_myRequests.isEmpty)
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: AppTheme.cardDark.withOpacity(0.5),
+                        color: context.appColors.card.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.borderBlue.withOpacity(0.3)),
+                        border: Border.all(color: context.appColors.borderBlue.withOpacity(0.3)),
                       ),
-                      child: const Center(
-                        child: Text('No leave requests yet. Submit a new application below.', style: TextStyle(color: AppTheme.textSecondary)),
+                      child: Center(
+                        child: Text('No leave requests yet. Submit a new application below.', style: TextStyle(color: context.appColors.textSecondary)),
                       ),
                     )
                   else
                     ..._myRequests.map((r) => _buildLeaveRequestCard(r)),
-                  const SizedBox(height: 28),
-                  const Text(
+                  SizedBox(height: 28),
+                  Text(
                     'New leave application',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: context.appColors.textPrimary),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: AppTheme.cardDark,
+                      color: context.appColors.card,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
+                      border: Border.all(color: context.appColors.borderBlue.withOpacity(0.5)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                      const Text('Leave Type', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
-                      const SizedBox(height: 8),
+                      Text('Leave Type', style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
+                      SizedBox(height: 8),
                       DropdownButtonFormField<String>(
                         value: _selectedLeaveType,
-                        dropdownColor: AppTheme.cardDark,
-                        style: const TextStyle(color: AppTheme.textPrimary),
+                        dropdownColor: context.appColors.card,
+                        style: TextStyle(color: context.appColors.textPrimary),
                         decoration: InputDecoration(
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           filled: true,
-                          fillColor: AppTheme.surfaceDark,
+                          fillColor: context.appColors.surface,
                         ),
                         items: _leaveTypes.map((t) => DropdownMenuItem(value: t['id'] as String, child: Text(t['label'] as String))).toList(),
                         onChanged: (v) => setState(() => _selectedLeaveType = v ?? 'annual'),
                       ),
-                      const SizedBox(height: 16),
-                      const Text('Start Date', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 16),
+                      Text('Start Date', style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
+                      SizedBox(height: 8),
                       InkWell(
                         onTap: _selectStartDate,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
-                            color: AppTheme.surfaceDark,
+                            color: context.appColors.surface,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
+                            border: Border.all(color: context.appColors.borderBlue.withOpacity(0.5)),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.calendar_today, color: AppTheme.accentBlue, size: 20),
-                              const SizedBox(width: 12),
-                              Text(_formatDate(_startDate), style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16)),
+                              Icon(Icons.calendar_today, color: context.appColors.accentBlue, size: 20),
+                              SizedBox(width: 12),
+                              Text(_formatDate(_startDate), style: TextStyle(color: context.appColors.textPrimary, fontSize: 16)),
                             ],
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      const Text('End Date', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 16),
+                      Text('End Date', style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
+                      SizedBox(height: 8),
                       InkWell(
                         onTap: _selectEndDate,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
-                            color: AppTheme.surfaceDark,
+                            color: context.appColors.surface,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppTheme.borderBlue.withOpacity(0.5)),
+                            border: Border.all(color: context.appColors.borderBlue.withOpacity(0.5)),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.calendar_today, color: AppTheme.accentBlue, size: 20),
-                              const SizedBox(width: 12),
-                              Text(_formatDate(_endDate), style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16)),
+                              Icon(Icons.calendar_today, color: context.appColors.accentBlue, size: 20),
+                              SizedBox(width: 12),
+                              Text(_formatDate(_endDate), style: TextStyle(color: context.appColors.textPrimary, fontSize: 16)),
                             ],
                           ),
                         ),
                       ),
                       if (_startDate != null && _endDate != null && !_endDate!.isBefore(_startDate!)) ...[
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8),
                         Text(
                           '${_calculateDays(_startDate!, _endDate!)} working days',
-                          style: const TextStyle(color: AppTheme.accentBlue, fontSize: 13),
+                          style: TextStyle(color: context.appColors.accentBlue, fontSize: 13),
                         ),
                       ],
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
                       TextField(
                         controller: _reasonController,
                         maxLines: 3,
-                        style: const TextStyle(color: AppTheme.textPrimary),
+                        style: TextStyle(color: context.appColors.textPrimary),
                         decoration: InputDecoration(
                           labelText: 'Reason (optional)',
-                          labelStyle: const TextStyle(color: AppTheme.textSecondary),
+                          labelStyle: TextStyle(color: context.appColors.textSecondary),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           filled: true,
-                          fillColor: AppTheme.surfaceDark,
+                          fillColor: context.appColors.surface,
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24),
                       if (_message != null) ...[
                         Container(
                           padding: const EdgeInsets.all(12),
@@ -487,7 +507,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                           child: Row(
                             children: [
                               Icon(_isSuccess ? Icons.check_circle : Icons.error, color: _isSuccess ? Colors.greenAccent : Colors.redAccent, size: 24),
-                              const SizedBox(width: 12),
+                              SizedBox(width: 12),
                               Expanded(child: Text(_message!, style: TextStyle(color: _isSuccess ? Colors.greenAccent : Colors.redAccent))),
                             ],
                           ),
@@ -498,13 +518,13 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _submit,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryBlue,
+                            backgroundColor: context.appColors.primaryBlue,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           child: _isLoading
-                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : const Text('Submit Application'),
+                              ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : Text('Submit Application'),
                         ),
                       ),
                       ],

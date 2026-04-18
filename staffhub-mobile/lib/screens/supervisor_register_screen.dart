@@ -82,22 +82,22 @@ class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: const Text('Register Supervisor', style: TextStyle(color: AppTheme.textPrimary)),
-        backgroundColor: AppTheme.surfaceDark,
-        foregroundColor: AppTheme.textPrimary,
+        title: Text('Register Supervisor', style: TextStyle(color: context.appColors.textPrimary)),
+        backgroundColor: context.appColors.surface,
+        foregroundColor: context.appColors.textPrimary,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppTheme.surfaceDark, AppTheme.backgroundBlack],
+            colors: [context.appColors.surface, context.appColors.background],
           ),
         ),
         child: SafeArea(
@@ -106,11 +106,11 @@ class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                Text(
                   'Normally, supervisors are created by an administrator: register the person as staff, then Admin → Staff pay → Promote to supervisor. Self-registration here only works if the server sets ALLOW_SUPERVISOR_SELF_REGISTER=true.',
-                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                  style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 if (_errorMessage != null)
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -120,34 +120,34 @@ class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.red.shade700),
                     ),
-                    child: Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
+                    child: Text(_errorMessage!, style: TextStyle(color: Colors.redAccent)),
                   ),
                 TextField(
                   controller: _staffIdController,
-                  style: const TextStyle(color: AppTheme.textPrimary),
+                  style: TextStyle(color: context.appColors.textPrimary),
                   decoration: _decoration('Supervisor ID (optional)').copyWith(
                     hintText: 'Leave empty for auto SUP001…',
-                    hintStyle: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                    hintStyle: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: _nameController,
-                  style: const TextStyle(color: AppTheme.textPrimary),
+                  style: TextStyle(color: context.appColors.textPrimary),
                   decoration: _decoration('Full name'),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: AppTheme.textPrimary),
+                  style: TextStyle(color: context.appColors.textPrimary),
                   decoration: _decoration('Email'),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
-                  style: const TextStyle(color: AppTheme.textPrimary),
+                  style: TextStyle(color: context.appColors.textPrimary),
                   decoration: _decoration('Password').copyWith(
                     suffixIcon: IconButton(
                       icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
@@ -155,25 +155,25 @@ class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: _secretController,
-                  style: const TextStyle(color: AppTheme.textPrimary),
+                  style: TextStyle(color: context.appColors.textPrimary),
                   decoration: _decoration('Supervisor secret'),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 SizedBox(
                   height: 48,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _register,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryBlue,
+                      backgroundColor: context.appColors.primaryBlue,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: _isLoading
-                        ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Text('Register'),
+                        ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : Text('Register'),
                   ),
                 ),
               ],
@@ -187,9 +187,9 @@ class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
   InputDecoration _decoration(String label) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: AppTheme.textSecondary),
+      labelStyle: TextStyle(color: context.appColors.textSecondary),
       filled: true,
-      fillColor: AppTheme.cardDark,
+      fillColor: context.appColors.card,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
