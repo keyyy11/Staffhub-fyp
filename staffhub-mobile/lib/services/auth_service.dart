@@ -14,7 +14,6 @@ class AuthService {
   static const _profileKey = 'user_profile';
   static const _demoKey = 'demo_mode';
 
-  /// Returns (success, errorMessage). errorMessage is null on success.
   static Future<LoginResult> login(String email, String password) async {
     try {
       final response = await ApiService.login(email, password);
@@ -45,6 +44,50 @@ class AuthService {
       return 'Cannot reach API. Start staffhub-api on port 3000. On a real phone, use your PC IP in config (see config.dart) or flutter run --dart-define=API_HOST=...';
     }
     return 'Connection error. Please ensure API is running.';
+  }
+
+  static Future<LoginResult> forgotPassword(String email) async {
+    try {
+      final response = await ApiService.forgotPassword(email);
+      if (response['success'] == true) {
+        return LoginResult(
+          success: true,
+          errorMessage: response['message'] as String?,
+        );
+      }
+      return LoginResult(
+        success: false,
+        errorMessage: response['message'] as String? ?? 'Failed to send reset email',
+      );
+    } catch (e) {
+      return LoginResult(success: false, errorMessage: _networkErrorHint(e));
+    }
+  }
+
+  static Future<LoginResult> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await ApiService.resetPassword(
+        email: email,
+        code: code,
+        newPassword: newPassword,
+      );
+      if (response['success'] == true) {
+        return LoginResult(
+          success: true,
+          errorMessage: response['message'] as String?,
+        );
+      }
+      return LoginResult(
+        success: false,
+        errorMessage: response['message'] as String? ?? 'Password reset failed',
+      );
+    } catch (e) {
+      return LoginResult(success: false, errorMessage: _networkErrorHint(e));
+    }
   }
 
   static Future<LoginResult> registerSupervisor(

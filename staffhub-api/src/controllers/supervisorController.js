@@ -70,7 +70,7 @@ exports.getOrgLeaveRequests = async (req, res) => {
     if (status && ['pending', 'approved', 'rejected'].includes(status)) {
       filter.status = status;
     }
-    const requests = await LeaveRequest.find(filter).sort({ createdAt: -1 }).limit(300).lean();
+    const requests = await LeaveRequest.find(filter).select('-mcLetter').sort({ createdAt: -1 }).limit(300).lean();
     const nameMap = Object.fromEntries(
       (await User.find({ staffId: { $in: ids } }).select('staffId name').lean()).map((u) => [u.staffId, u.name]),
     );
@@ -155,7 +155,7 @@ exports.getLeaveRequests = async (req, res) => {
     if (status && ['pending', 'approved', 'rejected'].includes(status)) {
       filter.status = status;
     }
-    const requests = await LeaveRequest.find(filter).sort({ createdAt: -1 }).limit(200).lean();
+    const requests = await LeaveRequest.find(filter).select('-mcLetter').sort({ createdAt: -1 }).limit(200).lean();
     const nameMap = Object.fromEntries(
       (await User.find({ staffId: { $in: teamIds } }).select('staffId name').lean()).map((u) => [u.staffId, u.name]),
     );
@@ -221,6 +221,32 @@ exports.supervisorUpdateLeaveRequest = async (req, res) => {
     }
 
     res.json({ success: true, message: `Leave ${status}`, data: lr });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getLeaveRequestMcLetter = async (req, res) => {
+  try {
+    const teamIds = await getTeamStaffIds(req.user.staffId);
+    const { id } = req.params;
+    const request = await LeaveRequest.findById(id).select('+mcLetter').lean();
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Leave request not found' });
+    }
+    if (!teamIds.includes(request.staffId)) {
+      return res.status(403).json({ success: false, message: 'Not allowed to view this MC letter' });
+    }
+    if (!request.hasMcLetter || !request.mcLetter) {
+      return res.status(404).json({ success: false, message: 'No MC letter attached to this request' });
+    }
+    res.json({
+      success: true,
+      data: {
+        mcLetter: request.mcLetter,
+        mcLetterFileName: request.mcLetterFileName || 'mc-letter.jpg',
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

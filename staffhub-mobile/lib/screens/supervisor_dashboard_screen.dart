@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/staffhub_logo.dart';
 import '../widgets/staff_schedule_editor_dialog.dart';
+import '../widgets/mc_letter_viewer.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
 
@@ -818,6 +819,14 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                     padding: const EdgeInsets.only(top: 6),
                     child: Text('Reason: ${r['reason']}', style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
                   ),
+                if (r['hasMcLetter'] == true && id.isNotEmpty) ...[
+                  SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: () => showMcLetterDialog(context, requestId: id, asSupervisor: true),
+                    icon: Icon(Icons.description_outlined, size: 18, color: context.appColors.accentBlue),
+                    label: Text('View MC letter', style: TextStyle(color: context.appColors.accentBlue)),
+                  ),
+                ],
                 if ((r['adminComment'] as String?)?.trim().isNotEmpty == true)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),

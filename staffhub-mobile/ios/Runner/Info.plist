@@ -28,6 +28,12 @@
 	<string>This app needs access to your location to record clock in/out within the workplace radius.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>This app needs access to your location to record clock in/out within the workplace radius.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Staff Hub uses Face ID or Touch ID to verify your identity when clocking in or out.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Staff Hub needs camera access to photograph your MC letter for medical leave applications.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Staff Hub needs photo library access to attach your MC letter for medical leave applications.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

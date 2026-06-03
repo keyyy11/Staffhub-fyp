@@ -448,7 +448,7 @@ exports.getLeaveRequests = async (req, res) => {
     if (status && ['pending', 'approved', 'rejected'].includes(status)) {
       filter.status = status;
     }
-    const requests = await LeaveRequest.find(filter).sort({ createdAt: -1 }).limit(200).lean();
+    const requests = await LeaveRequest.find(filter).select('-mcLetter').sort({ createdAt: -1 }).limit(200).lean();
     const staffIds = [...new Set(requests.map((r) => r.staffId))];
     const users = await User.find({ staffId: { $in: staffIds } }).select('staffId name supervisorStaffId').lean();
     const nameMap = Object.fromEntries(users.map((u) => [u.staffId, u.name]));
@@ -520,6 +520,28 @@ exports.updateLeaveRequestStatus = async (req, res) => {
     }
 
     res.json({ success: true, message: `Leave ${status}`, data: lr });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getLeaveRequestMcLetter = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const request = await LeaveRequest.findById(id).select('+mcLetter').lean();
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Leave request not found' });
+    }
+    if (!request.hasMcLetter || !request.mcLetter) {
+      return res.status(404).json({ success: false, message: 'No MC letter attached to this request' });
+    }
+    res.json({
+      success: true,
+      data: {
+        mcLetter: request.mcLetter,
+        mcLetterFileName: request.mcLetterFileName || 'mc-letter.jpg',
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

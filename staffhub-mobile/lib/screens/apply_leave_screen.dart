@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../app_theme.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../widgets/mc_letter_viewer.dart';
 import 'home_screen.dart';
 
 class ApplyLeaveScreen extends StatefulWidget {
@@ -21,6 +24,8 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
   String? _message;
   bool _isSuccess = false;
   List<Map<String, dynamic>> _myRequests = [];
+  String _mcLetterBase64 = '';
+  String _mcLetterFileName = '';
 
   static const _leaveTypes = [
     {'id': 'medical', 'label': 'Medical Leave'},
@@ -141,6 +146,46 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
     return count;
   }
 
+  bool get _isMedicalLeave => _selectedLeaveType == 'medical';
+
+  Future<void> _pickMcLetter(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1600,
+        maxHeight: 2200,
+        imageQuality: 85,
+      );
+      if (picked == null || !mounted) return;
+      final bytes = await picked.readAsBytes();
+      final base64 = base64Encode(bytes);
+      setState(() {
+        _mcLetterBase64 = 'data:image/jpeg;base64,$base64';
+        _mcLetterFileName = picked.name.isNotEmpty ? picked.name : 'mc-letter.jpg';
+      });
+    } catch (_) {
+      if (mounted) _showMessage('Failed to pick MC image', false);
+    }
+  }
+
+  void _clearMcLetter() {
+    setState(() {
+      _mcLetterBase64 = '';
+      _mcLetterFileName = '';
+    });
+  }
+
+  ImageProvider? _mcPreviewImage() {
+    if (_mcLetterBase64.isEmpty) return null;
+    try {
+      final base64 = _mcLetterBase64.replaceFirst(RegExp(r'data:image/[^;]+;base64,'), '');
+      return MemoryImage(base64Decode(base64));
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _submit() async {
     if (_staffId.isEmpty) {
       _showMessage('Please log in again', false);
@@ -152,6 +197,10 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
     }
     if (_startDate!.isAfter(_endDate!)) {
       _showMessage('End date must be after start date', false);
+      return;
+    }
+    if (_isMedicalLeave && _mcLetterBase64.isEmpty) {
+      _showMessage('Please attach MC letter from doctor or clinic', false);
       return;
     }
 
@@ -167,6 +216,8 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
         _startDate!,
         _endDate!,
         _reasonController.text.trim(),
+        mcLetter: _isMedicalLeave ? _mcLetterBase64 : null,
+        mcLetterFileName: _isMedicalLeave ? _mcLetterFileName : null,
       );
 
       if (!mounted) return;
@@ -179,6 +230,8 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
         setState(() {
           _startDate = null;
           _endDate = null;
+          _mcLetterBase64 = '';
+          _mcLetterFileName = '';
         });
       } else {
         _showMessage(result['message'] as String? ?? 'Failed to submit', false);
@@ -337,6 +390,21 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
               ),
             ),
           ],
+          if (r['hasMcLetter'] == true) ...[
+            SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () {
+                final id = r['_id']?.toString() ?? '';
+                if (id.isEmpty) return;
+                showMcLetterDialog(context, requestId: id, staffId: _staffId);
+              },
+              icon: Icon(Icons.description_outlined, size: 18, color: context.appColors.accentBlue),
+              label: Text('View MC letter', style: TextStyle(color: context.appColors.accentBlue)),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: context.appColors.accentBlue.withOpacity(0.6)),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -430,8 +498,79 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                           fillColor: context.appColors.surface,
                         ),
                         items: _leaveTypes.map((t) => DropdownMenuItem(value: t['id'] as String, child: Text(t['label'] as String))).toList(),
-                        onChanged: (v) => setState(() => _selectedLeaveType = v ?? 'annual'),
+                        onChanged: (v) => setState(() {
+                          _selectedLeaveType = v ?? 'annual';
+                          if (_selectedLeaveType != 'medical') _clearMcLetter();
+                        }),
                       ),
+                      if (_isMedicalLeave) ...[
+                        SizedBox(height: 16),
+                        Text(
+                          'MC letter (doctor / clinic)',
+                          style: TextStyle(color: context.appColors.textSecondary, fontSize: 14),
+                        ),
+                        SizedBox(height: 6),
+                        Text(
+                          'Take a photo or upload image of your medical certificate. Required for medical leave.',
+                          style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
+                        ),
+                        SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _isLoading ? null : () => _pickMcLetter(ImageSource.camera),
+                                icon: Icon(Icons.photo_camera_outlined, color: context.appColors.accentBlue),
+                                label: Text('Camera', style: TextStyle(color: context.appColors.accentBlue)),
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _isLoading ? null : () => _pickMcLetter(ImageSource.gallery),
+                                icon: Icon(Icons.photo_library_outlined, color: context.appColors.accentBlue),
+                                label: Text('Gallery', style: TextStyle(color: context.appColors.accentBlue)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_mcLetterBase64.isNotEmpty) ...[
+                          SizedBox(height: 12),
+                          Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image(
+                                  image: _mcPreviewImage()!,
+                                  height: 160,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: IconButton.filled(
+                                  onPressed: _isLoading ? null : _clearMcLetter,
+                                  icon: const Icon(Icons.close, size: 18),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Colors.black54,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (_mcLetterFileName.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Text(
+                                _mcLetterFileName,
+                                style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
+                              ),
+                            ),
+                        ],
+                      ],
                       SizedBox(height: 16),
                       Text('Start Date', style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
                       SizedBox(height: 8),

@@ -22,6 +22,7 @@ router.put('/staff/:staffId/schedule', adminController.putStaffSchedule);
 router.put('/staff/:staffId', adminController.updateStaffByAdmin);
 router.get('/config', adminController.getConfig);
 router.get('/leave-requests', adminController.getLeaveRequests);
+router.get('/leave-requests/:id/mc', adminController.getLeaveRequestMcLetter);
 router.put('/leave-requests/:id', adminController.updateLeaveRequestStatus);
 router.get('/overtime-requests', overtimeController.getAllOvertimeRequests);
 router.get('/payslip-records', adminController.getPayslipRecords);

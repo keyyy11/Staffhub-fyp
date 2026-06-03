@@ -259,20 +259,46 @@ class ApiService {
     String leaveType,
     DateTime startDate,
     DateTime endDate,
-    String reason,
-  ) async {
+    String reason, {
+    String? mcLetter,
+    String? mcLetterFileName,
+  }) async {
+    final body = <String, dynamic>{
+      'staffId': staffId,
+      'leaveType': leaveType,
+      'startDate': startDate.toIso8601String().split('T')[0],
+      'endDate': endDate.toIso8601String().split('T')[0],
+      'reason': reason,
+    };
+    if (mcLetter != null && mcLetter.isNotEmpty) {
+      body['mcLetter'] = mcLetter;
+      if (mcLetterFileName != null && mcLetterFileName.isNotEmpty) {
+        body['mcLetterFileName'] = mcLetterFileName;
+      }
+    }
     final response = await http.post(
       Uri.parse('$baseUrl/leave/apply'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'staffId': staffId,
-        'leaveType': leaveType,
-        'startDate': startDate.toIso8601String().split('T')[0],
-        'endDate': endDate.toIso8601String().split('T')[0],
-        'reason': reason,
-      }),
+      body: jsonEncode(body),
     );
     return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> getLeaveMcLetter(String requestId, {String? staffId}) async {
+    var url = '$baseUrl/leave/mc/${Uri.encodeComponent(requestId)}';
+    if (staffId != null && staffId.isNotEmpty) {
+      url += '?staffId=${Uri.encodeComponent(staffId)}';
+    }
+    final response = await http.get(Uri.parse(url)).timeout(_timeout);
+    return _parseApiJson(response);
+  }
+
+  static Future<Map<String, dynamic>> getAdminLeaveMcLetter(String requestId) async {
+    return _adminRequest('GET', '/admin/leave-requests/${Uri.encodeComponent(requestId)}/mc');
+  }
+
+  static Future<Map<String, dynamic>> getSupervisorLeaveMcLetter(String requestId) async {
+    return _supervisorRequest('GET', '/supervisor/leave-requests/${Uri.encodeComponent(requestId)}/mc');
   }
 
   static Future<Map<String, dynamic>> getProfile(String staffId) async {
@@ -348,6 +374,36 @@ class ApiService {
         )
         .timeout(_timeout);
     return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> forgotPassword(String email) async {
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/auth/forgot-password'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email.trim()}),
+        )
+        .timeout(_timeout);
+    return _parseApiJson(response);
+  }
+
+  static Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/auth/reset-password'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'email': email.trim(),
+            'code': code.trim(),
+            'newPassword': newPassword,
+          }),
+        )
+        .timeout(_timeout);
+    return _parseApiJson(response);
   }
 
   static Future<Map<String, dynamic>> changePassword({

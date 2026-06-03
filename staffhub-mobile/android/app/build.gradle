@@ -38,7 +38,7 @@ android {
 
     defaultConfig {
         applicationId "com.staffhub.staffhub_mobile"
-        minSdk 21
+        minSdk 23
         targetSdk flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName

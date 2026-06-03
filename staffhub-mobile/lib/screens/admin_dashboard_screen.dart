@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../app_theme.dart';
 import '../widgets/staffhub_logo.dart';
 import '../widgets/staff_schedule_editor_dialog.dart';
+import '../widgets/mc_letter_viewer.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
@@ -1302,6 +1303,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                   padding: const EdgeInsets.only(top: 8),
                                   child: Text('Reason: ${r['reason']}', style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
                                 ),
+                              if (r['hasMcLetter'] == true && id.isNotEmpty) ...[
+                                SizedBox(height: 8),
+                                OutlinedButton.icon(
+                                  onPressed: () => showMcLetterDialog(context, requestId: id, asAdmin: true),
+                                  icon: Icon(Icons.description_outlined, size: 18, color: context.appColors.accentBlue),
+                                  label: Text('View MC letter', style: TextStyle(color: context.appColors.accentBlue)),
+                                ),
+                              ],
                               if (pending && id.isNotEmpty) ...[
                                 SizedBox(height: 12),
                                 Row(

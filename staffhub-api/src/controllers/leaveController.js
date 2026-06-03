@@ -62,9 +62,25 @@ function getBusinessDays(startDate, endDate) {
   return count;
 }
 
+function validateMcLetter(mcLetter) {
+  if (!mcLetter || typeof mcLetter !== 'string') {
+    return { ok: false, message: 'MC letter from doctor or clinic is required for medical leave' };
+  }
+  const trimmed = mcLetter.trim();
+  if (!/^data:image\/(jpeg|jpg|png|webp);base64,/i.test(trimmed)) {
+    return { ok: false, message: 'MC must be a photo (JPEG or PNG) of the doctor/clinic letter' };
+  }
+  const base64Part = trimmed.split(',')[1] || '';
+  const approxBytes = (base64Part.length * 3) / 4;
+  if (approxBytes > 5 * 1024 * 1024) {
+    return { ok: false, message: 'MC image is too large (maximum 5MB)' };
+  }
+  return { ok: true, value: trimmed };
+}
+
 exports.applyLeave = async (req, res) => {
   try {
-    const { staffId, leaveType, startDate, endDate, reason } = req.body;
+    const { staffId, leaveType, startDate, endDate, reason, mcLetter, mcLetterFileName } = req.body;
 
     if (!staffId || !leaveType || !startDate || !endDate) {
       return res.status(400).json({
@@ -113,6 +129,19 @@ exports.applyLeave = async (req, res) => {
       });
     }
 
+    let mcData = '';
+    let mcName = '';
+    let hasMc = false;
+    if (leaveType === 'medical') {
+      const mcCheck = validateMcLetter(mcLetter);
+      if (!mcCheck.ok) {
+        return res.status(400).json({ success: false, message: mcCheck.message });
+      }
+      mcData = mcCheck.value;
+      mcName = mcLetterFileName ? String(mcLetterFileName).trim() : 'mc-letter.jpg';
+      hasMc = true;
+    }
+
     const request = await LeaveRequest.create({
       staffId,
       leaveType,
@@ -120,12 +149,18 @@ exports.applyLeave = async (req, res) => {
       endDate: end,
       totalDays,
       reason: reason || '',
+      mcLetter: mcData,
+      mcLetterFileName: mcName,
+      hasMcLetter: hasMc,
     });
+
+    const safe = request.toObject();
+    delete safe.mcLetter;
 
     res.status(201).json({
       success: true,
       message: 'Leave application submitted successfully',
-      data: request,
+      data: safe,
     });
   } catch (error) {
     res.status(500).json({
@@ -148,6 +183,7 @@ exports.getMyRequests = async (req, res) => {
     }
 
     const requests = await LeaveRequest.find({ staffId })
+      .select('-mcLetter')
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean();
@@ -161,5 +197,39 @@ exports.getMyRequests = async (req, res) => {
       success: false,
       message: error.message,
     });
+  }
+};
+
+exports.getMcLetter = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const { staffId } = req.query;
+
+    if (!requestId) {
+      return res.status(400).json({ success: false, message: 'requestId is required' });
+    }
+
+    const request = await LeaveRequest.findById(requestId).select('+mcLetter').lean();
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Leave request not found' });
+    }
+
+    if (staffId && request.staffId !== String(staffId).trim()) {
+      return res.status(403).json({ success: false, message: 'Not allowed to view this MC letter' });
+    }
+
+    if (!request.hasMcLetter || !request.mcLetter) {
+      return res.status(404).json({ success: false, message: 'No MC letter attached to this request' });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        mcLetter: request.mcLetter,
+        mcLetterFileName: request.mcLetterFileName || 'mc-letter.jpg',
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };

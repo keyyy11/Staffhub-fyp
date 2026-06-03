@@ -7,6 +7,7 @@ import '../models/leave_balance.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/location_service.dart';
+import '../services/biometric_service.dart';
 import 'login_screen.dart';
 import 'apply_leave_screen.dart';
 import 'apply_overtime_screen.dart';
@@ -281,6 +282,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<bool> _verifyBiometric(String action) async {
+    if (await AuthService.isDemoMode()) return true;
+
+    final result = await BiometricService.authenticateForAttendance(action);
+    if (result.success) return true;
+
+    _showMessage(result.message ?? 'Biometric verification failed', false);
+    return false;
+  }
+
   Future<void> _clockIn() async {
     if (_staffId.isEmpty) {
       _showMessage('User data not found. Please log in again.', false);
@@ -320,6 +331,8 @@ class _HomeScreenState extends State<HomeScreen> {
         );
         return;
       }
+
+      if (!await _verifyBiometric('clock in')) return;
 
       final result = await ApiService.clockIn(
         _staffId,
@@ -385,6 +398,8 @@ class _HomeScreenState extends State<HomeScreen> {
         );
         return;
       }
+
+      if (!await _verifyBiometric('clock out')) return;
 
       final result = await ApiService.clockOut(
         _staffId,

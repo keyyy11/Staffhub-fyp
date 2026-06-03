@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import '../app_theme.dart';
 import '../services/auth_service.dart';
 import '../widgets/staffhub_logo.dart';
-import 'register_screen.dart';
-import 'admin_register_screen.dart';
 import 'admin_dashboard_screen.dart';
 import 'home_screen.dart';
 import 'supervisor_dashboard_screen.dart';
+import 'forgot_password_screen.dart';
 
 /// Dedicated login page — entry for staff and admin.
 class LoginPage extends StatefulWidget {
@@ -174,7 +173,21 @@ class _LoginPageState extends State<LoginPage> {
                               filled: true,
                             ),
                           ),
-                          SizedBox(height: 24),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: _isLoading
+                                  ? null
+                                  : () => Navigator.of(context).push(
+                                        MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                                      ),
+                              child: Text(
+                                'Forgot password?',
+                                style: TextStyle(color: context.appColors.accentBlue, fontSize: 13),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 8),
                           SizedBox(
                             width: double.infinity,
                             height: 52,
@@ -207,28 +220,6 @@ class _LoginPageState extends State<LoginPage> {
                                   },
                             child: Text(
                               'Demo Mode (no API)',
-                              style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text("Don't have an account? ", style: TextStyle(color: context.appColors.textSecondary)),
-                              TextButton(
-                                onPressed: () => Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                                ),
-                                child: Text('Register as Staff', style: TextStyle(color: context.appColors.accentBlue)),
-                              ),
-                            ],
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const AdminRegisterScreen()),
-                            ),
-                            child: Text(
-                              'Register as Admin',
                               style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
                             ),
                           ),

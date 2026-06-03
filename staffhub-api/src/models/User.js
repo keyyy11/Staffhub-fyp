@@ -34,6 +34,8 @@ const userSchema = new mongoose.Schema({
   /** Staff reports to this supervisor's staffId (supervisor account must have role supervisor). */
   supervisorStaffId: { type: String, default: '', trim: true },
   salary: { type: Number, default: 0 },
+  resetPasswordToken: { type: String, select: false },
+  resetPasswordExpires: { type: Date, select: false },
 }, {
   timestamps: true,
 });

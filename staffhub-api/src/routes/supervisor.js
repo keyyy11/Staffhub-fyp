@@ -14,6 +14,7 @@ router.get('/org-overtime-requests', overtimeController.getOrgOvertimeRequests);
 router.get('/config', supervisorController.getConfig);
 router.get('/attendance-report', supervisorController.getAttendanceReport);
 router.get('/leave-requests', supervisorController.getLeaveRequests);
+router.get('/leave-requests/:id/mc', supervisorController.getLeaveRequestMcLetter);
 router.put('/leave-requests/:id', supervisorController.supervisorUpdateLeaveRequest);
 router.get('/overtime-requests', overtimeController.getTeamOvertimeRequests);
 router.put('/overtime-requests/:id', overtimeController.supervisorDecideOvertime);

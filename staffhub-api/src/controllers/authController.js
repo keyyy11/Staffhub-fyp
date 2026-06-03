@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { allocateNextId, AUTO_STAFF_PREFIX, AUTO_SUPERVISOR_PREFIX } = require('../utils/staffIdAllocator');
+const { isEmailConfigured, sendPasswordResetEmail } = require('../services/emailService');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'staffhub-secret-key-change-in-production';
 
@@ -10,6 +12,19 @@ function generateToken(user) {
     JWT_SECRET,
     { expiresIn: '7d' }
   );
+}
+
+function hashResetCode(code) {
+  return crypto.createHash('sha256').update(String(code)).digest('hex');
+}
+
+function generateResetCode() {
+  return String(crypto.randomInt(100000, 999999));
+}
+
+function resetExpiryMinutes() {
+  const n = parseInt(process.env.RESET_CODE_EXPIRY_MINUTES || '15', 10);
+  return Number.isFinite(n) && n > 0 ? n : 15;
 }
 
 exports.register = async (req, res) => {
@@ -99,7 +114,7 @@ exports.login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email: String(email).toLowerCase().trim() }).select('+password');
 
     if (!user) {
       return res.status(401).json({
@@ -293,6 +308,115 @@ exports.registerSupervisor = async (req, res) => {
       success: false,
       message: error.message,
     });
+  }
+};
+
+/** Minta kod reset — hantar ke email berdaftar (akaun dicipta admin). */
+exports.forgotPassword = async (req, res) => {
+  try {
+    const email = String(req.body.email || '').toLowerCase().trim();
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+
+    if (!isEmailConfigured()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Email service is not configured. Ask admin to set SMTP settings in the API .env file.',
+      });
+    }
+
+    const user = await User.findOne({ email }).select('+resetPasswordToken +resetPasswordExpires');
+    const genericMessage =
+      'If this email is registered, a reset code has been sent. Check your inbox (and spam folder).';
+
+    if (!user) {
+      return res.json({ success: true, message: genericMessage });
+    }
+
+    const resetCode = generateResetCode();
+    user.resetPasswordToken = hashResetCode(resetCode);
+    user.resetPasswordExpires = new Date(Date.now() + resetExpiryMinutes() * 60 * 1000);
+    await user.save({ validateBeforeSave: false });
+
+    try {
+      await sendPasswordResetEmail({
+        to: user.email,
+        name: user.name,
+        resetCode,
+      });
+    } catch (mailError) {
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+      await user.save({ validateBeforeSave: false });
+      return res.status(500).json({
+        success: false,
+        message: mailError.message || 'Failed to send reset email',
+      });
+    }
+
+    if (process.env.NODE_ENV !== 'production' && process.env.LOG_RESET_CODE === 'true') {
+      console.log(`[dev] Password reset code for ${user.email}: ${resetCode}`);
+    }
+
+    res.json({ success: true, message: genericMessage });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/** Set semula kata laluan dengan kod dari email. */
+exports.resetPassword = async (req, res) => {
+  try {
+    const email = String(req.body.email || '').toLowerCase().trim();
+    const code = String(req.body.code || req.body.resetCode || '').trim();
+    const newPassword = req.body.newPassword;
+
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email, reset code, and new password are required',
+      });
+    }
+
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters',
+      });
+    }
+
+    const user = await User.findOne({ email }).select(
+      '+password +resetPasswordToken +resetPasswordExpires'
+    );
+
+    if (
+      !user ||
+      !user.resetPasswordToken ||
+      !user.resetPasswordExpires ||
+      user.resetPasswordExpires.getTime() < Date.now()
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset code',
+      });
+    }
+
+    if (user.resetPasswordToken !== hashResetCode(code)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset code',
+      });
+    }
+
+    user.password = String(newPassword);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.json({ success: true, message: 'Password reset successfully. You can now sign in.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

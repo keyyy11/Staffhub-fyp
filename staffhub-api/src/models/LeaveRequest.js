@@ -46,6 +46,10 @@ const leaveRequestSchema = new mongoose.Schema({
     enum: ['', 'admin', 'supervisor'],
     default: '',
   },
+  /** Medical certificate (doctor/clinic letter) — base64 data URL image. */
+  mcLetter: { type: String, default: '', select: false },
+  mcLetterFileName: { type: String, default: '', trim: true },
+  hasMcLetter: { type: Boolean, default: false },
 }, {
   timestamps: true,
 });
