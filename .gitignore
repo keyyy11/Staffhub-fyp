@@ -7,4 +7,6 @@ Thumbs.db
 
 # Local env / secrets (keep .env.example in repo)
 staffhub-api/.env
+staffhub-cms/.env.local
+staffhub-cms/.env*.local
 *.log

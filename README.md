@@ -12,9 +12,12 @@ Sistem kehadiran staff dengan clock in/clock out berasaskan lokasi (radius 60m).
 
 ```
 Staffhub-fyp/
-├── staffhub-api/      # Backend API
+├── staffhub-api/      # Backend API (Node.js + Express + MongoDB)
+├── staffhub-cms/      # Admin web CMS (Next.js — deploy to Vercel)
 └── staffhub-mobile/   # Aplikasi Flutter
 ```
+
+**Production deployment:** See [DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md) — host API on Render, CMS on Vercel, database on MongoDB Atlas. No local IP needed.
 
 ## Cara Mula
 

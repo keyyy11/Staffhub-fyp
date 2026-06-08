@@ -2,17 +2,17 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, Tar
 
 /// API URL configuration
 ///
-/// **Why "Connection error"?** Usually the app cannot reach the Node API:
-/// 1. Backend not running — start `staffhub-api` (e.g. `node src/index.js` or `npm start`) on port 3000.
-/// 2. Wrong host — `localhost` on a **phone** or **Android emulator** does not mean your PC.
-///    - Android **emulator**: default below uses `10.0.2.2` (special alias to your dev machine).
-///    - **Physical phone** (Android/iOS): set your PC LAN IP, e.g. run with
-///      `flutter run --dart-define=API_HOST=192.168.1.100`
-///    - **iOS Simulator**: `localhost` is OK.
-/// 3. Firewall blocking port 3000 on the PC.
+/// **Production (recommended):** deploy `staffhub-api` to Render/Railway, then build with:
+/// `flutter build apk --dart-define=PRODUCTION_API_URL=https://your-api.onrender.com/api`
+///
+/// **Local dev:** start `staffhub-api` on port 3000.
+/// - Android emulator: `10.0.2.2`
+/// - Physical phone: `flutter run --dart-define=API_HOST=192.168.x.x`
 class AppConfig {
+  /// Cloud API (no local IP needed). Set when building release APK/IPA.
+  static const String _productionApiUrl = String.fromEnvironment('PRODUCTION_API_URL', defaultValue: '');
+
   /// Full base override: `flutter run --dart-define=API_BASE_URL=http://192.168.1.5:3000`
-  /// (`/api` is appended automatically if missing). Use this on a **physical phone** when 10.0.2.2 is wrong.
   static const String _apiBaseUrlOverride = String.fromEnvironment('API_BASE_URL', defaultValue: '');
 
   /// Optional override: `flutter run --dart-define=API_HOST=192.168.x.x` (no `http://`, no port).
@@ -31,6 +31,9 @@ class AppConfig {
   static String get apiBaseUrl {
     if (_apiBaseUrlOverride.isNotEmpty) {
       return _ensureEndsWithApi(_apiBaseUrlOverride);
+    }
+    if (_productionApiUrl.isNotEmpty) {
+      return _ensureEndsWithApi(_productionApiUrl);
     }
     if (_apiHostOverride.isNotEmpty) {
       return 'http://$_apiHostOverride:3000/api';

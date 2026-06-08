@@ -13,8 +13,11 @@ const staffRoutes = require('./routes/staff');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
+// Middleware — set CORS_ORIGIN in production (comma-separated: CMS + mobile origins)
+const corsOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
+  : true;
+app.use(cors({ origin: corsOrigins, credentials: true }));
 app.use(express.json());
 
 // Routes

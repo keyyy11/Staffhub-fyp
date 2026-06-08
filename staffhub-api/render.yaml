@@ -1,0 +1,28 @@
+# Render Blueprint — deploy staffhub-api
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: staffhub-api
+    runtime: node
+    rootDir: staffhub-api
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: WORKPLACE_LAT
+        value: "1.5434665"
+      - key: WORKPLACE_LNG
+        value: "103.6123308"
+      - key: WORKPLACE_RADIUS_METERS
+        value: "60"
