@@ -72,8 +72,9 @@ function validateMcLetter(mcLetter) {
   }
   const base64Part = trimmed.split(',')[1] || '';
   const approxBytes = (base64Part.length * 3) / 4;
-  if (approxBytes > 5 * 1024 * 1024) {
-    return { ok: false, message: 'MC image is too large (maximum 5MB)' };
+  const maxMb = process.env.VERCEL ? 4 : 5;
+  if (approxBytes > maxMb * 1024 * 1024) {
+    return { ok: false, message: `MC image is too large (maximum ${maxMb}MB)` };
   }
   return { ok: true, value: trimmed };
 }
