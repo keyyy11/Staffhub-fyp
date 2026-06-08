@@ -1,13 +1,8 @@
-import 'dart:async';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../app_theme.dart';
 import '../models/leave_balance.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
-import '../services/location_service.dart';
-import '../services/biometric_service.dart';
 import 'login_screen.dart';
 import 'apply_leave_screen.dart';
 import 'apply_overtime_screen.dart';
@@ -17,6 +12,7 @@ import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'work_schedule_screen.dart';
 import '../widgets/staffhub_logo.dart';
+import '../widgets/attendance_clock_panel.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,22 +24,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _staffId = '';
   String _staffName = '';
-  bool _isLoading = false;
-  String? _message;
-  bool _isSuccess = false;
-  double? _distance;
-  double? _workplaceLat;
-  double? _workplaceLng;
-  double? _userLat;
-  double? _userLng;
-  int _radiusMeters = 60;
-  DateTime? _clockInTime;
-  DateTime? _clockOutTime;
   List<LeaveBalance> _leaveBalances = [];
   List<Map<String, dynamic>> _leaveRequestsPreview = [];
   List<Map<String, dynamic>> _otRequestsPreview = [];
-
-  static const int _maxWorkHours = 12;
 
   @override
   void initState() {
@@ -52,8 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _loadUser();
-      _loadWorkplaceInfo();
-      // Do not call _checkLocation() here: _loadWorkplaceInfo already awaits _checkLocation() after coords load.
+      // Workplace loads after staffId is known (see _loadUser).
     });
   }
 
@@ -72,7 +54,6 @@ class _HomeScreenState extends State<HomeScreen> {
         _staffName = name;
       });
       _loadLeaveBalance(staffId);
-      _loadTodayAttendance(staffId);
       // Defer previews so Maps + GPS finish first (reduces emulator ANR / "System UI not responding").
       Future<void>.delayed(const Duration(milliseconds: 600), () {
         if (!mounted || staffId.isEmpty) return;
@@ -137,54 +118,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _loadTodayAttendance(String staffId) async {
-    try {
-      final result = await ApiService.getTodayAttendance(staffId);
-      if (result['success'] != true || !mounted) return;
-      final data = result['data'] as Map<String, dynamic>?;
-      if (data != null) {
-        final clockIn = data['clockIn'];
-        final clockOut = data['clockOut'];
-        setState(() {
-          _clockInTime = clockIn != null ? DateTime.parse(clockIn.toString()) : null;
-          _clockOutTime = clockOut != null ? DateTime.parse(clockOut.toString()) : null;
-        });
-        if (!mounted) return;
-      } else {
-        setState(() {
-          _clockInTime = null;
-          _clockOutTime = null;
-        });
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _doAutoClockOut() async {
-    if (_staffId.isEmpty) return;
-    if (!mounted) return;
-    setState(() => _isLoading = true);
-    _clearMessage();
-    try {
-      final result = await ApiService.autoClockOut(_staffId);
-      if (result['success'] == true && mounted) {
-        _showMessage('Auto clock out after $_maxWorkHours hours', true);
-        await _loadTodayAttendance(_staffId);
-      } else {
-        _showMessage(result['message'] ?? 'Auto clock out failed', false);
-      }
-    } catch (e) {
-      final s = e.toString();
-      _showMessage(
-        s.contains('SocketException') || s.contains('TimeoutException')
-            ? 'Cannot reach API. Check base URL and that staffhub-api is running.'
-            : 'Error: $s',
-        false,
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
   Future<void> _loadLeaveBalance([String? staffId]) async {
     final id = staffId ?? _staffId;
     if (id.isEmpty) return;
@@ -224,227 +157,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Loads workplace circle from API. Returns false if coords could not be set (never use 0,0 as fallback).
-  Future<bool> _loadWorkplaceInfo() async {
-    try {
-      final result = await ApiService.getWorkplaceInfo();
-      if (result['success'] == true && result['data'] != null && mounted) {
-        final data = result['data'] as Map<String, dynamic>;
-        final lat = (data['lat'] as num).toDouble();
-        final lng = (data['lng'] as num).toDouble();
-        final r = data['radiusMeters'];
-        setState(() {
-          _workplaceLat = lat;
-          _workplaceLng = lng;
-          _radiusMeters = r is int ? r : (r as num?)?.toInt() ?? 60;
-        });
-        await _checkLocation();
-        return true;
-      }
-    } catch (_) {
-      // API unreachable: still try location so the screen can show user coords without map center.
-      if (mounted) await _checkLocation();
-    }
-    return false;
-  }
-
-  /// Ensures workplace lat/lng are loaded before geofence checks (avoids treating null as 0,0 → bogus ~13,000 km distance).
-  Future<bool> _ensureWorkplaceReady() async {
-    if (_workplaceLat != null && _workplaceLng != null) return true;
-    if (await _loadWorkplaceInfo()) return true;
-    if (!mounted) return false;
-    await Future<void>.delayed(const Duration(milliseconds: 400));
-    if (!mounted) return false;
-    return _loadWorkplaceInfo();
-  }
-
-  Future<void> _checkLocation() async {
-    final position = await LocationService.getCurrentPosition();
-    if (!mounted) return;
-    if (position != null && _workplaceLat != null && _workplaceLng != null) {
-      final dist = LocationService.getDistanceInMeters(
-        position.latitude,
-        position.longitude,
-        _workplaceLat!,
-        _workplaceLng!,
-      );
-      setState(() {
-        _distance = dist;
-        _userLat = position.latitude;
-        _userLng = position.longitude;
-      });
-    } else if (position != null) {
-      setState(() {
-        _userLat = position.latitude;
-        _userLng = position.longitude;
-        _distance = null;
-      });
-    }
-  }
-
-  Future<bool> _verifyBiometric(String action) async {
-    if (await AuthService.isDemoMode()) return true;
-
-    final result = await BiometricService.authenticateForAttendance(action);
-    if (result.success) return true;
-
-    _showMessage(result.message ?? 'Biometric verification failed', false);
-    return false;
-  }
-
-  Future<void> _clockIn() async {
-    if (_staffId.isEmpty) {
-      _showMessage('User data not found. Please log in again.', false);
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    _clearMessage();
-
-    try {
-      final position = await LocationService.getCurrentPosition();
-      if (position == null) {
-        _showMessage('Unable to get location. Please enable GPS.', false);
-        return;
-      }
-
-      if (!await _ensureWorkplaceReady() || _workplaceLat == null || _workplaceLng == null) {
-        _showMessage(
-          'Could not load workplace location. Check API connection (same Wi‑Fi / API_BASE_URL), then try again.',
-          false,
-        );
-        return;
-      }
-
-      await _checkLocation();
-
-      if (!LocationService.isWithinRadius(
-        position.latitude,
-        position.longitude,
-        _workplaceLat!,
-        _workplaceLng!,
-        _radiusMeters,
-      )) {
-        _showMessage(
-          'You are outside the ${_radiusMeters}m radius. Distance: ${_distance?.toStringAsFixed(0) ?? "?"}m',
-          false,
-        );
-        return;
-      }
-
-      if (!await _verifyBiometric('clock in')) return;
-
-      final result = await ApiService.clockIn(
-        _staffId,
-        position.latitude,
-        position.longitude,
-      );
-
-      if (result['success'] == true) {
-        _showMessage('Clock in successful', true);
-        await _loadTodayAttendance(_staffId);
-      } else {
-        _showMessage(result['message'] ?? 'Clock in failed', false);
-      }
-    } catch (e) {
-      final s = e.toString();
-      _showMessage(
-        s.contains('SocketException') || s.contains('TimeoutException') || s.contains('Failed host lookup')
-            ? 'Cannot reach API. Set API URL (Android emulator: 10.0.2.2:3000/api). Ensure staffhub-api is running on your PC.'
-            : 'Error: $s',
-        false,
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _clockOut() async {
-    if (_staffId.isEmpty) {
-      _showMessage('User data not found. Please log in again.', false);
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    _clearMessage();
-
-    try {
-      final position = await LocationService.getCurrentPosition();
-      if (position == null) {
-        _showMessage('Unable to get location. Please enable GPS.', false);
-        return;
-      }
-
-      if (!await _ensureWorkplaceReady() || _workplaceLat == null || _workplaceLng == null) {
-        _showMessage(
-          'Could not load workplace location. Check API connection (same Wi‑Fi / API_BASE_URL), then try again.',
-          false,
-        );
-        return;
-      }
-
-      await _checkLocation();
-
-      if (!LocationService.isWithinRadius(
-        position.latitude,
-        position.longitude,
-        _workplaceLat!,
-        _workplaceLng!,
-        _radiusMeters,
-      )) {
-        _showMessage(
-          'You are outside the ${_radiusMeters}m radius. Distance: ${_distance?.toStringAsFixed(0) ?? "?"}m',
-          false,
-        );
-        return;
-      }
-
-      if (!await _verifyBiometric('clock out')) return;
-
-      final result = await ApiService.clockOut(
-        _staffId,
-        position.latitude,
-        position.longitude,
-      );
-
-      if (result['success'] == true) {
-        _showMessage('Clock out successful', true);
-        await _loadTodayAttendance(_staffId);
-      } else {
-        _showMessage(result['message'] ?? 'Clock out failed', false);
-      }
-    } catch (e) {
-      final s = e.toString();
-      _showMessage(
-        s.contains('SocketException') || s.contains('TimeoutException') || s.contains('Failed host lookup')
-            ? 'Cannot reach API. Set API URL (Android emulator: 10.0.2.2:3000/api). Ensure staffhub-api is running on your PC.'
-            : 'Error: $s',
-        false,
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _showMessage(String msg, bool success) {
-    if (!mounted) return;
-    setState(() {
-      _message = msg;
-      _isSuccess = success;
-    });
-  }
-
-  void _clearMessage() {
-    if (!mounted) return;
-    setState(() {
-      _message = null;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isWithinRange = _distance != null && _distance! <= _radiusMeters;
-
     return Scaffold(
       backgroundColor: context.appColors.background,
       drawer: Drawer(
@@ -625,226 +339,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 SizedBox(height: 24),
-                Text(
-                  'Attendance',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: context.appColors.textPrimary,
-                  ),
-                ),
-                SizedBox(height: 12),
-                if (_workplaceLat != null && _workplaceLng != null)
-                  Container(
-                    height: 300,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: context.appColors.borderBlue.withOpacity(0.5)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: context.appColors.primaryBlue.withOpacity(0.2),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Stack(
-                      children: [
-                        GoogleMap(
-                          initialCameraPosition: CameraPosition(
-                            target: LatLng(_workplaceLat!, _workplaceLng!),
-                            zoom: 17,
-                          ),
-                          liteModeEnabled: !kIsWeb && defaultTargetPlatform == TargetPlatform.android,
-                          circles: {
-                            Circle(
-                              circleId: const CircleId('workplace_radius'),
-                              center: LatLng(_workplaceLat!, _workplaceLng!),
-                              radius: _radiusMeters.toDouble(),
-                              fillColor: context.appColors.accentBlue.withOpacity(0.25),
-                              strokeColor: context.appColors.accentBlue.withOpacity(0.8),
-                              strokeWidth: 2,
-                            ),
-                          },
-                          markers: {
-                            Marker(
-                              markerId: const MarkerId('workplace'),
-                              position: LatLng(_workplaceLat!, _workplaceLng!),
-                              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-                            ),
-                            if (_userLat != null && _userLng != null)
-                              Marker(
-                                markerId: const MarkerId('user'),
-                                position: LatLng(_userLat!, _userLng!),
-                                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-                              ),
-                          },
-                          myLocationEnabled: true,
-                          myLocationButtonEnabled: false,
-                          mapToolbarEnabled: false,
-                          zoomControlsEnabled: false,
-                        ),
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Material(
-                            color: context.appColors.card.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(8),
-                            child: IconButton(
-                              icon: Icon(Icons.my_location, color: context.appColors.accentBlue, size: 24),
-                              onPressed: _checkLocation,
-                              tooltip: 'Refresh location',
-                            ),
-                          ),
-                        ),
-                        if (_clockInTime != null && _clockOutTime == null)
-                          Positioned(
-                            bottom: 8,
-                            left: 8,
-                            right: 8,
-                            child: _WorkElapsedTicker(
-                              clockInTime: _clockInTime!,
-                              maxWorkHours: _maxWorkHours,
-                              onExceededMaxHours: _doAutoClockOut,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: context.appColors.card,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: context.appColors.borderBlue.withOpacity(0.5)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: context.appColors.primaryBlue.withOpacity(0.15),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        isWithinRange ? Icons.location_on : Icons.location_off,
-                        size: 48,
-                        color: isWithinRange
-                            ? context.appColors.accentBlue
-                            : Colors.amber.shade400,
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        isWithinRange
-                            ? 'Within ${_radiusMeters}m radius'
-                            : 'Outside ${_radiusMeters}m radius',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: isWithinRange ? context.appColors.accentBlue : Colors.amber.shade400,
-                        ),
-                      ),
-                      if (_distance != null)
-                        Text(
-                          'Distance: ${_distance!.toStringAsFixed(0)}m',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: context.appColors.textSecondary,
-                          ),
-                        ),
-                      if (_distance != null && _distance! > 100000)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 10),
-                          child: Text(
-                            'This usually means your GPS is far from the workplace (common on emulators: default US vs Malaysia site). Set a mock location near the blue pin, or use a real device at the office.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              height: 1.35,
-                              color: Colors.amber.shade200,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 20),
-                if (_message != null)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: _isSuccess
-                          ? Colors.green.shade900.withOpacity(0.3)
-                          : Colors.red.shade900.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _isSuccess ? Colors.green.shade700 : Colors.red.shade700,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _isSuccess ? Icons.check_circle : Icons.error,
-                          color: _isSuccess ? Colors.greenAccent : Colors.redAccent,
-                          size: 24,
-                        ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            _message!,
-                            style: TextStyle(
-                              color: _isSuccess ? Colors.greenAccent : Colors.redAccent,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _clockIn,
-                    icon: _isLoading
-                        ? SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Icon(Icons.login),
-                    label: Text('Clock In'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: context.appColors.primaryBlue,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: OutlinedButton.icon(
-                    onPressed: _isLoading ? null : _clockOut,
-                    icon: Icon(Icons.logout),
-                    label: Text('Clock Out'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: context.appColors.accentBlue,
-                      side: BorderSide(color: context.appColors.accentBlue),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
+                AttendanceClockPanel(staffId: _staffId.isNotEmpty ? _staffId : null),
                 SizedBox(height: 32),
                 Text(
                   'Leave',
@@ -1078,89 +573,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// Updates every second **only this overlay**, not the whole [HomeScreen] (avoids rebuilding [GoogleMap] each tick).
-class _WorkElapsedTicker extends StatefulWidget {
-  const _WorkElapsedTicker({
-    required this.clockInTime,
-    required this.maxWorkHours,
-    required this.onExceededMaxHours,
-  });
-
-  final DateTime clockInTime;
-  final int maxWorkHours;
-  final VoidCallback onExceededMaxHours;
-
-  @override
-  State<_WorkElapsedTicker> createState() => _WorkElapsedTickerState();
-}
-
-class _WorkElapsedTickerState extends State<_WorkElapsedTicker> {
-  Timer? _timer;
-
-  static String _formatElapsed(Duration d) {
-    final h = d.inHours.toString().padLeft(2, '0');
-    final m = (d.inMinutes % 60).toString().padLeft(2, '0');
-    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
-    return '$h:$m:$s';
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      final elapsed = DateTime.now().difference(widget.clockInTime);
-      if (elapsed >= Duration(hours: widget.maxWorkHours)) {
-        _timer?.cancel();
-        widget.onExceededMaxHours();
-      } else {
-        setState(() {});
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final elapsed = DateTime.now().difference(widget.clockInTime);
-    final remaining = Duration(hours: widget.maxWorkHours) - elapsed;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: context.appColors.card.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.appColors.accentBlue.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.timer, color: context.appColors.accentBlue, size: 24),
-          SizedBox(width: 12),
-          Text(
-            _formatElapsed(elapsed),
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: context.appColors.accentBlue,
-              letterSpacing: 2,
-            ),
-          ),
-          SizedBox(width: 12),
-          Text(
-            remaining.isNegative ? '' : '(${remaining.inHours}h ${remaining.inMinutes % 60}m left)',
-            style: TextStyle(fontSize: 12, color: context.appColors.textSecondary),
-          ),
-        ],
       ),
     );
   }

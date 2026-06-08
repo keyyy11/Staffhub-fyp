@@ -2,7 +2,7 @@ const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { isWithinRadius } = require('../utils/distance');
-const workplace = require('../config/workplace');
+const { resolveWorkplaceForStaff } = require('../utils/branchWorkplace');
 
 async function notifySupervisorClockEvent(staffId, type) {
   try {
@@ -33,10 +33,12 @@ exports.clockIn = async (req, res) => {
       });
     }
 
-    if (!isWithinRadius(lat, lng, workplace.lat, workplace.lng, workplace.radiusMeters)) {
+    const wp = await resolveWorkplaceForStaff(staffId);
+    if (!isWithinRadius(lat, lng, wp.lat, wp.lng, wp.radiusMeters)) {
+      const place = wp.branchName || 'workplace';
       return res.status(403).json({
         success: false,
-        message: `You are outside the ${workplace.radiusMeters}m radius from workplace. Please move closer.`,
+        message: `You are outside the ${wp.radiusMeters}m radius from ${place}. Please move closer.`,
       });
     }
 
@@ -85,10 +87,12 @@ exports.clockOut = async (req, res) => {
       });
     }
 
-    if (!isWithinRadius(lat, lng, workplace.lat, workplace.lng, workplace.radiusMeters)) {
+    const wp = await resolveWorkplaceForStaff(staffId);
+    if (!isWithinRadius(lat, lng, wp.lat, wp.lng, wp.radiusMeters)) {
+      const place = wp.branchName || 'workplace';
       return res.status(403).json({
         success: false,
-        message: `You are outside the ${workplace.radiusMeters}m radius from workplace. Please move closer.`,
+        message: `You are outside the ${wp.radiusMeters}m radius from ${place}. Please move closer.`,
       });
     }
 
@@ -237,13 +241,22 @@ exports.getMyAttendance = async (req, res) => {
 };
 
 // Get workplace info (for app to show radius/distance)
-exports.getWorkplaceInfo = (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      lat: workplace.lat,
-      lng: workplace.lng,
-      radiusMeters: workplace.radiusMeters,
-    },
-  });
+exports.getWorkplaceInfo = async (req, res) => {
+  try {
+    const staffId = req.query.staffId ? String(req.query.staffId).trim() : '';
+    const wp = await resolveWorkplaceForStaff(staffId);
+    res.json({
+      success: true,
+      data: {
+        lat: wp.lat,
+        lng: wp.lng,
+        radiusMeters: wp.radiusMeters,
+        branchCode: wp.branchCode,
+        branchName: wp.branchName,
+        address: wp.address,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };

@@ -8,6 +8,7 @@ const StaffSchedule = require('../models/StaffSchedule');
 const Notification = require('../models/Notification');
 const WarningLetter = require('../models/WarningLetter');
 const workplace = require('../config/workplace');
+const Branch = require('../models/Branch');
 const { allocateNextId, AUTO_STAFF_PREFIX, AUTO_SUPERVISOR_PREFIX } = require('../utils/staffIdAllocator');
 const { normalizeScheduleDays, normalizeDateEntries } = require('../utils/scheduleDays');
 
@@ -104,7 +105,7 @@ exports.getAttendanceReport = async (req, res) => {
 exports.getStaffList = async (req, res) => {
   try {
     const staff = await User.find({ role: { $in: ['staff', 'supervisor'] } })
-      .select('staffId name email phone department position salary role supervisorStaffId')
+      .select('staffId name email phone department position salary role supervisorStaffId branchCode')
       .sort({ staffId: 1 })
       .lean();
 
@@ -331,7 +332,7 @@ exports.updateAdminMe = async (req, res) => {
  */
 exports.registerStaff = async (req, res) => {
   try {
-    const { name, email, password, autoStaffId } = req.body;
+    const { name, email, password, autoStaffId, branchCode } = req.body;
     let staffId = req.body.staffId != null ? String(req.body.staffId).trim() : '';
     const useAutoStaffId = autoStaffId === true || !staffId || staffId.toLowerCase() === 'auto';
 
@@ -375,7 +376,17 @@ exports.registerStaff = async (req, res) => {
       });
     }
 
-    const user = await User.create({ staffId, name, email, password, role: 'staff' });
+    const userPayload = { staffId, name, email, password, role: 'staff' };
+    if (branchCode !== undefined && String(branchCode).trim()) {
+      const code = String(branchCode).trim().toUpperCase();
+      const branch = await Branch.findOne({ branchCode: code, isActive: true });
+      if (!branch) {
+        return res.status(400).json({ success: false, message: 'Invalid or inactive branch code' });
+      }
+      userPayload.branchCode = code;
+    }
+
+    const user = await User.create(userPayload);
 
     res.status(201).json({
       success: true,
@@ -385,6 +396,7 @@ exports.registerStaff = async (req, res) => {
         name: user.name,
         email: user.email,
         role: 'staff',
+        branchCode: user.branchCode || '',
       },
     });
   } catch (error) {
@@ -396,7 +408,7 @@ exports.registerStaff = async (req, res) => {
 exports.updateStaffByAdmin = async (req, res) => {
   try {
     const { staffId } = req.params;
-    const { name, email, phone, department, position, newPassword } = req.body;
+    const { name, email, phone, department, position, newPassword, branchCode } = req.body;
     const user = await User.findOne({ staffId, role: { $in: ['staff', 'supervisor'] } });
     if (!user) {
       return res.status(404).json({ success: false, message: 'Staff or supervisor not found' });
@@ -413,6 +425,18 @@ exports.updateStaffByAdmin = async (req, res) => {
     if (phone !== undefined) user.phone = String(phone).trim();
     if (department !== undefined) user.department = String(department).trim();
     if (position !== undefined) user.position = String(position).trim();
+    if (branchCode !== undefined) {
+      const code = String(branchCode).trim().toUpperCase();
+      if (!code) {
+        user.branchCode = '';
+      } else {
+        const branch = await Branch.findOne({ branchCode: code, isActive: true });
+        if (!branch) {
+          return res.status(400).json({ success: false, message: 'Invalid or inactive branch code' });
+        }
+        user.branchCode = code;
+      }
+    }
     if (newPassword !== undefined && String(newPassword).length > 0) {
       if (String(newPassword).length < 6) {
         return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
@@ -432,6 +456,7 @@ exports.updateStaffByAdmin = async (req, res) => {
         position: user.position || '',
         role: user.role,
         supervisorStaffId: user.supervisorStaffId || '',
+        branchCode: user.branchCode || '',
         salary: user.salary,
       },
     });

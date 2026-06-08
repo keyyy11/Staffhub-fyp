@@ -31,6 +31,9 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
   final _confirmPasswordController = TextEditingController();
 
   String _supervisorStaffId = '';
+  String _branchCode = '';
+  List<Map<String, dynamic>> _branches = [];
+  bool _loadingBranches = true;
   bool _saving = false;
 
   @override
@@ -41,12 +44,32 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
     _role = s['role'] as String? ?? 'staff';
     _initialSupervisorId = (s['supervisorStaffId'] as String?)?.trim() ?? '';
     _supervisorStaffId = _initialSupervisorId;
+    _branchCode = (s['branchCode'] as String?)?.trim() ?? '';
 
     _nameController.text = s['name'] as String? ?? '';
     _emailController.text = s['email'] as String? ?? '';
     _phoneController.text = s['phone'] as String? ?? '';
     _departmentController.text = s['department'] as String? ?? '';
     _positionController.text = s['position'] as String? ?? '';
+    _loadBranches();
+  }
+
+  Future<void> _loadBranches() async {
+    try {
+      final result = await ApiService.getAdminBranches();
+      if (!mounted) return;
+      if (result['success'] == true && result['data'] != null) {
+        final list = List<Map<String, dynamic>>.from(result['data'] as List);
+        setState(() {
+          _branches = list.where((b) => b['isActive'] != false).toList();
+          _loadingBranches = false;
+        });
+      } else {
+        setState(() => _loadingBranches = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingBranches = false);
+    }
   }
 
   @override
@@ -108,6 +131,7 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
         department: _departmentController.text.trim(),
         position: _positionController.text.trim(),
         newPassword: pw.isEmpty ? null : pw,
+        branchCode: _branchCode,
       );
       if (update['success'] != true) {
         if (!mounted) return;
@@ -274,6 +298,60 @@ class _AdminStaffEditScreenState extends State<AdminStaffEditScreen> {
                 },
               ),
             ],
+            SizedBox(height: 20),
+            Text(
+              'Cawangan kerja',
+              style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
+            ),
+            SizedBox(height: 8),
+            _loadingBranches
+                ? Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: LinearProgressIndicator(color: context.appColors.accentBlue),
+                  )
+                : Builder(
+                    builder: (context) {
+                      final orphan = _branchCode.isNotEmpty &&
+                          !_branches.any((b) => (b['branchCode'] as String?) == _branchCode);
+                      final items = <DropdownMenuItem<String?>>[
+                        DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('— Default workplace —', style: TextStyle(color: context.appColors.textPrimary)),
+                        ),
+                        if (orphan)
+                          DropdownMenuItem<String?>(
+                            value: _branchCode,
+                            child: Text(
+                              '$_branchCode (current)',
+                              style: TextStyle(color: context.appColors.textSecondary),
+                            ),
+                          ),
+                        ..._branches.map((b) {
+                          final code = b['branchCode'] as String? ?? '';
+                          final nm = b['name'] as String? ?? code;
+                          return DropdownMenuItem<String?>(
+                            value: code,
+                            child: Text('$nm ($code)', style: TextStyle(color: context.appColors.textPrimary)),
+                          );
+                        }),
+                      ];
+                      return DropdownButtonFormField<String?>(
+                        value: _branchCode.isEmpty ? null : _branchCode,
+                        dropdownColor: context.appColors.card,
+                        style: TextStyle(color: context.appColors.textPrimary),
+                        decoration: InputDecoration(
+                          labelText: 'Branch / cawangan',
+                          labelStyle: TextStyle(color: context.appColors.textSecondary),
+                        ),
+                        items: items,
+                        onChanged: _saving
+                            ? null
+                            : (v) {
+                                setState(() => _branchCode = v ?? '');
+                              },
+                      );
+                    },
+                  ),
             SizedBox(height: 20),
             Text(
               'Change password (optional)',

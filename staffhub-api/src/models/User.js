@@ -33,6 +33,8 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ['staff', 'admin', 'supervisor'], default: 'staff' },
   /** Staff reports to this supervisor's staffId (supervisor account must have role supervisor). */
   supervisorStaffId: { type: String, default: '', trim: true },
+  /** Branch/cawangan code for attendance geofence (matches Branch.branchCode). */
+  branchCode: { type: String, default: '', trim: true, uppercase: true },
   salary: { type: Number, default: 0 },
   resetPasswordToken: { type: String, select: false },
   resetPasswordExpires: { type: Date, select: false },

@@ -6,6 +6,7 @@ import '../services/auth_service.dart';
 import '../widgets/staffhub_logo.dart';
 import '../widgets/staff_schedule_editor_dialog.dart';
 import '../widgets/mc_letter_viewer.dart';
+import '../widgets/attendance_clock_panel.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
 
@@ -426,7 +427,19 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
               'Overview: all OT requests and who is on approved leave today. Directory below (admin excluded). Other tabs focus on your direct team where applicable.',
               style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.95), fontSize: 13),
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 20),
+            Text(
+              'My attendance',
+              style: TextStyle(color: context.appColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Clock in/out at your branch — same geofence rules as staff.',
+              style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.95), fontSize: 13),
+            ),
+            SizedBox(height: 12),
+            const AttendanceClockPanel(showSectionTitle: false),
+            SizedBox(height: 22),
             Row(
               children: [
                 Expanded(

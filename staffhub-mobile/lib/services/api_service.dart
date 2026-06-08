@@ -67,8 +67,12 @@ class ApiService {
     return _parseApiJson(response);
   }
 
-  static Future<Map<String, dynamic>> getWorkplaceInfo() async {
-    final response = await http.get(Uri.parse('$baseUrl/attendance/workplace')).timeout(_timeout);
+  static Future<Map<String, dynamic>> getWorkplaceInfo({String? staffId}) async {
+    var url = '$baseUrl/attendance/workplace';
+    if (staffId != null && staffId.isNotEmpty) {
+      url += '?staffId=${Uri.encodeComponent(staffId)}';
+    }
+    final response = await http.get(Uri.parse(url)).timeout(_timeout);
     return _parseApiJson(response);
   }
 
@@ -438,11 +442,13 @@ class ApiService {
     final uri = Uri.parse('$baseUrl$path');
     http.Response response;
     if (method == 'GET') {
-      response = await http.get(uri, headers: headers);
+      response = await http.get(uri, headers: headers).timeout(_timeout);
     } else if (method == 'PUT' && body != null) {
-      response = await http.put(uri, headers: headers, body: jsonEncode(body));
+      response = await http.put(uri, headers: headers, body: jsonEncode(body)).timeout(_timeout);
     } else if (method == 'POST' && body != null) {
-      response = await http.post(uri, headers: headers, body: jsonEncode(body));
+      response = await http.post(uri, headers: headers, body: jsonEncode(body)).timeout(_timeout);
+    } else if (method == 'DELETE') {
+      response = await http.delete(uri, headers: headers).timeout(_timeout);
     } else {
       throw Exception('Unsupported method');
     }
@@ -459,6 +465,55 @@ class ApiService {
 
   static Future<Map<String, dynamic>> getStaffList() async {
     return _adminRequest('GET', '/admin/staff-list');
+  }
+
+  static Future<Map<String, dynamic>> getAdminBranches() async {
+    return _adminRequest('GET', '/admin/branches');
+  }
+
+  static Future<Map<String, dynamic>> createAdminBranch({
+    required String branchCode,
+    required String name,
+    String address = '',
+    required double lat,
+    required double lng,
+    int radiusMeters = 60,
+    bool isActive = true,
+  }) async {
+    return _adminRequest('POST', '/admin/branches', body: {
+      'branchCode': branchCode,
+      'name': name,
+      'address': address,
+      'lat': lat,
+      'lng': lng,
+      'radiusMeters': radiusMeters,
+      'isActive': isActive,
+    });
+  }
+
+  static Future<Map<String, dynamic>> updateAdminBranch(
+    String branchCode, {
+    String? name,
+    String? address,
+    double? lat,
+    double? lng,
+    int? radiusMeters,
+    bool? isActive,
+  }) async {
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+    if (address != null) body['address'] = address;
+    if (lat != null) body['lat'] = lat;
+    if (lng != null) body['lng'] = lng;
+    if (radiusMeters != null) body['radiusMeters'] = radiusMeters;
+    if (isActive != null) body['isActive'] = isActive;
+    final path = '/admin/branches/${Uri.encodeComponent(branchCode)}';
+    return _adminRequest('PUT', path, body: body);
+  }
+
+  static Future<Map<String, dynamic>> deleteAdminBranch(String branchCode) async {
+    final path = '/admin/branches/${Uri.encodeComponent(branchCode)}';
+    return _adminRequest('DELETE', path);
   }
 
   /// [staffId] optional — leave empty or null to auto-generate (STF001, STF002, … on server).
@@ -494,6 +549,7 @@ class ApiService {
     required String department,
     required String position,
     String? newPassword,
+    String? branchCode,
   }) async {
     final body = <String, dynamic>{
       'name': name,
@@ -504,6 +560,9 @@ class ApiService {
     };
     if (newPassword != null && newPassword.isNotEmpty) {
       body['newPassword'] = newPassword;
+    }
+    if (branchCode != null) {
+      body['branchCode'] = branchCode;
     }
     final path = '/admin/staff/${Uri.encodeComponent(staffId)}';
     return _adminRequest('PUT', path, body: body);

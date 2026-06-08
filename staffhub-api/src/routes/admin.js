@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const branchController = require('../controllers/branchController');
 const warningController = require('../controllers/warningController');
 const overtimeController = require('../controllers/overtimeController');
 const { requireAuth, requireAdmin } = require('../middleware/authMiddleware');
@@ -13,6 +14,10 @@ router.put('/me', adminController.updateAdminMe);
 
 router.get('/attendance-report', adminController.getAttendanceReport);
 router.get('/staff-list', adminController.getStaffList);
+router.get('/branches', branchController.listBranches);
+router.post('/branches', branchController.createBranch);
+router.put('/branches/:branchCode', branchController.updateBranch);
+router.delete('/branches/:branchCode', branchController.deleteBranch);
 router.post('/register-staff', adminController.registerStaff);
 router.put('/staff/:staffId/salary', adminController.updateStaffSalary);
 router.put('/staff/:staffId/supervisor', adminController.assignSupervisor);

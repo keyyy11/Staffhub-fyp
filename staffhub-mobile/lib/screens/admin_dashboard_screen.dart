@@ -3,6 +3,7 @@ import '../app_theme.dart';
 import '../widgets/staffhub_logo.dart';
 import '../widgets/staff_schedule_editor_dialog.dart';
 import '../widgets/mc_letter_viewer.dart';
+import '../widgets/attendance_clock_panel.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
@@ -11,6 +12,7 @@ import 'admin_profile_screen.dart';
 import 'settings_screen.dart';
 import 'admin_discipline_screen.dart';
 import 'admin_overtime_screen.dart';
+import 'admin_branches_screen.dart';
 import 'admin_staff_edit_screen.dart';
 
 String _roleLabel(dynamic role) {
@@ -456,6 +458,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             : ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  Text(
+                    'My attendance',
+                    style: TextStyle(
+                      color: context.appColors.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Clock in/out at your assigned branch using GPS geofence.',
+                    style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
+                  ),
+                  SizedBox(height: 12),
+                  const AttendanceClockPanel(showSectionTitle: false),
+                  SizedBox(height: 24),
                   Text(
                     'Operations overview',
                     style: TextStyle(
@@ -936,6 +954,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   Navigator.of(context).pop();
                   Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const AdminProfileScreen()),
+                  );
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.location_on_outlined, color: context.appColors.accentBlue),
+                title: Text('Cawangan / Branches', style: TextStyle(color: context.appColors.textPrimary)),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AdminBranchesScreen()),
                   );
                 },
               ),
