@@ -10,3 +10,6 @@ staffhub-api/.env
 staffhub-cms/.env.local
 staffhub-cms/.env*.local
 *.log
+/node_modules/
+/package-lock.json
+/package.json

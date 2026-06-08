@@ -56,13 +56,30 @@ function formatTime(date) {
   return d.toTimeString().slice(0, 5);
 }
 
+/** Parse YYYY-MM-DD as local calendar date (avoids UTC offset excluding today's records). */
+function parseLocalDateInput(dateStr, endOfDay = false) {
+  const parts = String(dateStr).split('-').map(Number);
+  if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n))) {
+    const d = new Date(dateStr);
+    if (endOfDay) d.setHours(23, 59, 59, 999);
+    else d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  const d = new Date(parts[0], parts[1] - 1, parts[2]);
+  if (endOfDay) d.setHours(23, 59, 59, 999);
+  else d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 exports.getAttendanceReport = async (req, res) => {
   try {
     const { startDate, endDate, staffId } = req.query;
-    const start = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
-    const end = endDate ? new Date(endDate) : new Date();
-    start.setHours(0, 0, 0, 0);
-    end.setHours(23, 59, 59, 999);
+    const start = startDate
+      ? parseLocalDateInput(startDate, false)
+      : new Date(new Date().setDate(new Date().getDate() - 30));
+    const end = endDate ? parseLocalDateInput(endDate, true) : new Date();
+    if (!startDate) start.setHours(0, 0, 0, 0);
+    if (!endDate) end.setHours(23, 59, 59, 999);
 
     const filter = { date: { $gte: start, $lte: end } };
     if (staffId) filter.staffId = staffId;
@@ -83,6 +100,8 @@ exports.getAttendanceReport = async (req, res) => {
         date: a.date,
         clockIn: a.clockIn,
         clockOut: a.clockOut,
+        clockInLocation: a.clockInLocation,
+        clockOutLocation: a.clockOutLocation,
         clockInTime: formatTime(a.clockIn),
         clockOutTime: a.clockOut ? formatTime(a.clockOut) : null,
         status: late ? 'late' : 'on_time',

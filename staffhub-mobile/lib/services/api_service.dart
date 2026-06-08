@@ -29,9 +29,12 @@ class ApiService {
               'and ensure the base URL includes /api (e.g. http://10.0.2.2:3000/api). '
               'On a physical phone use: flutter run --dart-define=API_BASE_URL=http://YOUR_PC_IP:3000'
           : '';
+      final hint413 = code == 413
+          ? ' MC image too large. Take a new photo or use a smaller image (max 5MB).'
+          : '';
       return {
         'success': false,
-        'message': 'Non-JSON response (HTTP $code).$hint404 '
+        'message': 'Non-JSON response (HTTP $code).$hint404$hint413 '
             'Restart the API or open DevTools → Response to inspect.',
       };
     }
@@ -280,12 +283,14 @@ class ApiService {
         body['mcLetterFileName'] = mcLetterFileName;
       }
     }
-    final response = await http.post(
-      Uri.parse('$baseUrl/leave/apply'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    );
-    return jsonDecode(response.body) as Map<String, dynamic>;
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/leave/apply'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(body),
+        )
+        .timeout(const Duration(seconds: 45));
+    return _parseApiJson(response);
   }
 
   static Future<Map<String, dynamic>> getLeaveMcLetter(String requestId, {String? staffId}) async {

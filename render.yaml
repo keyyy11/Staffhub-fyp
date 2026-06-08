@@ -1,4 +1,5 @@
-# Render Blueprint — deploy staffhub-api
+# Render Blueprint — Staff Hub API
+# Dashboard: New → Blueprint → connect this repo, or New → Web Service manually.
 # Docs: https://render.com/docs/blueprint-spec
 
 services:

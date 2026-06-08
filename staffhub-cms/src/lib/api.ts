@@ -26,11 +26,27 @@ async function request<T>(
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("abort") || msg.includes("timeout")) {
+      return {
+        success: false,
+        message: `Cannot reach API at ${API_BASE}. Start staffhub-api (npm run dev) and try again.`,
+      };
+    }
+    return {
+      success: false,
+      message: `Cannot reach API at ${API_BASE}. Start staffhub-api (npm run dev) and try again.`,
+    };
+  }
 
   let data: ApiResponse<T>;
   try {
@@ -84,13 +100,18 @@ export const api = {
   deleteBranch: (branchCode: string) =>
     request("DELETE", `/admin/branches/${encodeURIComponent(branchCode)}`),
 
-  getAttendanceReport: (params?: { startDate?: string; endDate?: string; staffId?: string }) => {
+  getAttendanceReport: async (params?: { startDate?: string; endDate?: string; staffId?: string }) => {
     const q = new URLSearchParams();
     if (params?.startDate) q.set("startDate", params.startDate);
     if (params?.endDate) q.set("endDate", params.endDate);
     if (params?.staffId) q.set("staffId", params.staffId);
     const qs = q.toString();
-    return request<AttendanceRecord[]>("GET", `/admin/attendance-report${qs ? `?${qs}` : ""}`);
+    const res = await request<{ report: AttendanceRecord[]; stats: { total: number; onTime: number; late: number } }>(
+      "GET",
+      `/admin/attendance-report${qs ? `?${qs}` : ""}`,
+    );
+    if (!res.success || !res.data) return { success: false, message: res.message };
+    return { success: true, message: res.message, data: res.data.report };
   },
 
   getLeaveRequests: (status?: string) => {

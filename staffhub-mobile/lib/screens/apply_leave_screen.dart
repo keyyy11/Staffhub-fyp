@@ -153,9 +153,9 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
       final picker = ImagePicker();
       final picked = await picker.pickImage(
         source: source,
-        maxWidth: 1600,
-        maxHeight: 2200,
-        imageQuality: 85,
+        maxWidth: 1200,
+        maxHeight: 1600,
+        imageQuality: 70,
       );
       if (picked == null || !mounted) return;
       final bytes = await picked.readAsBytes();
@@ -239,7 +239,14 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        _showMessage('Connection error. Please ensure API is running.', false);
+        final s = e.toString();
+        if (s.contains('TimeoutException')) {
+          _showMessage('Request timed out. Check Wi‑Fi and that staffhub-api is running.', false);
+        } else if (s.contains('SocketException') || s.contains('Failed host lookup')) {
+          _showMessage('Cannot reach API. Use same Wi‑Fi as your PC and ensure staffhub-api is running.', false);
+        } else {
+          _showMessage('Failed to submit leave application. Please try again.', false);
+        }
       }
     }
   }

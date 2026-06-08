@@ -8,17 +8,29 @@ import { Button } from "@/components/ui/Button";
 import { api } from "@/lib/api";
 import type { AttendanceRecord } from "@/lib/types";
 
+function localDateInput(d = new Date()) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export default function AttendancePage() {
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [startDate, setStartDate] = useState(() => {
-    const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().slice(0, 10);
+    const d = new Date(); d.setDate(d.getDate() - 30); return localDateInput(d);
   });
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState(() => localDateInput());
   const [staffId, setStaffId] = useState("");
+  const [error, setError] = useState("");
 
   const load = async () => {
+    setError("");
     const res = await api.getAttendanceReport({ startDate, endDate, staffId: staffId || undefined });
-    if (res.success && res.data) setRecords(res.data);
+    if (res.success && res.data) {
+      setRecords(res.data);
+      return;
+    }
+    setRecords([]);
+    setError(res.message || "Failed to load attendance. Make sure you are signed in as admin and the API is running.");
   };
 
   useEffect(() => { load(); }, []);
@@ -42,6 +54,12 @@ export default function AttendancePage() {
           <Button onClick={load}>Filter</Button>
         </div>
       </Card>
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {error}
+        </div>
+      )}
 
       <Card>
         <div className="overflow-x-auto">

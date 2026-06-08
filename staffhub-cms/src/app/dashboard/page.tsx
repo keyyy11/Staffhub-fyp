@@ -8,6 +8,11 @@ import { Badge } from "@/components/ui/Badge";
 import { api } from "@/lib/api";
 import type { AttendanceRecord, LeaveRequest, OvertimeRequest, StaffMember } from "@/lib/types";
 
+function localDateInput(d = new Date()) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export default function DashboardPage() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [leave, setLeave] = useState<LeaveRequest[]>([]);
@@ -24,8 +29,8 @@ export default function DashboardPage() {
         api.getLeaveRequests("pending"),
         api.getOvertimeRequests("pending"),
         api.getAttendanceReport({
-          startDate: start.toISOString().slice(0, 10),
-          endDate: end.toISOString().slice(0, 10),
+          startDate: localDateInput(start),
+          endDate: localDateInput(end),
         }),
       ]);
       if (staffRes.success && staffRes.data) setStaff(staffRes.data);

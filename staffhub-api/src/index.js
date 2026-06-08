@@ -18,7 +18,9 @@ const corsOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
   : true;
 app.use(cors({ origin: corsOrigins, credentials: true }));
-app.use(express.json());
+// Medical leave uploads MC photo as base64 JSON — default 100kb is too small
+app.use(express.json({ limit: '6mb' }));
+app.use(express.urlencoded({ extended: true, limit: '6mb' }));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -55,6 +57,17 @@ app.get('/', (req, res) => {
       '<p><a href="/api/health" style="color:#90caf9;">Open /api/health (JSON)</a></p>' +
       '</body></html>'
   );
+});
+
+// Payload too large (e.g. MC image) — return JSON so mobile shows a clear message
+app.use((err, req, res, next) => {
+  if (err && (err.type === 'entity.too.large' || err.status === 413 || err.name === 'PayloadTooLargeError')) {
+    return res.status(413).json({
+      success: false,
+      message: 'MC image is too large. Use a smaller photo or lower camera quality (max 5MB).',
+    });
+  }
+  next(err);
 });
 
 // 404 JSON untuk /api/* — elak respons HTML (Flutter nampak "Non-JSON") & tunjuk laluan sebenar

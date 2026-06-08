@@ -5,7 +5,9 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "migrate:atlas": "node scripts/migrate-to-atlas.js",
+    "migrate:atlas:dry-run": "node scripts/migrate-to-atlas.js --dry-run"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
