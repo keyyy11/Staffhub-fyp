@@ -11,5 +11,5 @@ staffhub-cms/.env.local
 staffhub-cms/.env*.local
 *.log
 /node_modules/
-/package-lock.json
-/package.json
+# Vercel sync artifact at monorepo root (generated during vercel-build)
+/.next/

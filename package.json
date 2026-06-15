@@ -1,0 +1,13 @@
+{
+  "name": "staffhub-fyp",
+  "private": true,
+  "description": "Monorepo root — Vercel CMS deploy uses vercel-build when Root Directory is not set.",
+  "scripts": {
+    "vercel-build": "npm install --prefix staffhub-cms && npm run build --prefix staffhub-cms && node scripts/vercel-sync-cms-next.js"
+  },
+  "dependencies": {
+    "next": "16.2.7",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  }
+}
