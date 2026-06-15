@@ -13,6 +13,7 @@ const nav = [
   { href: "/payslips", label: "Payslips", icon: "💰" },
   { href: "/discipline", label: "Discipline", icon: "⚠️" },
   { href: "/overtime", label: "Overtime", icon: "⏱️" },
+  { href: "/access-logs", label: "Access Logs", icon: "📋" },
   { href: "/profile", label: "Profile", icon: "👤" },
 ];
 
@@ -21,8 +22,8 @@ export function Sidebar() {
   const router = useRouter();
   const { user, logout } = useAuth();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push("/login");
   };
 

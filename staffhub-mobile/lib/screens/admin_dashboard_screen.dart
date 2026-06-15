@@ -13,6 +13,7 @@ import 'admin_register_screen.dart';
 import 'admin_profile_screen.dart';
 import 'settings_screen.dart';
 import 'admin_discipline_screen.dart';
+import 'admin_access_logs_screen.dart';
 import 'admin_overtime_screen.dart';
 import 'admin_branches_screen.dart';
 import 'admin_staff_edit_screen.dart';
@@ -1089,6 +1090,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with L10nMi
                   Navigator.of(context).pop();
                   Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const AdminRegisterScreen()),
+                  );
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.history_rounded, color: context.appColors.accentBlue),
+                title: Text(tr('access_logs_title'), style: TextStyle(color: context.appColors.textPrimary)),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AdminAccessLogsScreen()),
                   );
                 },
               ),

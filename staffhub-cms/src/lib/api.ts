@@ -9,6 +9,7 @@ import type {
   DisciplineMetrics,
   StaffPerformanceAnalytics,
   PerformanceOverview,
+  AccessLogResult,
   LeaveRequest,
   OvertimeRequest,
   PayslipRecord,
@@ -80,7 +81,9 @@ export const api = {
   health: () => request<{ status: string }>("GET", "/health", undefined, false),
 
   login: (email: string, password: string) =>
-    request<{ token: string; user: AuthUser }>("POST", "/auth/login", { email, password }, false),
+    request<{ token: string; user: AuthUser }>("POST", "/auth/login", { email, password, platform: "cms" }, false),
+
+  logoutAccess: () => request("POST", "/auth/logout", { platform: "cms" }),
 
   registerAdmin: (payload: {
     name: string;
@@ -151,6 +154,15 @@ export const api = {
     request<StaffPerformanceAnalytics>("GET", `/admin/staff/${encodeURIComponent(staffId)}/performance?days=${days}`),
   getPerformanceOverview: (days = 30) =>
     request<PerformanceOverview>("GET", `/admin/performance-overview?days=${days}`),
+  getAccessLogs: (params?: { days?: number; limit?: number; action?: string; platform?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.days) q.set("days", String(params.days));
+    if (params?.limit) q.set("limit", String(params.limit));
+    if (params?.action) q.set("action", params.action);
+    if (params?.platform) q.set("platform", params.platform);
+    const qs = q.toString();
+    return request<AccessLogResult>("GET", `/admin/access-logs${qs ? `?${qs}` : ""}`);
+  },
   getWarnings: (staffId?: string) => {
     const qs = staffId ? `?staffId=${encodeURIComponent(staffId)}` : "";
     return request<WarningLetter[]>("GET", `/admin/warnings${qs}`);

@@ -157,6 +157,26 @@ export interface PerformanceOverview {
   staff: StaffPerformanceSummary[];
 }
 
+export interface AccessLogEntry {
+  _id: string;
+  staffId: string;
+  name: string;
+  email: string;
+  role: string;
+  action: "login" | "logout" | "login_failed";
+  platform: "cms" | "mobile" | "unknown";
+  ipAddress?: string;
+  userAgent?: string;
+  success: boolean;
+  createdAt: string;
+}
+
+export interface AccessLogResult {
+  periodDays: number;
+  total: number;
+  logs: AccessLogEntry[];
+}
+
 export interface OvertimeRequest {
   _id: string;
   staffId: string;

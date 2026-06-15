@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { allocateNextId, AUTO_STAFF_PREFIX, AUTO_SUPERVISOR_PREFIX } = require('../utils/staffIdAllocator');
 const { isEmailConfigured, sendPasswordResetEmail } = require('../services/emailService');
+const { recordAdminAccessLog } = require('../utils/accessLog');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'staffhub-secret-key-change-in-production';
 
@@ -105,7 +106,7 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, platform } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -114,7 +115,8 @@ exports.login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email: String(email).toLowerCase().trim() }).select('+password');
+    const normalizedEmail = String(email).toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail }).select('+password');
 
     if (!user) {
       return res.status(401).json({
@@ -126,6 +128,13 @@ exports.login = async (req, res) => {
     const isMatch = await user.comparePassword(password);
 
     if (!isMatch) {
+      await recordAdminAccessLog({
+        user,
+        action: 'login_failed',
+        platform,
+        req,
+        success: false,
+      });
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password',
@@ -133,6 +142,14 @@ exports.login = async (req, res) => {
     }
 
     const token = generateToken(user);
+
+    await recordAdminAccessLog({
+      user,
+      action: 'login',
+      platform,
+      req,
+      success: true,
+    });
 
     res.json({
       success: true,

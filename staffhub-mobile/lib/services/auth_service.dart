@@ -168,6 +168,14 @@ class AuthService {
   }
 
   static Future<void> logout() async {
+    try {
+      final user = await getCurrentUser();
+      if (user?['role'] == 'admin') {
+        await ApiService.logoutAccess(platform: 'mobile');
+      }
+    } catch (_) {
+      /* continue clearing local session */
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_userKey);

@@ -4,6 +4,7 @@ const adminController = require('../controllers/adminController');
 const branchController = require('../controllers/branchController');
 const warningController = require('../controllers/warningController');
 const performanceController = require('../controllers/performanceController');
+const accessLogController = require('../controllers/accessLogController');
 const overtimeController = require('../controllers/overtimeController');
 const { requireAuth, requireAdmin } = require('../middleware/authMiddleware');
 
@@ -37,6 +38,7 @@ router.post('/payslip-record', adminController.upsertPayslipRecord);
 router.get('/staff/:staffId/discipline-metrics', warningController.getStaffDisciplineMetrics);
 router.get('/staff/:staffId/performance', performanceController.getStaffPerformanceAdmin);
 router.get('/performance-overview', performanceController.getPerformanceOverviewAdmin);
+router.get('/access-logs', accessLogController.getAdminAccessLogs);
 router.get('/warnings', warningController.listWarnings);
 router.post('/warnings', warningController.createWarning);
 

@@ -374,15 +374,19 @@ class ApiService {
     return _parseApiJson(response);
   }
 
-  static Future<Map<String, dynamic>> login(String email, String password) async {
+  static Future<Map<String, dynamic>> login(String email, String password, {String platform = 'mobile'}) async {
     final response = await http
         .post(
           Uri.parse('$baseUrl/auth/login'),
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'email': email, 'password': password}),
+          body: jsonEncode({'email': email, 'password': password, 'platform': platform}),
         )
         .timeout(_timeout);
     return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> logoutAccess({String platform = 'mobile'}) async {
+    return _adminRequest('POST', '/auth/logout', body: {'platform': platform});
   }
 
   static Future<Map<String, dynamic>> forgotPassword(String email) async {
@@ -678,6 +682,18 @@ class ApiService {
   static Future<Map<String, dynamic>> getAdminPerformanceOverview({int days = 30}) async {
     final path = '/admin/performance-overview?days=$days';
     return _adminRequest('GET', path);
+  }
+
+  static Future<Map<String, dynamic>> getAdminAccessLogs({
+    int days = 30,
+    int limit = 100,
+    String? action,
+    String? platform,
+  }) async {
+    final q = <String>['days=$days', 'limit=$limit'];
+    if (action != null && action.isNotEmpty) q.add('action=${Uri.encodeComponent(action)}');
+    if (platform != null && platform.isNotEmpty) q.add('platform=${Uri.encodeComponent(platform)}');
+    return _adminRequest('GET', '/admin/access-logs?${q.join('&')}');
   }
 
   static Future<Map<String, dynamic>> getSupervisorStaffPerformance(String staffId, {int days = 90}) async {
