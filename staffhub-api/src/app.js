@@ -16,6 +16,12 @@ const bodyLimit = process.env.VERCEL ? '4mb' : '6mb';
 const corsOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
   : true;
+
+// Chrome Private Network Access: allow CMS (e.g. 192.168.x.x:3001) → localhost:3000
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Private-Network', 'true');
+  next();
+});
 app.use(cors({ origin: corsOrigins, credentials: true }));
 app.use(express.json({ limit: bodyLimit }));
 app.use(express.urlencoded({ extended: true, limit: bodyLimit }));

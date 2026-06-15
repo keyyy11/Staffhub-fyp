@@ -16,7 +16,16 @@ import type {
   WarningLetter,
 } from "./types";
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api").replace(/\/$/, "");
+function resolveApiBase(): string {
+  const configured = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api").replace(/\/$/, "");
+  // Browser local dev: same-origin proxy (see next.config.ts rewrites) avoids PNA errors.
+  if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+    return "/api-backend";
+  }
+  return configured;
+}
+
+const API_BASE = resolveApiBase();
 
 async function request<T>(
   method: string,
@@ -158,5 +167,7 @@ export const api = {
 };
 
 export function getApiBaseUrl(): string {
-  return API_BASE;
+  return typeof window !== "undefined" && process.env.NODE_ENV === "development"
+    ? "/api-backend"
+    : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api").replace(/\/$/, "");
 }
