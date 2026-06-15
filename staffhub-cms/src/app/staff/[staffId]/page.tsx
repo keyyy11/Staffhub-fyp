@@ -1,11 +1,13 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, Select } from "@/components/ui/Input";
+import { StaffPerformancePanel } from "@/components/staff/StaffPerformancePanel";
 import { api } from "@/lib/api";
 import type { Branch, StaffMember } from "@/lib/types";
 
@@ -90,7 +92,7 @@ export default function StaffEditPage() {
         </div>
       )}
 
-      <Card>
+      <Card className="mb-6">
         <CardTitle>{staff.name} ({staff.role})</CardTitle>
         <form onSubmit={handleSave} className="grid gap-4 sm:grid-cols-2">
           <div><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
@@ -122,6 +124,8 @@ export default function StaffEditPage() {
           </div>
         </form>
       </Card>
+
+      <StaffPerformancePanel staffId={staffId} staffName={staff.name} />
     </DashboardLayout>
   );
 }

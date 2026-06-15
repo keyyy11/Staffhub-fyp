@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const supervisorController = require('../controllers/supervisorController');
 const overtimeController = require('../controllers/overtimeController');
+const performanceController = require('../controllers/performanceController');
 const { requireAuth, requireSupervisor } = require('../middleware/authMiddleware');
 
 router.use(requireAuth);
@@ -23,5 +24,6 @@ router.put('/notifications/:id/read', supervisorController.markNotificationRead)
 router.put('/notifications/read-all', supervisorController.markAllNotificationsRead);
 router.get('/staff/:staffId/schedule', supervisorController.getStaffSchedule);
 router.put('/staff/:staffId/schedule', supervisorController.putStaffSchedule);
+router.get('/staff/:staffId/performance', performanceController.getStaffPerformanceSupervisor);
 
 module.exports = router;

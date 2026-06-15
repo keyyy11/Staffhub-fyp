@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../services/api_service.dart';
 
 /// Admin: view discipline metrics and issue formal warning letters to staff.
@@ -10,7 +11,7 @@ class AdminDisciplineScreen extends StatefulWidget {
   State<AdminDisciplineScreen> createState() => _AdminDisciplineScreenState();
 }
 
-class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
+class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> with L10nMixin {
   List<Map<String, dynamic>> _staffList = [];
   String? _selectedStaffId;
   Map<String, dynamic>? _metrics;
@@ -40,13 +41,11 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
   String _defaultNotes(String cat) {
     switch (cat) {
       case 'late_five_times':
-        return 'This is a formal warning under company policy. Our records show repeated late clock-in within the assessment period. '
-            'You are required to improve punctuality and meet attendance expectations.';
+        return tr('warning_note_late');
       case 'attendance_leave_unsatisfactory':
-        return 'This is a formal warning. Your attendance and/or leave records have not met satisfactory standards. '
-            'You are expected to comply with departmental and HR policies going forward.';
+        return tr('warning_note_attendance');
       default:
-        return 'State the reason and expected improvement clearly.';
+        return tr('warning_note_other');
     }
   }
 
@@ -77,7 +76,7 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
       if (mounted) {
         setState(() {
           _loadingStaff = false;
-          _errorMessage = 'Failed to load staff list';
+          _errorMessage = tr('failed_load_staff_list');
         });
       }
     }
@@ -131,7 +130,7 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
     final notes = _notesController.text.trim();
     if (notes.length < 5) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Notes must be at least 5 characters')),
+        SnackBar(content: Text(tr('notes_min_5'))),
       );
       return;
     }
@@ -145,18 +144,18 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
       if (!mounted) return;
       if (result['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Warning letter issued')),
+          SnackBar(content: Text(tr('warning_issued'))),
         );
         await _loadMetricsAndWarnings();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] as String? ?? 'Failed')),
+          SnackBar(content: Text(result['message'] as String? ?? tr('failed'))),
         );
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not issue warning. Check API.')),
+          SnackBar(content: Text(tr('warning_issue_failed'))),
         );
       }
     } finally {
@@ -167,11 +166,11 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
   String _categoryLabel(String c) {
     switch (c) {
       case 'late_five_times':
-        return 'Late arrivals (5+ times)';
+        return tr('warning_late_5');
       case 'attendance_leave_unsatisfactory':
-        return 'Attendance / leave unsatisfactory';
+        return tr('warning_attendance_unsat');
       case 'other':
-        return 'Other';
+        return tr('warning_other');
       default:
         return c;
     }
@@ -182,7 +181,7 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
     return Scaffold(
       backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: Text('Discipline & warnings', style: TextStyle(color: context.appColors.textPrimary)),
+        title: Text(tr('discipline_title'), style: TextStyle(color: context.appColors.textPrimary)),
         backgroundColor: context.appColors.surface,
         foregroundColor: context.appColors.textPrimary,
         elevation: 0,
@@ -207,7 +206,7 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
                       child: Padding(
                         padding: const EdgeInsets.all(24),
                         child: Text(
-                          _errorMessage ?? 'No staff registered yet.',
+                          _errorMessage ?? tr('no_staff_registered'),
                           style: TextStyle(color: context.appColors.textSecondary),
                           textAlign: TextAlign.center,
                         ),
@@ -222,7 +221,7 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
                             value: _selectedStaffId,
                             dropdownColor: context.appColors.card,
                             decoration: InputDecoration(
-                              labelText: 'Staff',
+                              labelText: tr('staff'),
                               labelStyle: TextStyle(color: context.appColors.textSecondary),
                               filled: true,
                               fillColor: context.appColors.card,
@@ -251,7 +250,7 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
                             _buildMetricsCard(),
                           SizedBox(height: 20),
                           Text(
-                            'Issue warning letter',
+                            tr('issue_warning_letter'),
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                   color: context.appColors.textPrimary,
                                   fontWeight: FontWeight.bold,
@@ -259,7 +258,7 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
                           ),
                           SizedBox(height: 8),
                           Text(
-                            'Use when the system flags repeated lateness or unsatisfactory attendance/leave. You may edit the letter text before sending.',
+                            tr('issue_warning_desc'),
                             style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
                           ),
                           SizedBox(height: 12),
@@ -267,19 +266,19 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
                             value: _category,
                             dropdownColor: context.appColors.card,
                             decoration: InputDecoration(
-                              labelText: 'Warning type',
+                              labelText: tr('warning_type'),
                               labelStyle: TextStyle(color: context.appColors.textSecondary),
                               filled: true,
                               fillColor: context.appColors.card,
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                             items: [
-                              DropdownMenuItem(value: 'late_five_times', child: Text('Late arrivals (5+ times)', style: TextStyle(color: context.appColors.textPrimary))),
+                              DropdownMenuItem(value: 'late_five_times', child: Text(tr('warning_late_5'), style: TextStyle(color: context.appColors.textPrimary))),
                               DropdownMenuItem(
                                 value: 'attendance_leave_unsatisfactory',
-                                child: Text('Attendance / leave unsatisfactory', style: TextStyle(color: context.appColors.textPrimary)),
+                                child: Text(tr('warning_attendance_unsat'), style: TextStyle(color: context.appColors.textPrimary)),
                               ),
-                              DropdownMenuItem(value: 'other', child: Text('Other', style: TextStyle(color: context.appColors.textPrimary))),
+                              DropdownMenuItem(value: 'other', child: Text(tr('warning_other'), style: TextStyle(color: context.appColors.textPrimary))),
                             ],
                             onChanged: (v) {
                               if (v == null) return;
@@ -295,7 +294,7 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
                             maxLines: 8,
                             style: TextStyle(color: context.appColors.textPrimary, fontSize: 14),
                             decoration: InputDecoration(
-                              labelText: 'Letter content',
+                              labelText: tr('letter_content'),
                               labelStyle: TextStyle(color: context.appColors.textSecondary),
                               filled: true,
                               fillColor: context.appColors.card,
@@ -314,14 +313,14 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
                               ),
                               child: _submitting
                                   ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                  : Text('Issue warning letter'),
+                                  : Text(tr('issue_warning_btn')),
                             ),
                           ),
                           SizedBox(height: 28),
                           Row(
                             children: [
                               Text(
-                                'History for this staff',
+                                tr('history_for_staff'),
                                 style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
                               ),
                               if (_loadingWarnings) ...[
@@ -338,7 +337,7 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
                           if (_warnings.isEmpty && !_loadingWarnings)
                             Padding(
                               padding: EdgeInsets.all(16),
-                              child: Text('No warnings issued yet.', style: TextStyle(color: context.appColors.textSecondary)),
+                              child: Text(tr('no_warnings_issued'), style: TextStyle(color: context.appColors.textSecondary)),
                             )
                           else
                             ..._warnings.map(_warningTile),
@@ -375,24 +374,24 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
           ),
           SizedBox(height: 4),
           Text(
-            'Last ${m['periodDays'] ?? 90} days',
+            tr('last_n_days', {'days': (m['periodDays'] ?? 90).toString()}),
             style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
           ),
           SizedBox(height: 4),
           Divider(color: context.appColors.borderBlue),
           SizedBox(height: 8),
-          _metricRow('Late clock-ins', '$late', Colors.amber),
-          _metricRow('On time', '$onTime', Colors.green),
-          _metricRow('Total attendance days', '$total', context.appColors.textSecondary),
-          _metricRow('On-time ratio', '${(ratio * 100).toStringAsFixed(0)}%', context.appColors.accentBlue),
-          _metricRow('Leave rejected (period)', '$rej', Colors.orangeAccent),
+          _metricRow(tr('late_clock_ins'), '$late', Colors.amber),
+          _metricRow(tr('on_time_metric'), '$onTime', Colors.green),
+          _metricRow(tr('total_attendance_days'), '$total', context.appColors.textSecondary),
+          _metricRow(tr('on_time_ratio'), '${(ratio * 100).toStringAsFixed(0)}%', context.appColors.accentBlue),
+          _metricRow(tr('leave_rejected_period'), '$rej', Colors.orangeAccent),
           SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              _chip('Eligible: late warning', elLate, Colors.amber),
-              _chip('Eligible: attendance/leave', elUnsat, Colors.deepOrangeAccent),
+              _chip(tr('eligible_late_warning'), elLate, Colors.amber),
+              _chip(tr('eligible_attendance_warning'), elUnsat, Colors.deepOrangeAccent),
             ],
           ),
         ],
@@ -463,7 +462,10 @@ class _AdminDisciplineScreenState extends State<AdminDisciplineScreen> {
           ),
           SizedBox(height: 6),
           Text(
-            'By: ${w['issuedByName'] ?? ''} (${w['issuedByEmail'] ?? ''})',
+            tr('issued_by', {
+              'name': w['issuedByName'] ?? '',
+              'email': w['issuedByEmail'] ?? '',
+            }),
             style: TextStyle(color: context.appColors.textSecondary, fontSize: 11),
           ),
         ],

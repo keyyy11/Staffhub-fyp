@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
 
@@ -12,7 +13,7 @@ class ResetPasswordScreen extends StatefulWidget {
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
 
-class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+class _ResetPasswordScreenState extends State<ResetPasswordScreen> with L10nMixin {
   late final TextEditingController _emailController;
   final _codeController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -48,7 +49,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     if (email.isEmpty || code.isEmpty || password.isEmpty || confirm.isEmpty) {
       setState(() {
-        _errorMessage = 'Please fill all fields';
+        _errorMessage = tr('fill_all_fields');
         _successMessage = null;
       });
       return;
@@ -56,7 +57,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     if (password.length < 6) {
       setState(() {
-        _errorMessage = 'Password must be at least 6 characters';
+        _errorMessage = tr('password_min_length');
         _successMessage = null;
       });
       return;
@@ -64,7 +65,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     if (password != confirm) {
       setState(() {
-        _errorMessage = 'Passwords do not match';
+        _errorMessage = tr('passwords_do_not_match');
         _successMessage = null;
       });
       return;
@@ -87,7 +88,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     if (result.success) {
       setState(() {
-        _successMessage = result.errorMessage ?? 'Password reset successfully';
+        _successMessage = result.errorMessage ?? tr('password_reset_success');
         _errorMessage = null;
       });
       await Future<void>.delayed(const Duration(milliseconds: 1200));
@@ -97,7 +98,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         (route) => false,
       );
     } else {
-      setState(() => _errorMessage = result.errorMessage ?? 'Reset failed');
+      setState(() => _errorMessage = result.errorMessage ?? tr('reset_failed'));
     }
   }
 
@@ -106,7 +107,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     return Scaffold(
       backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: Text('Reset password'),
+        title: Text(tr('reset_password')),
         backgroundColor: context.appColors.surface,
         foregroundColor: context.appColors.textPrimary,
         elevation: 0,
@@ -118,7 +119,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Enter reset code',
+                tr('enter_reset_code'),
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
@@ -127,7 +128,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Use the 6-digit code sent to your registered email, then choose a new password.',
+                tr('reset_code_desc'),
                 style: TextStyle(fontSize: 14, color: context.appColors.textSecondary),
               ),
               const SizedBox(height: 32),
@@ -145,7 +146,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 autocorrect: false,
                 style: TextStyle(color: context.appColors.textPrimary),
                 decoration: InputDecoration(
-                  labelText: 'Registered email',
+                  labelText: tr('registered_email'),
                   prefixIcon: Icon(Icons.email_outlined, color: context.appColors.accentBlue),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   filled: true,
@@ -158,8 +159,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 maxLength: 6,
                 style: TextStyle(color: context.appColors.textPrimary, letterSpacing: 4),
                 decoration: InputDecoration(
-                  labelText: 'Reset code',
-                  hintText: '123456',
+                  labelText: tr('reset_code'),
+                  hintText: tr('reset_code_hint'),
                   counterText: '',
                   prefixIcon: Icon(Icons.pin_outlined, color: context.appColors.accentBlue),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -172,7 +173,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 obscureText: _obscurePassword,
                 style: TextStyle(color: context.appColors.textPrimary),
                 decoration: InputDecoration(
-                  labelText: 'New password',
+                  labelText: tr('new_password'),
                   prefixIcon: Icon(Icons.lock_outlined, color: context.appColors.accentBlue),
                   suffixIcon: IconButton(
                     icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
@@ -188,7 +189,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 obscureText: _obscureConfirm,
                 style: TextStyle(color: context.appColors.textPrimary),
                 decoration: InputDecoration(
-                  labelText: 'Confirm new password',
+                  labelText: tr('confirm_new_password'),
                   prefixIcon: Icon(Icons.lock_outlined, color: context.appColors.accentBlue),
                   suffixIcon: IconButton(
                     icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility),
@@ -214,7 +215,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           height: 24,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
-                      : const Text('Reset password'),
+                      : Text(tr('reset_password')),
                 ),
               ),
             ],

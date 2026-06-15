@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/mc_letter_viewer.dart';
@@ -14,7 +15,7 @@ class ApplyLeaveScreen extends StatefulWidget {
   State<ApplyLeaveScreen> createState() => _ApplyLeaveScreenState();
 }
 
-class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
+class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> with L10nMixin {
   String _staffId = '';
   String _selectedLeaveType = 'annual';
   DateTime? _startDate;
@@ -27,12 +28,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
   String _mcLetterBase64 = '';
   String _mcLetterFileName = '';
 
-  static const _leaveTypes = [
-    {'id': 'medical', 'label': 'Medical Leave'},
-    {'id': 'annual', 'label': 'Annual Leave'},
-    {'id': 'unpaid', 'label': 'Unpaid Leave'},
-    {'id': 'other', 'label': 'Other Leave'},
-  ];
+  static const _leaveTypeIds = ['medical', 'annual', 'unpaid', 'other'];
 
   @override
   void initState() {
@@ -131,7 +127,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
   }
 
   String _formatDate(DateTime? d) {
-    if (d == null) return 'Select';
+    if (d == null) return tr('select_date');
     return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
   }
 
@@ -165,7 +161,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
         _mcLetterFileName = picked.name.isNotEmpty ? picked.name : 'mc-letter.jpg';
       });
     } catch (_) {
-      if (mounted) _showMessage('Failed to pick MC image', false);
+      if (mounted) _showMessage(tr('failed_pick_mc'), false);
     }
   }
 
@@ -188,19 +184,19 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
 
   Future<void> _submit() async {
     if (_staffId.isEmpty) {
-      _showMessage('Please log in again', false);
+      _showMessage(tr('please_login_again'), false);
       return;
     }
     if (_startDate == null || _endDate == null) {
-      _showMessage('Please select start and end date', false);
+      _showMessage(tr('select_start_end_date'), false);
       return;
     }
     if (_startDate!.isAfter(_endDate!)) {
-      _showMessage('End date must be after start date', false);
+      _showMessage(tr('end_after_start'), false);
       return;
     }
     if (_isMedicalLeave && _mcLetterBase64.isEmpty) {
-      _showMessage('Please attach MC letter from doctor or clinic', false);
+      _showMessage(tr('attach_mc_required'), false);
       return;
     }
 
@@ -224,7 +220,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
       setState(() => _isLoading = false);
 
       if (result['success'] == true) {
-        _showMessage('Leave application submitted successfully', true);
+        _showMessage(tr('leave_submitted'), true);
         _loadMyRequests();
         _reasonController.clear();
         setState(() {
@@ -234,18 +230,18 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
           _mcLetterFileName = '';
         });
       } else {
-        _showMessage(result['message'] as String? ?? 'Failed to submit', false);
+        _showMessage(result['message'] as String? ?? tr('failed_submit'), false);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         final s = e.toString();
         if (s.contains('TimeoutException')) {
-          _showMessage('Request timed out. Check Wi‑Fi and that staffhub-api is running.', false);
+          _showMessage(tr('request_timeout'), false);
         } else if (s.contains('SocketException') || s.contains('Failed host lookup')) {
-          _showMessage('Cannot reach API. Use same Wi‑Fi as your PC and ensure staffhub-api is running.', false);
+          _showMessage(tr('cannot_reach_api'), false);
         } else {
-          _showMessage('Failed to submit leave application. Please try again.', false);
+          _showMessage(tr('failed_submit_leave'), false);
         }
       }
     }
@@ -259,7 +255,29 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
   }
 
   String _getLeaveTypeLabel(String type) {
-    return _leaveTypes.firstWhere((t) => t['id'] == type, orElse: () => {'label': type})['label'] as String;
+    switch (type) {
+      case 'medical':
+        return tr('medical_leave');
+      case 'annual':
+        return tr('annual_leave');
+      case 'unpaid':
+        return tr('unpaid_leave');
+      case 'other':
+        return tr('other_leave');
+      default:
+        return type;
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'approved':
+        return tr('approved');
+      case 'rejected':
+        return tr('rejected');
+      default:
+        return tr('pending');
+    }
   }
 
   Color _statusColor(String status) {
@@ -284,11 +302,11 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
   String _statusResponseText(String? status) {
     switch (status) {
       case 'approved':
-        return 'Approved — your leave request has been accepted.';
+        return tr('leave_approved_msg');
       case 'rejected':
-        return 'Rejected — your leave request was not approved.';
+        return tr('leave_rejected_msg');
       default:
-        return 'Pending — waiting for admin review.';
+        return tr('leave_pending_msg');
     }
   }
 
@@ -347,7 +365,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  status.toUpperCase(),
+                  _statusLabel(status),
                   style: TextStyle(color: stColor, fontSize: 11, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -356,24 +374,28 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
           SizedBox(height: 10),
           if (start != null && end != null)
             Text(
-              '${_formatDate(start)} → ${_formatDate(end)} · ${r['totalDays'] ?? '-'} working day(s)',
+              tr('working_days_range', {
+                'start': _formatDate(start),
+                'end': _formatDate(end),
+                'days': '${r['totalDays'] ?? '-'}',
+              }),
               style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
             ),
           SizedBox(height: 6),
           Text(
-            'Submitted: ${_formatDateTime(r['createdAt'])}',
+            tr('submitted_at', {'datetime': _formatDateTime(r['createdAt'])}),
             style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
           ),
           if (status != 'pending') ...[
             SizedBox(height: 4),
             Text(
-              'Response time: ${_formatDateTime(r['updatedAt'])}',
+              tr('response_time', {'datetime': _formatDateTime(r['updatedAt'])}),
               style: TextStyle(color: context.appColors.accentBlue, fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ],
           if (reason.isNotEmpty) ...[
             SizedBox(height: 10),
-            Text('Your reason', style: TextStyle(color: context.appColors.textSecondary, fontSize: 11)),
+            Text(tr('your_reason'), style: TextStyle(color: context.appColors.textSecondary, fontSize: 11)),
             SizedBox(height: 2),
             Text(reason, style: TextStyle(color: context.appColors.textPrimary, fontSize: 13)),
           ],
@@ -390,7 +412,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Admin response', style: TextStyle(color: context.appColors.accentBlue, fontSize: 11, fontWeight: FontWeight.w600)),
+                  Text(tr('admin_response'), style: TextStyle(color: context.appColors.accentBlue, fontSize: 11, fontWeight: FontWeight.w600)),
                   SizedBox(height: 4),
                   Text(adminComment, style: TextStyle(color: context.appColors.textPrimary, fontSize: 13)),
                 ],
@@ -406,7 +428,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                 showMcLetterDialog(context, requestId: id, staffId: _staffId);
               },
               icon: Icon(Icons.description_outlined, size: 18, color: context.appColors.accentBlue),
-              label: Text('View MC letter', style: TextStyle(color: context.appColors.accentBlue)),
+              label: Text(tr('view_mc_letter'), style: TextStyle(color: context.appColors.accentBlue)),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: context.appColors.accentBlue.withOpacity(0.6)),
               ),
@@ -422,7 +444,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
     return Scaffold(
       backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: Text('Apply Leave', style: TextStyle(color: context.appColors.textPrimary)),
+        title: Text(tr('apply_leave_title'), style: TextStyle(color: context.appColors.textPrimary)),
         backgroundColor: context.appColors.surface,
         foregroundColor: context.appColors.textPrimary,
         elevation: 0,
@@ -453,12 +475,12 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Your leave requests & responses',
+                    tr('leave_requests_responses'),
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: context.appColors.textPrimary),
                   ),
                   SizedBox(height: 6),
                   Text(
-                    'See admin decision (approved / rejected) and any note below.',
+                    tr('leave_responses_hint'),
                     style: TextStyle(fontSize: 13, color: context.appColors.textSecondary),
                   ),
                   SizedBox(height: 14),
@@ -472,14 +494,14 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                         border: Border.all(color: context.appColors.borderBlue.withOpacity(0.3)),
                       ),
                       child: Center(
-                        child: Text('No leave requests yet. Submit a new application below.', style: TextStyle(color: context.appColors.textSecondary)),
+                        child: Text(tr('no_leave_requests'), style: TextStyle(color: context.appColors.textSecondary)),
                       ),
                     )
                   else
                     ..._myRequests.map((r) => _buildLeaveRequestCard(r)),
                   SizedBox(height: 28),
                   Text(
-                    'New leave application',
+                    tr('new_leave_application'),
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: context.appColors.textPrimary),
                   ),
                   SizedBox(height: 14),
@@ -493,7 +515,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                      Text('Leave Type', style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
+                      Text(tr('leave_type'), style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
                       SizedBox(height: 8),
                       DropdownButtonFormField<String>(
                         value: _selectedLeaveType,
@@ -504,7 +526,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                           filled: true,
                           fillColor: context.appColors.surface,
                         ),
-                        items: _leaveTypes.map((t) => DropdownMenuItem(value: t['id'] as String, child: Text(t['label'] as String))).toList(),
+                        items: _leaveTypeIds.map((id) => DropdownMenuItem(value: id, child: Text(_getLeaveTypeLabel(id)))).toList(),
                         onChanged: (v) => setState(() {
                           _selectedLeaveType = v ?? 'annual';
                           if (_selectedLeaveType != 'medical') _clearMcLetter();
@@ -513,12 +535,12 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                       if (_isMedicalLeave) ...[
                         SizedBox(height: 16),
                         Text(
-                          'MC letter (doctor / clinic)',
+                          tr('mc_letter_title'),
                           style: TextStyle(color: context.appColors.textSecondary, fontSize: 14),
                         ),
                         SizedBox(height: 6),
                         Text(
-                          'Take a photo or upload image of your medical certificate. Required for medical leave.',
+                          tr('mc_letter_desc'),
                           style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
                         ),
                         SizedBox(height: 10),
@@ -528,7 +550,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                               child: OutlinedButton.icon(
                                 onPressed: _isLoading ? null : () => _pickMcLetter(ImageSource.camera),
                                 icon: Icon(Icons.photo_camera_outlined, color: context.appColors.accentBlue),
-                                label: Text('Camera', style: TextStyle(color: context.appColors.accentBlue)),
+                                label: Text(tr('camera'), style: TextStyle(color: context.appColors.accentBlue)),
                               ),
                             ),
                             SizedBox(width: 10),
@@ -536,7 +558,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                               child: OutlinedButton.icon(
                                 onPressed: _isLoading ? null : () => _pickMcLetter(ImageSource.gallery),
                                 icon: Icon(Icons.photo_library_outlined, color: context.appColors.accentBlue),
-                                label: Text('Gallery', style: TextStyle(color: context.appColors.accentBlue)),
+                                label: Text(tr('gallery'), style: TextStyle(color: context.appColors.accentBlue)),
                               ),
                             ),
                           ],
@@ -579,7 +601,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                         ],
                       ],
                       SizedBox(height: 16),
-                      Text('Start Date', style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
+                      Text(tr('start_date'), style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
                       SizedBox(height: 8),
                       InkWell(
                         onTap: _selectStartDate,
@@ -600,7 +622,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                         ),
                       ),
                       SizedBox(height: 16),
-                      Text('End Date', style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
+                      Text(tr('end_date'), style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
                       SizedBox(height: 8),
                       InkWell(
                         onTap: _selectEndDate,
@@ -623,7 +645,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                       if (_startDate != null && _endDate != null && !_endDate!.isBefore(_startDate!)) ...[
                         SizedBox(height: 8),
                         Text(
-                          '${_calculateDays(_startDate!, _endDate!)} working days',
+                          tr('working_days_count', {'count': '${_calculateDays(_startDate!, _endDate!)}'}),
                           style: TextStyle(color: context.appColors.accentBlue, fontSize: 13),
                         ),
                       ],
@@ -633,7 +655,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                         maxLines: 3,
                         style: TextStyle(color: context.appColors.textPrimary),
                         decoration: InputDecoration(
-                          labelText: 'Reason (optional)',
+                          labelText: tr('reason_optional'),
                           labelStyle: TextStyle(color: context.appColors.textSecondary),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           filled: true,
@@ -670,7 +692,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                           ),
                           child: _isLoading
                               ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : Text('Submit Application'),
+                              : Text(tr('submit_application')),
                         ),
                       ),
                       ],

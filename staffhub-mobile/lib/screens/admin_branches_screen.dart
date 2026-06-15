@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../services/api_service.dart';
 
 /// Admin: manage branch/cawangan locations for staff attendance geofence.
@@ -10,7 +11,7 @@ class AdminBranchesScreen extends StatefulWidget {
   State<AdminBranchesScreen> createState() => _AdminBranchesScreenState();
 }
 
-class _AdminBranchesScreenState extends State<AdminBranchesScreen> {
+class _AdminBranchesScreenState extends State<AdminBranchesScreen> with L10nMixin {
   List<Map<String, dynamic>> _branches = [];
   bool _loading = true;
   String? _errorMessage;
@@ -37,14 +38,14 @@ class _AdminBranchesScreenState extends State<AdminBranchesScreen> {
       } else {
         setState(() {
           _loading = false;
-          _errorMessage = result['message']?.toString() ?? 'Failed to load branches';
+          _errorMessage = result['message']?.toString() ?? tr('failed_load_branches');
         });
       }
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _errorMessage = 'Error: $e';
+        _errorMessage = tr('error_with_message', {'message': e.toString()});
       });
     }
   }
@@ -76,7 +77,7 @@ class _AdminBranchesScreenState extends State<AdminBranchesScreen> {
     if (!mounted) return;
     if (saved == true) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(existing == null ? 'Branch created' : 'Branch updated')),
+        SnackBar(content: Text(existing == null ? tr('branch_created') : tr('branch_updated'))),
       );
       await _loadBranches();
     }
@@ -88,13 +89,13 @@ class _AdminBranchesScreenState extends State<AdminBranchesScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete branch?'),
-        content: Text('Remove "$name" ($code)? Staff must be reassigned first.'),
+        title: Text(tr('delete_branch_q')),
+        content: Text(tr('delete_branch_desc', {'name': name, 'code': code})),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('cancel'))),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+            child: Text(tr('delete'), style: const TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
@@ -104,11 +105,11 @@ class _AdminBranchesScreenState extends State<AdminBranchesScreen> {
     final result = await ApiService.deleteAdminBranch(code);
     if (!mounted) return;
     if (result['success'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Branch deleted')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('branch_deleted'))));
       await _loadBranches();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message']?.toString() ?? 'Delete failed')),
+        SnackBar(content: Text(result['message']?.toString() ?? tr('delete_failed'))),
       );
     }
   }
@@ -117,7 +118,7 @@ class _AdminBranchesScreenState extends State<AdminBranchesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cawangan / Branches'),
+        title: Text(tr('branches_title')),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -128,7 +129,7 @@ class _AdminBranchesScreenState extends State<AdminBranchesScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _loading ? null : () => _openBranchForm(),
         icon: const Icon(Icons.add_location_alt_outlined),
-        label: const Text('Tambah cawangan'),
+        label: Text(tr('add_branch')),
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -150,7 +151,7 @@ class _AdminBranchesScreenState extends State<AdminBranchesScreen> {
                         children: [
                           Text(_errorMessage!, textAlign: TextAlign.center),
                           const SizedBox(height: 16),
-                          FilledButton(onPressed: _loadBranches, child: const Text('Retry')),
+                          FilledButton(onPressed: _loadBranches, child: Text(tr('retry'))),
                         ],
                       ),
                     ),
@@ -158,7 +159,7 @@ class _AdminBranchesScreenState extends State<AdminBranchesScreen> {
                 : _branches.isEmpty
                     ? Center(
                         child: Text(
-                          'No branches yet. Add one to assign staff.',
+                          tr('no_branches_yet'),
                           style: TextStyle(color: context.appColors.textSecondary),
                         ),
                       )
@@ -193,7 +194,11 @@ class _AdminBranchesScreenState extends State<AdminBranchesScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '$code · ${active ? 'Active' : 'Inactive'} · ${radius ?? 60}m radius',
+                                    tr('branch_code_name', {
+                                      'code': code,
+                                      'status': active ? tr('active') : tr('inactive'),
+                                      'radius': (radius ?? 60).toString(),
+                                    }),
                                     style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
                                   ),
                                   if (address.isNotEmpty)
@@ -214,9 +219,9 @@ class _AdminBranchesScreenState extends State<AdminBranchesScreen> {
                                     _confirmDelete(b);
                                   }
                                 },
-                                itemBuilder: (_) => const [
-                                  PopupMenuItem(value: 'edit', child: Text('Edit')),
-                                  PopupMenuItem(value: 'delete', child: Text('Delete')),
+                                itemBuilder: (_) => [
+                                  PopupMenuItem(value: 'edit', child: Text(tr('edit'))),
+                                  PopupMenuItem(value: 'delete', child: Text(tr('delete'))),
                                 ],
                               ),
                             ),
@@ -241,7 +246,7 @@ class _BranchFormSheet extends StatefulWidget {
   State<_BranchFormSheet> createState() => _BranchFormSheetState();
 }
 
-class _BranchFormSheetState extends State<_BranchFormSheet> {
+class _BranchFormSheetState extends State<_BranchFormSheet> with L10nMixin {
   static final RegExp _branchCodeRe = RegExp(r'^[A-Z0-9_-]{2,16}$');
 
   final _codeController = TextEditingController();
@@ -294,7 +299,7 @@ class _BranchFormSheetState extends State<_BranchFormSheet> {
       });
     } catch (_) {
       if (mounted) {
-        _showError('Could not load default location. Check API connection.');
+        _showError(tr('default_location_failed'));
       }
     } finally {
       if (mounted) setState(() => _loadingDefaults = false);
@@ -329,19 +334,19 @@ class _BranchFormSheetState extends State<_BranchFormSheet> {
     final radius = int.tryParse(_radiusController.text.trim()) ?? 60;
 
     if (!_isEdit && code.isEmpty) {
-      _showError('Branch code is required');
+      _showError(tr('branch_code_required'));
       return;
     }
     if (!_isEdit && !_branchCodeRe.hasMatch(code)) {
-      _showError('Branch code: 2–16 characters (A-Z, 0-9, _ or -). Example: JB01, KL01');
+      _showError(tr('branch_code_invalid'));
       return;
     }
     if (name.isEmpty) {
-      _showError('Branch name is required');
+      _showError(tr('branch_name_required'));
       return;
     }
     if (lat == null || lng == null) {
-      _showError('Latitude and longitude are required. Tap "Use default location" or enter GPS coordinates.');
+      _showError(tr('lat_lng_required'));
       return;
     }
 
@@ -373,14 +378,14 @@ class _BranchFormSheetState extends State<_BranchFormSheet> {
       if (result['success'] == true) {
         Navigator.pop(context, true);
       } else {
-        _showError(result['message']?.toString() ?? 'Save failed');
+        _showError(result['message']?.toString() ?? tr('save_failed'));
       }
     } catch (e) {
       if (mounted) {
         _showError(
           e.toString().contains('TimeoutException')
-              ? 'Request timed out. Check API connection and that staffhub-api is running.'
-              : 'Error: $e',
+              ? tr('request_timeout_api')
+              : tr('error_with_message', {'message': e.toString()}),
         );
       }
     } finally {
@@ -414,7 +419,7 @@ class _BranchFormSheetState extends State<_BranchFormSheet> {
           ),
         ),
         Text(
-          _isEdit ? 'Edit cawangan' : 'Tambah cawangan',
+          _isEdit ? tr('edit_branch') : tr('add_branch'),
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -423,7 +428,7 @@ class _BranchFormSheetState extends State<_BranchFormSheet> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Set GPS coordinates and radius for clock-in geofence. HQ is created automatically — use a different code (e.g. JB01).',
+          tr('branch_form_desc'),
           style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
         ),
         if (_loadingDefaults)
@@ -438,8 +443,8 @@ class _BranchFormSheetState extends State<_BranchFormSheet> {
           textCapitalization: TextCapitalization.characters,
           style: TextStyle(color: context.appColors.textPrimary),
           decoration: InputDecoration(
-            labelText: 'Branch code (e.g. JB01, KL01)',
-            helperText: 'Min 2 characters. HQ already exists by default.',
+            labelText: tr('branch_code'),
+            helperText: tr('branch_code_helper'),
             labelStyle: TextStyle(color: context.appColors.textSecondary),
           ),
         ),
@@ -449,7 +454,7 @@ class _BranchFormSheetState extends State<_BranchFormSheet> {
           enabled: !_saving,
           style: TextStyle(color: context.appColors.textPrimary),
           decoration: InputDecoration(
-            labelText: 'Nama cawangan',
+            labelText: tr('branch_name'),
             labelStyle: TextStyle(color: context.appColors.textSecondary),
           ),
         ),
@@ -459,7 +464,7 @@ class _BranchFormSheetState extends State<_BranchFormSheet> {
           enabled: !_saving,
           style: TextStyle(color: context.appColors.textPrimary),
           decoration: InputDecoration(
-            labelText: 'Alamat (optional)',
+            labelText: tr('address_optional'),
             labelStyle: TextStyle(color: context.appColors.textSecondary),
           ),
         ),
@@ -473,7 +478,7 @@ class _BranchFormSheetState extends State<_BranchFormSheet> {
                 keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
                 style: TextStyle(color: context.appColors.textPrimary),
                 decoration: InputDecoration(
-                  labelText: 'Latitude',
+                  labelText: tr('latitude'),
                   labelStyle: TextStyle(color: context.appColors.textSecondary),
                 ),
               ),
@@ -486,7 +491,7 @@ class _BranchFormSheetState extends State<_BranchFormSheet> {
                 keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
                 style: TextStyle(color: context.appColors.textPrimary),
                 decoration: InputDecoration(
-                  labelText: 'Longitude',
+                  labelText: tr('longitude'),
                   labelStyle: TextStyle(color: context.appColors.textSecondary),
                 ),
               ),
@@ -498,7 +503,7 @@ class _BranchFormSheetState extends State<_BranchFormSheet> {
           child: TextButton.icon(
             onPressed: _saving || _loadingDefaults ? null : () => _loadDefaultCoords(force: true),
             icon: const Icon(Icons.my_location_outlined, size: 18),
-            label: const Text('Use default location'),
+            label: Text(tr('use_default_location')),
           ),
         ),
         const SizedBox(height: 4),
@@ -508,13 +513,13 @@ class _BranchFormSheetState extends State<_BranchFormSheet> {
           keyboardType: TextInputType.number,
           style: TextStyle(color: context.appColors.textPrimary),
           decoration: InputDecoration(
-            labelText: 'Radius (meter)',
+            labelText: tr('radius_meters'),
             labelStyle: TextStyle(color: context.appColors.textSecondary),
           ),
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          title: Text('Active', style: TextStyle(color: context.appColors.textPrimary)),
+          title: Text(tr('active'), style: TextStyle(color: context.appColors.textPrimary)),
           value: _isActive,
           onChanged: _saving ? null : (v) => setState(() => _isActive = v),
         ),
@@ -553,7 +558,7 @@ class _BranchFormSheetState extends State<_BranchFormSheet> {
                   width: 22,
                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 )
-              : Text(_isEdit ? 'Save changes' : 'Create branch'),
+              : Text(_isEdit ? tr('save_changes') : tr('create_branch')),
         ),
       ],
     );

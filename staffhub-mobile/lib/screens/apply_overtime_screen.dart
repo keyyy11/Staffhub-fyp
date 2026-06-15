@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 
@@ -11,7 +12,7 @@ class ApplyOvertimeScreen extends StatefulWidget {
   State<ApplyOvertimeScreen> createState() => _ApplyOvertimeScreenState();
 }
 
-class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
+class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> with L10nMixin {
   DateTime? _otDate;
   final _hoursController = TextEditingController(text: '2');
   final _reasonController = TextEditingController();
@@ -73,10 +74,21 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
     if (picked != null && mounted) setState(() => _otDate = picked);
   }
 
+  String _statusLabel(String? s) {
+    switch (s) {
+      case 'approved':
+        return tr('approved');
+      case 'rejected':
+        return tr('rejected');
+      default:
+        return tr('pending');
+    }
+  }
+
   Future<void> _submit() async {
     if (_otDate == null) {
       setState(() {
-        _message = 'Select OT work date';
+        _message = tr('select_ot_date');
         _success = false;
       });
       return;
@@ -84,7 +96,7 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
     final h = double.tryParse(_hoursController.text.trim());
     if (h == null || h < 0.5 || h > 24) {
       setState(() {
-        _message = 'Hours must be between 0.5 and 24';
+        _message = tr('hours_invalid');
         _success = false;
       });
       return;
@@ -104,14 +116,14 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
         setState(() {
           _loading = false;
           _success = true;
-          _message = result['message'] as String? ?? 'Submitted';
+          _message = result['message'] as String? ?? tr('submitted');
         });
         await _loadList();
       } else {
         setState(() {
           _loading = false;
           _success = false;
-          _message = result['message'] as String? ?? 'Failed';
+          _message = result['message'] as String? ?? tr('failed');
         });
       }
     } catch (e) {
@@ -119,7 +131,7 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
         setState(() {
           _loading = false;
           _success = false;
-          _message = 'Connection error';
+          _message = tr('connection_error');
         });
       }
     }
@@ -147,7 +159,7 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
     return Scaffold(
       backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: Text('Overtime (OT)', style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold)),
+        title: Text(tr('overtime_title'), style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold)),
         backgroundColor: context.appColors.surface,
         foregroundColor: context.appColors.textPrimary,
       ),
@@ -167,7 +179,7 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
             padding: const EdgeInsets.all(20),
             children: [
               Text(
-                'Apply for overtime on a specific work date. Your supervisor (manager) will approve or reject.',
+                tr('ot_apply_desc'),
                 style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.95), fontSize: 13),
               ),
               SizedBox(height: 16),
@@ -191,9 +203,9 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
                       ),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: Text('OT work date', style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
+                      title: Text(tr('ot_work_date'), style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
                       subtitle: Text(
-                        _otDate != null ? _fmt(_otDate!.toIso8601String()) : 'Tap to choose',
+                        _otDate != null ? _fmt(_otDate!.toIso8601String()) : tr('tap_to_choose'),
                         style: TextStyle(color: context.appColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                       trailing: Icon(Icons.calendar_today, color: context.appColors.accentBlue),
@@ -204,7 +216,7 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       style: TextStyle(color: context.appColors.textPrimary),
                       decoration: InputDecoration(
-                        labelText: 'Hours (0.5–24)',
+                        labelText: tr('hours_range'),
                         labelStyle: TextStyle(color: context.appColors.textSecondary),
                         border: OutlineInputBorder(),
                       ),
@@ -215,7 +227,7 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
                       maxLines: 2,
                       style: TextStyle(color: context.appColors.textPrimary),
                       decoration: InputDecoration(
-                        labelText: 'Reason (optional)',
+                        labelText: tr('reason_optional'),
                         labelStyle: TextStyle(color: context.appColors.textSecondary),
                         border: OutlineInputBorder(),
                       ),
@@ -232,20 +244,20 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
                                 height: 22,
                                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                               )
-                            : Text('Submit OT request'),
+                            : Text(tr('submit_ot_request')),
                       ),
                     ),
                   ],
                 ),
               ),
               SizedBox(height: 28),
-              Text('My OT requests', style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(tr('my_ot_requests'), style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
               SizedBox(height: 10),
               if (_requests.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Text(
-                    'No requests yet.',
+                    tr('no_requests_yet'),
                     style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.9)),
                   ),
                 )
@@ -277,7 +289,7 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
                                 color: _stColor(st).withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Text(st.toUpperCase(), style: TextStyle(color: _stColor(st), fontSize: 11, fontWeight: FontWeight.bold)),
+                              child: Text(_statusLabel(st), style: TextStyle(color: _stColor(st), fontSize: 11, fontWeight: FontWeight.bold)),
                             ),
                           ],
                         ),
@@ -290,7 +302,7 @@ class _ApplyOvertimeScreenState extends State<ApplyOvertimeScreen> {
                           Padding(
                             padding: const EdgeInsets.only(top: 6),
                             child: Text(
-                              'By: ${r['approverName']} · ${_fmt(r['decidedAt'])}',
+                              tr('approved_by', {'name': r['approverName'] as String, 'date': _fmt(r['decidedAt'])}),
                               style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
                             ),
                           ),

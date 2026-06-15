@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../services/auth_service.dart';
 import 'reset_password_screen.dart';
 
@@ -10,7 +11,7 @@ class ForgotPasswordScreen extends StatefulWidget {
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
-class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> with L10nMixin {
   final _emailController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
@@ -27,7 +28,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
       setState(() {
-        _errorMessage = 'Please enter your registered email';
+        _errorMessage = tr('enter_registered_email');
         _successMessage = null;
       });
       return;
@@ -46,12 +47,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     if (result.success) {
       setState(() {
-        _successMessage = result.errorMessage ??
-            'If this email is registered, a reset code has been sent. Check your inbox.';
+        _successMessage = result.errorMessage ?? tr('reset_email_sent');
         _errorMessage = null;
       });
     } else {
-      setState(() => _errorMessage = result.errorMessage ?? 'Failed to send reset email');
+      setState(() => _errorMessage = result.errorMessage ?? tr('reset_email_failed'));
     }
   }
 
@@ -68,7 +68,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Scaffold(
       backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: Text('Forgot password'),
+        title: Text(tr('forgot_password_title')),
         backgroundColor: context.appColors.surface,
         foregroundColor: context.appColors.textPrimary,
         elevation: 0,
@@ -80,7 +80,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Reset your password',
+                tr('reset_your_password'),
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
@@ -89,7 +89,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Enter the email registered by your admin. We will send a 6-digit reset code to that address.',
+                tr('forgot_password_desc'),
                 style: TextStyle(fontSize: 14, color: context.appColors.textSecondary),
               ),
               const SizedBox(height: 32),
@@ -107,8 +107,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 autocorrect: false,
                 style: TextStyle(color: context.appColors.textPrimary),
                 decoration: InputDecoration(
-                  labelText: 'Registered email',
-                  hintText: 'name@email.com',
+                  labelText: tr('registered_email'),
+                  hintText: tr('email_hint'),
                   prefixIcon: Icon(Icons.email_outlined, color: context.appColors.accentBlue),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   filled: true,
@@ -130,7 +130,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           height: 24,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
-                      : const Text('Send reset code'),
+                      : Text(tr('send_reset_code')),
                 ),
               ),
               if (_successMessage != null) ...[
@@ -143,7 +143,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     minimumSize: const Size.fromHeight(48),
                   ),
-                  child: const Text('Enter reset code'),
+                  child: Text(tr('enter_reset_code_btn')),
                 ),
               ],
             ],

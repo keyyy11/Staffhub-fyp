@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:image_picker/image_picker.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import 'settings_screen.dart';
@@ -15,7 +16,7 @@ class AdminProfileScreen extends StatefulWidget {
   State<AdminProfileScreen> createState() => _AdminProfileScreenState();
 }
 
-class _AdminProfileScreenState extends State<AdminProfileScreen> {
+class _AdminProfileScreenState extends State<AdminProfileScreen> with L10nMixin {
   String _staffId = '';
   String _name = '';
   String _email = '';
@@ -108,7 +109,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         setState(() => _profileImageBase64 = 'data:image/jpeg;base64,$base64');
       }
     } catch (_) {
-      if (mounted) _showMessage('Failed to pick image', false);
+      if (mounted) _showMessage(tr('failed_pick_image'), false);
     }
   }
 
@@ -151,14 +152,14 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           _profileImageBase64 = data['profileImage'] as String? ?? '';
           _isEditing = false;
         });
-        _showMessage('Profile updated', true);
+        _showMessage(tr('profile_updated_short'), true);
       } else {
-        _showMessage(result['message'] as String? ?? 'Update failed', false);
+        _showMessage(result['message'] as String? ?? tr('update_failed'), false);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isSaving = false);
-        _showMessage('Could not save. Check API connection.', false);
+        _showMessage(tr('could_not_save_api'), false);
       }
     }
   }
@@ -196,7 +197,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       return Scaffold(
         backgroundColor: context.appColors.background,
         appBar: AppBar(
-          title: Text('Admin profile', style: TextStyle(color: context.appColors.textPrimary)),
+          title: Text(tr('admin_profile_title'), style: TextStyle(color: context.appColors.textPrimary)),
           backgroundColor: context.appColors.surface,
           foregroundColor: context.appColors.textPrimary,
           elevation: 0,
@@ -212,7 +213,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     return Scaffold(
       backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: Text('Admin profile', style: TextStyle(color: context.appColors.textPrimary)),
+        title: Text(tr('admin_profile_title'), style: TextStyle(color: context.appColors.textPrimary)),
         backgroundColor: context.appColors.surface,
         foregroundColor: context.appColors.textPrimary,
         elevation: 0,
@@ -223,13 +224,13 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.settings_outlined, color: context.appColors.accentBlue),
-            tooltip: 'Settings',
+            tooltip: tr('settings'),
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
           ),
           if (_isEditing)
             TextButton(
               onPressed: _isSaving ? null : () => setState(() => _isEditing = false),
-              child: Text('Cancel', style: TextStyle(color: context.appColors.textSecondary)),
+              child: Text(tr('cancel'), style: TextStyle(color: context.appColors.textSecondary)),
             ),
           TextButton(
             onPressed: _isSaving
@@ -243,7 +244,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                   },
             child: _isSaving
                 ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: context.appColors.accentBlue))
-                : Text(_isEditing ? 'Save' : 'Edit', style: TextStyle(color: context.appColors.accentBlue, fontWeight: FontWeight.w600)),
+                : Text(_isEditing ? tr('save') : tr('edit'), style: TextStyle(color: context.appColors.accentBlue, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -293,7 +294,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                 if (_isEditing)
                   Padding(
                     padding: EdgeInsets.only(top: 8),
-                    child: Text('Tap to change photo', style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
+                    child: Text(tr('tap_change_photo'), style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
                   ),
                 SizedBox(height: 20),
                 if (_message != null)
@@ -334,19 +335,19 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _field('Role', 'Administrator', false),
+          _field(tr('role_label'), tr('role_administrator'), false),
           SizedBox(height: 20),
-          _field('Staff ID', _staffId, false),
+          _field(tr('staff_id'), _staffId, false),
           SizedBox(height: 20),
-          _field('Full name', _nameController, _isEditing),
+          _field(tr('full_name'), _nameController, _isEditing),
           SizedBox(height: 20),
-          _field('Email', _email, false),
+          _field(tr('email'), _email, false),
           SizedBox(height: 20),
-          _field('Phone', _phoneController, _isEditing),
+          _field(tr('phone'), _phoneController, _isEditing),
           SizedBox(height: 20),
-          _field('Department', _departmentController, _isEditing),
+          _field(tr('department'), _departmentController, _isEditing),
           SizedBox(height: 20),
-          _field('Position', _positionController, _isEditing),
+          _field(tr('position'), _positionController, _isEditing),
         ],
       ),
     );

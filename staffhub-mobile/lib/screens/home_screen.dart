@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../models/leave_balance.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../services/staff_dashboard_service.dart';
 import 'login_screen.dart';
 import 'apply_leave_screen.dart';
 import 'apply_overtime_screen.dart';
@@ -13,6 +15,7 @@ import 'settings_screen.dart';
 import 'work_schedule_screen.dart';
 import '../widgets/staffhub_logo.dart';
 import '../widgets/attendance_clock_panel.dart';
+import '../widgets/staff_attendance_dashboard.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,12 +24,19 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with L10nMixin {
   String _staffId = '';
   String _staffName = '';
   List<LeaveBalance> _leaveBalances = [];
   List<Map<String, dynamic>> _leaveRequestsPreview = [];
   List<Map<String, dynamic>> _otRequestsPreview = [];
+  bool _dashboardLoading = true;
+  int _dashTotalAttendance = 0;
+  int _dashLateAttendance = 0;
+  num _dashLeaveTaken = 0;
+  num _dashOvertimeHours = 0;
+  int _dashAttendanceRate = 100;
+  String? _dashPeriodLabel;
 
   @override
   void initState() {
@@ -54,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _staffName = name;
       });
       _loadLeaveBalance(staffId);
+      _loadDashboardStats(staffId);
       // Defer previews so Maps + GPS finish first (reduces emulator ANR / "System UI not responding").
       Future<void>.delayed(const Duration(milliseconds: 600), () {
         if (!mounted || staffId.isEmpty) return;
@@ -110,11 +121,44 @@ class _HomeScreenState extends State<HomeScreen> {
   String _leaveStatusLabel(String? s) {
     switch (s) {
       case 'approved':
-        return 'Approved';
+        return tr('approved');
       case 'rejected':
-        return 'Rejected';
+        return tr('rejected');
       default:
-        return 'Pending';
+        return tr('pending');
+    }
+  }
+
+  void _applyDashboardStats(StaffDashboardStats stats) {
+    _dashTotalAttendance = stats.totalAttendance;
+    _dashLateAttendance = stats.lateAttendance;
+    _dashLeaveTaken = stats.leaveTaken;
+    _dashOvertimeHours = stats.overtimeHours;
+    _dashAttendanceRate = stats.attendanceRate;
+    _dashPeriodLabel = stats.periodLabel;
+  }
+
+  Future<void> _loadDashboardStats([String? staffId]) async {
+    final id = staffId ?? _staffId;
+    if (id.isEmpty) {
+      if (mounted) setState(() => _dashboardLoading = false);
+      return;
+    }
+    if (mounted) setState(() => _dashboardLoading = true);
+    try {
+      final stats = await StaffDashboardService.load(id);
+      if (!mounted) return;
+      setState(() {
+        _applyDashboardStats(stats);
+        _dashboardLoading = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _applyDashboardStats(StaffDashboardStats.empty());
+          _dashboardLoading = false;
+        });
+      }
     }
   }
 
@@ -127,10 +171,10 @@ class _HomeScreenState extends State<HomeScreen> {
         final data = result['data'] as Map<String, dynamic>;
         setState(() {
           _leaveBalances = [
-            LeaveBalance.fromJson('medical', 'Medical Leave', 'medical_services', data['medicalLeave'] as Map<String, dynamic>? ?? {}),
-            LeaveBalance.fromJson('annual', 'Annual Leave', 'event_available', data['annualLeave'] as Map<String, dynamic>? ?? {}),
-            LeaveBalance.fromJson('unpaid', 'Unpaid Leave', 'money_off', data['unpaidLeave'] as Map<String, dynamic>? ?? {}),
-            LeaveBalance.fromJson('other', 'Other Leave', 'more_horiz', data['otherLeave'] as Map<String, dynamic>? ?? {}),
+            LeaveBalance.fromJson('medical', tr('medical_leave'), 'medical_services', data['medicalLeave'] as Map<String, dynamic>? ?? {}),
+            LeaveBalance.fromJson('annual', tr('annual_leave'), 'event_available', data['annualLeave'] as Map<String, dynamic>? ?? {}),
+            LeaveBalance.fromJson('unpaid', tr('unpaid_leave'), 'money_off', data['unpaidLeave'] as Map<String, dynamic>? ?? {}),
+            LeaveBalance.fromJson('other', tr('other_leave'), 'more_horiz', data['otherLeave'] as Map<String, dynamic>? ?? {}),
           ];
         });
       }
@@ -138,10 +182,10 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         setState(() {
           _leaveBalances = [
-            LeaveBalance(type: 'medical', label: 'Medical Leave', iconData: Icons.medical_services, total: 14, used: 2, remaining: 12),
-            LeaveBalance(type: 'annual', label: 'Annual Leave', iconData: Icons.event_available, total: 14, used: 5, remaining: 9),
-            LeaveBalance(type: 'unpaid', label: 'Unpaid Leave', iconData: Icons.money_off, total: 0, used: 0, remaining: 0),
-            LeaveBalance(type: 'other', label: 'Other Leave', iconData: Icons.more_horiz, total: 5, used: 1, remaining: 4),
+            LeaveBalance(type: 'medical', label: tr('medical_leave'), iconData: Icons.medical_services, total: 14, used: 2, remaining: 12),
+            LeaveBalance(type: 'annual', label: tr('annual_leave'), iconData: Icons.event_available, total: 14, used: 5, remaining: 9),
+            LeaveBalance(type: 'unpaid', label: tr('unpaid_leave'), iconData: Icons.money_off, total: 0, used: 0, remaining: 0),
+            LeaveBalance(type: 'other', label: tr('other_leave'), iconData: Icons.more_horiz, total: 5, used: 1, remaining: 4),
           ];
         });
       }
@@ -180,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     SizedBox(height: 12),
                     if (_staffId.isNotEmpty)
                       Text(
-                        'ID: $_staffId',
+                        tr('drawer_id', {'id': _staffId}),
                         style: TextStyle(color: context.appColors.textSecondary, fontSize: 14),
                       ),
                   ],
@@ -188,12 +232,12 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ListTile(
                 leading: Icon(Icons.home_outlined, color: context.appColors.accentBlue),
-                title: Text('Home', style: TextStyle(color: context.appColors.textPrimary)),
+                title: Text(tr('home'), style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () => Navigator.pop(context),
               ),
               ListTile(
                 leading: Icon(Icons.calendar_month_outlined, color: context.appColors.accentBlue),
-                title: Text('Work schedule', style: TextStyle(color: context.appColors.textPrimary)),
+                title: Text(tr('work_schedule'), style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WorkScheduleScreen()));
@@ -201,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ListTile(
                 leading: Icon(Icons.receipt_long_outlined, color: context.appColors.accentBlue),
-                title: Text('Payslip', style: TextStyle(color: context.appColors.textPrimary)),
+                title: Text(tr('payslip'), style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PayslipScreen()));
@@ -209,7 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ListTile(
                 leading: Icon(Icons.history, color: context.appColors.accentBlue),
-                title: Text('Attendance history', style: TextStyle(color: context.appColors.textPrimary)),
+                title: Text(tr('attendance_history'), style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AttendanceHistoryScreen()));
@@ -217,7 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ListTile(
                 leading: Icon(Icons.event_available_outlined, color: context.appColors.accentBlue),
-                title: Text('Apply leave', style: TextStyle(color: context.appColors.textPrimary)),
+                title: Text(tr('apply_leave'), style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ApplyLeaveScreen()));
@@ -225,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ListTile(
                 leading: Icon(Icons.more_time_rounded, color: context.appColors.accentBlue),
-                title: Text('Apply overtime (OT)', style: TextStyle(color: context.appColors.textPrimary)),
+                title: Text(tr('apply_overtime'), style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.of(context)
@@ -238,7 +282,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Divider(color: context.appColors.borderBlue),
               ListTile(
                 leading: Icon(Icons.settings_outlined, color: context.appColors.accentBlue),
-                title: Text('Settings', style: TextStyle(color: context.appColors.textPrimary)),
+                title: Text(tr('settings'), style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
@@ -246,7 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ListTile(
                 leading: Icon(Icons.person_outline, color: context.appColors.accentBlue),
-                title: Text('Profile', style: TextStyle(color: context.appColors.textPrimary)),
+                title: Text(tr('profile'), style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
@@ -254,7 +298,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ListTile(
                 leading: Icon(Icons.logout, color: Colors.redAccent),
-                title: Text('Log out', style: TextStyle(color: Colors.redAccent)),
+                title: Text(tr('logout'), style: TextStyle(color: Colors.redAccent)),
                 onTap: () {
                   Navigator.pop(context);
                   _logout();
@@ -276,7 +320,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.settings_outlined, color: context.appColors.accentBlue),
-            tooltip: 'Settings',
+            tooltip: tr('settings'),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
             ),
@@ -306,14 +350,25 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          child: RefreshIndicator(
+            onRefresh: () async {
+              await Future.wait([
+                _loadDashboardStats(_staffId),
+                _loadLeaveBalance(_staffId),
+                if (_staffId.isNotEmpty) _loadLeaveRequestsPreview(_staffId),
+                _loadOvertimePreview(),
+              ]);
+            },
+            color: context.appColors.accentBlue,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 SizedBox(height: 4),
                 Text(
-                  'Welcome',
+                  tr('welcome'),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -323,7 +378,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 SizedBox(height: 6),
                 Text(
-                  _staffName.isNotEmpty ? _staffName : 'Staff',
+                  _staffName.isNotEmpty ? _staffName : tr('staff'),
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
@@ -334,15 +389,25 @@ class _HomeScreenState extends State<HomeScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                      'Staff ID: $_staffId',
+                      tr('staff_id_colon', {'id': _staffId}),
                       style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
                     ),
                   ),
+                SizedBox(height: 20),
+                StaffAttendanceDashboard(
+                  loading: _dashboardLoading,
+                  totalAttendance: _dashTotalAttendance,
+                  lateAttendance: _dashLateAttendance,
+                  leaveTaken: _dashLeaveTaken,
+                  overtimeHours: _dashOvertimeHours,
+                  attendanceRate: _dashAttendanceRate,
+                  periodLabel: _dashPeriodLabel,
+                ),
                 SizedBox(height: 24),
                 AttendanceClockPanel(staffId: _staffId.isNotEmpty ? _staffId : null),
                 SizedBox(height: 32),
                 Text(
-                  'Leave',
+                  tr('leave'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -379,14 +444,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2, color: context.appColors.accentBlue),
                         ),
                         SizedBox(width: 12),
-                        Text('Loading leave balance...', style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
+                        Text(tr('loading_leave_balance'), style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
                       ],
                     ),
                   ),
                 SizedBox(height: 12),
                 if (_leaveRequestsPreview.isNotEmpty) ...[
                   Text(
-                    'Leave request responses',
+                    tr('leave_request_responses'),
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -423,7 +488,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 if (note != null && note.isNotEmpty)
                                   Text(
-                                    'Admin: $note',
+                                    tr('admin_note', {'note': note}),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
@@ -459,7 +524,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           if (mounted) _loadLeaveRequestsPreview(_staffId);
                         }),
                     icon: Icon(Icons.add_circle_outline, size: 20),
-                    label: Text('Apply Leave'),
+                    label: Text(tr('apply_leave_title')),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: context.appColors.accentBlue,
                       side: BorderSide(color: context.appColors.accentBlue),
@@ -470,7 +535,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 SizedBox(height: 32),
                 Text(
-                  'Overtime (OT)',
+                  tr('overtime_ot'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -479,7 +544,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'Your recent OT requests and status (supervisor approval).',
+                  tr('ot_recent_hint'),
                   style: TextStyle(fontSize: 13, color: context.appColors.textSecondary.withValues(alpha: 0.95)),
                 ),
                 SizedBox(height: 12),
@@ -493,7 +558,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       border: Border.all(color: context.appColors.borderBlue.withValues(alpha: 0.35)),
                     ),
                     child: Text(
-                      'No OT requests yet. Submit one to see it here.',
+                      tr('no_ot_requests'),
                       style: TextStyle(color: context.appColors.textSecondary, fontSize: 14),
                     ),
                   )
@@ -560,7 +625,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           if (mounted) _loadOvertimePreview();
                         }),
                     icon: Icon(Icons.add_circle_outline, size: 20),
-                    label: Text('Apply OT'),
+                    label: Text(tr('apply_ot')),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: context.appColors.accentBlue,
                       side: BorderSide(color: context.appColors.accentBlue),
@@ -573,8 +638,22 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+        ),
       ),
     );
+  }
+}
+
+String _leaveTypeLabel(String type) {
+  switch (type) {
+    case 'medical':
+      return tr('medical_leave');
+    case 'annual':
+      return tr('annual_leave');
+    case 'unpaid':
+      return tr('unpaid_leave');
+    default:
+      return tr('other_leave');
   }
 }
 
@@ -611,7 +690,7 @@ class _LeaveCard extends StatelessWidget {
               SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  leave.label,
+                  _leaveTypeLabel(leave.type),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -634,7 +713,7 @@ class _LeaveCard extends StatelessWidget {
             ),
           ),
           Text(
-            'remaining / ${leave.total} days',
+            tr('remaining_days', {'total': '${leave.total}'}),
             style: TextStyle(
               fontSize: 11,
               color: context.appColors.textSecondary,

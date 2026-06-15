@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 
@@ -10,7 +11,7 @@ class WorkScheduleScreen extends StatefulWidget {
   State<WorkScheduleScreen> createState() => _WorkScheduleScreenState();
 }
 
-class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
+class _WorkScheduleScreenState extends State<WorkScheduleScreen> with L10nMixin {
   Future<Map<String, dynamic>>? _future;
   int _year = DateTime.now().year;
   int _month = DateTime.now().month;
@@ -53,27 +54,29 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
     });
   }
 
-  static const _monthNames = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
+  static const _monthKeys = [
+    'month_jan',
+    'month_feb',
+    'month_mar',
+    'month_apr',
+    'month_may',
+    'month_jun',
+    'month_jul',
+    'month_aug',
+    'month_sep',
+    'month_oct',
+    'month_nov',
+    'month_dec',
   ];
+
+  String _monthShort(int month) => tr(_monthKeys[month - 1]);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: Text('Work schedule', style: TextStyle(color: context.appColors.textPrimary)),
+        title: Text(tr('work_schedule'), style: TextStyle(color: context.appColors.textPrimary)),
         backgroundColor: context.appColors.surface,
         foregroundColor: context.appColors.textPrimary,
         elevation: 0,
@@ -98,7 +101,7 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Text(
-                    'Could not load schedule. Make sure the API is running.',
+                    tr('could_not_load_schedule'),
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.red.shade200),
                   ),
@@ -133,7 +136,7 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Expected clock-in', style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
+                        Text(tr('expected_clock_in'), style: TextStyle(color: context.appColors.textSecondary, fontSize: 14)),
                         SizedBox(height: 6),
                         Text(expected, style: TextStyle(color: context.appColors.accentBlue, fontSize: 28, fontWeight: FontWeight.bold)),
                         if (scheduleMode == 'byDate') ...[
@@ -145,7 +148,7 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              'Jadual ikut tarikh (setiap hari boleh berbeza)',
+                              tr('schedule_by_date'),
                               style: TextStyle(color: Colors.deepPurpleAccent, fontSize: 12),
                             ),
                           ),
@@ -158,7 +161,7 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              'Custom schedule (admin or supervisor)',
+                              tr('custom_schedule'),
                               style: TextStyle(color: Colors.tealAccent, fontSize: 12),
                             ),
                           ),
@@ -183,7 +186,7 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
                         ),
                         Expanded(
                           child: Text(
-                            '${_monthNames[_month - 1]} $_year',
+                            '${_monthShort(_month)} $_year',
                             textAlign: TextAlign.center,
                             style: TextStyle(color: context.appColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
                           ),
@@ -196,7 +199,7 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Kalendar',
+                      tr('calendar'),
                       style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
                     ),
                     SizedBox(height: 8),
@@ -225,13 +228,12 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Cuti umum — warna emas pada tarikh',
+                                  tr('public_holiday_gold'),
                                   style: TextStyle(color: Colors.amber.shade200, fontSize: 12, fontWeight: FontWeight.w600),
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  phPayNote ??
-                                      'Jika anda bekerja pada hari cuti umum, kadar sejam biasanya 2× (ikut syarikat).',
+                                  phPayNote ?? tr('public_holiday_pay_note'),
                                   style: TextStyle(color: context.appColors.textSecondary.withOpacity(0.95), fontSize: 11, height: 1.35),
                                 ),
                               ],
@@ -249,7 +251,7 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
                   ],
                   SizedBox(height: 20),
                   Text(
-                    hasCalendar ? 'Ringkasan mingguan (lalai / fallback)' : 'Weekly',
+                    hasCalendar ? tr('weekly_summary') : tr('weekly'),
                     style: TextStyle(color: context.appColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 12),
@@ -258,10 +260,10 @@ class _WorkScheduleScreenState extends State<WorkScheduleScreen> {
                     final day = row['day'] as String? ?? '';
                     final label = row['shiftLabel'] as String?;
                     final working = row['isWorkingDay'] == true;
-                    final line1 = label ?? (working ? 'Shift' : 'Hari cuti');
+                    final line1 = label ?? (working ? tr('shift') : tr('day_off'));
                     final line2 = working
                         ? '${row['workStart']} – ${row['workEnd']}'
-                            '${row['breakMinutes'] != null ? '\nBreak ~${row['breakMinutes']} min' : ''}'
+                            '${row['breakMinutes'] != null ? '\n${tr('break_minutes', {'minutes': '${row['breakMinutes']}'})}' : ''}'
                         : '';
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10),
@@ -405,10 +407,10 @@ class _CalendarMonthGrid extends StatelessWidget {
       children: [
         Row(
           children: [
-            for (final w in ['Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab', 'Aha'])
+            for (final w in ['weekday_isn', 'weekday_sel', 'weekday_rab', 'weekday_kha', 'weekday_jum', 'weekday_sab_short', 'weekday_aha'])
               Expanded(
                 child: Center(
-                  child: Text(w, style: TextStyle(fontSize: 10, color: context.appColors.textSecondary.withOpacity(0.85))),
+                  child: Text(tr(w), style: TextStyle(fontSize: 10, color: context.appColors.textSecondary.withOpacity(0.85))),
                 ),
               ),
           ],

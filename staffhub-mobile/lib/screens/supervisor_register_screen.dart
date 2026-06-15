@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../services/auth_service.dart';
 import 'supervisor_dashboard_screen.dart';
 
@@ -10,7 +11,7 @@ class SupervisorRegisterScreen extends StatefulWidget {
   State<SupervisorRegisterScreen> createState() => _SupervisorRegisterScreenState();
 }
 
-class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
+class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> with L10nMixin {
   final _staffIdController = TextEditingController();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -44,7 +45,7 @@ class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
 
     if (name.isEmpty || email.isEmpty || password.isEmpty || secret.isEmpty) {
       setState(() {
-        _errorMessage = 'Please fill name, email, password, and supervisor secret';
+        _errorMessage = tr('fill_supervisor_fields');
         _isLoading = false;
       });
       return;
@@ -52,7 +53,7 @@ class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
 
     if (password.length < 6) {
       setState(() {
-        _errorMessage = 'Password must be at least 6 characters';
+        _errorMessage = tr('password_min_length');
         _isLoading = false;
       });
       return;
@@ -75,7 +76,7 @@ class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
         (route) => false,
       );
     } else {
-      setState(() => _errorMessage = result.errorMessage ?? 'Registration failed');
+      setState(() => _errorMessage = result.errorMessage ?? tr('register_failed'));
     }
   }
 
@@ -84,7 +85,7 @@ class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
     return Scaffold(
       backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: Text('Register Supervisor', style: TextStyle(color: context.appColors.textPrimary)),
+        title: Text(tr('register_supervisor'), style: TextStyle(color: context.appColors.textPrimary)),
         backgroundColor: context.appColors.surface,
         foregroundColor: context.appColors.textPrimary,
         leading: IconButton(
@@ -107,7 +108,7 @@ class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Normally, supervisors are created by an administrator: register the person as staff, then Admin → Staff pay → Promote to supervisor. Self-registration here only works if the server sets ALLOW_SUPERVISOR_SELF_REGISTER=true.',
+                  tr('supervisor_register_hint'),
                   style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
                 ),
                 SizedBox(height: 20),
@@ -125,8 +126,8 @@ class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
                 TextField(
                   controller: _staffIdController,
                   style: TextStyle(color: context.appColors.textPrimary),
-                  decoration: _decoration('Supervisor ID (optional)').copyWith(
-                    hintText: 'Leave empty for auto SUP001…',
+                  decoration: _decoration(tr('supervisor_id_optional')).copyWith(
+                    hintText: tr('supervisor_id_hint'),
                     hintStyle: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
                   ),
                 ),
@@ -134,21 +135,21 @@ class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
                 TextField(
                   controller: _nameController,
                   style: TextStyle(color: context.appColors.textPrimary),
-                  decoration: _decoration('Full name'),
+                  decoration: _decoration(tr('full_name')),
                 ),
                 SizedBox(height: 12),
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   style: TextStyle(color: context.appColors.textPrimary),
-                  decoration: _decoration('Email'),
+                  decoration: _decoration(tr('email')),
                 ),
                 SizedBox(height: 12),
                 TextField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   style: TextStyle(color: context.appColors.textPrimary),
-                  decoration: _decoration('Password').copyWith(
+                  decoration: _decoration(tr('password')).copyWith(
                     suffixIcon: IconButton(
                       icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
                       onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
@@ -159,7 +160,7 @@ class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
                 TextField(
                   controller: _secretController,
                   style: TextStyle(color: context.appColors.textPrimary),
-                  decoration: _decoration('Supervisor secret'),
+                  decoration: _decoration(tr('supervisor_secret')),
                 ),
                 SizedBox(height: 24),
                 SizedBox(
@@ -173,7 +174,7 @@ class _SupervisorRegisterScreenState extends State<SupervisorRegisterScreen> {
                     ),
                     child: _isLoading
                         ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : Text('Register'),
+                        : Text(tr('register')),
                   ),
                 ),
               ],

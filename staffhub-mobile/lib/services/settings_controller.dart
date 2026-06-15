@@ -10,7 +10,7 @@ class SettingsController extends ChangeNotifier {
   static const _kLocale = 'settings_locale';
 
   ThemeMode _themeMode = ThemeMode.dark;
-  Locale _locale = const Locale('ms');
+  Locale _locale = const Locale('en');
 
   ThemeMode get themeMode => _themeMode;
   Locale get locale => _locale;
@@ -27,7 +27,7 @@ class SettingsController extends ChangeNotifier {
       _themeMode = ThemeMode.dark;
     }
     final l = p.getString(_kLocale);
-    _locale = l == 'en' ? const Locale('en') : const Locale('ms');
+    _locale = l == 'ms' ? const Locale('ms') : const Locale('en');
     notifyListeners();
   }
 

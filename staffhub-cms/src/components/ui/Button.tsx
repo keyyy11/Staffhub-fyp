@@ -15,6 +15,7 @@ const variants = {
 export function Button({ variant = "primary", className = "", children, ...props }: ButtonProps) {
   return (
     <button
+      suppressHydrationWarning
       className={`rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50 ${variants[variant]} ${className}`}
       {...props}
     >

@@ -95,11 +95,11 @@ class ApiService {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
-  static Future<Map<String, dynamic>> getMyAttendance(String staffId) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/attendance/my/$staffId?limit=30'),
-    );
-    return jsonDecode(response.body) as Map<String, dynamic>;
+  static Future<Map<String, dynamic>> getMyAttendance(String staffId, {int limit = 90}) async {
+    final response = await http
+        .get(Uri.parse('$baseUrl/attendance/my/$staffId?limit=$limit'))
+        .timeout(_timeout);
+    return _parseApiJson(response);
   }
 
   static Future<Map<String, dynamic>> getWorkSchedule({int? year, int? month}) async {
@@ -670,6 +670,21 @@ class ApiService {
     return _adminRequest('GET', path);
   }
 
+  static Future<Map<String, dynamic>> getAdminStaffPerformance(String staffId, {int days = 90}) async {
+    final path = '/admin/staff/${Uri.encodeComponent(staffId)}/performance?days=$days';
+    return _adminRequest('GET', path);
+  }
+
+  static Future<Map<String, dynamic>> getAdminPerformanceOverview({int days = 30}) async {
+    final path = '/admin/performance-overview?days=$days';
+    return _adminRequest('GET', path);
+  }
+
+  static Future<Map<String, dynamic>> getSupervisorStaffPerformance(String staffId, {int days = 90}) async {
+    final path = '/supervisor/staff/${Uri.encodeComponent(staffId)}/performance?days=$days';
+    return _supervisorRequest('GET', path);
+  }
+
   static Future<Map<String, dynamic>> listAdminWarnings({String? staffId}) async {
     var path = '/admin/warnings';
     if (staffId != null) path += '?staffId=${Uri.encodeComponent(staffId)}';
@@ -730,6 +745,16 @@ class ApiService {
       Uri.parse('$baseUrl/staff/overtime/my'),
       headers: {'Authorization': 'Bearer $token'},
     );
+    return _parseApiJson(response);
+  }
+
+  static Future<Map<String, dynamic>> getStaffDashboardStats() async {
+    final token = await AuthService.getToken();
+    if (token == null) throw Exception('Not authenticated');
+    final response = await http.get(
+      Uri.parse('$baseUrl/staff/dashboard-stats'),
+      headers: {'Authorization': 'Bearer $token'},
+    ).timeout(_timeout);
     return _parseApiJson(response);
   }
 

@@ -1,22 +1,33 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../services/api_service.dart';
 
 const _kDayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-const _monthNames = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
+const _monthKeys = [
+  'month_january',
+  'month_february',
+  'month_march',
+  'month_april',
+  'month_may_full',
+  'month_june',
+  'month_july',
+  'month_august',
+  'month_september',
+  'month_october',
+  'month_november',
+  'month_december',
+];
+
+const _weekdayKeys = [
+  'weekday_mon',
+  'weekday_tue',
+  'weekday_wed',
+  'weekday_thu',
+  'weekday_fri',
+  'weekday_sat',
+  'weekday_sun',
 ];
 
 String isoDate(DateTime d) =>
@@ -105,7 +116,7 @@ class StaffScheduleEditorDialog extends StatefulWidget {
   State<StaffScheduleEditorDialog> createState() => _StaffScheduleEditorDialogState();
 }
 
-class _StaffScheduleEditorDialogState extends State<StaffScheduleEditorDialog> {
+class _StaffScheduleEditorDialogState extends State<StaffScheduleEditorDialog> with L10nMixin {
   late Map<String, String> _weeklyByDay;
   late Map<String, String> _byDate;
   late TextEditingController _notesController;
@@ -229,27 +240,27 @@ class _StaffScheduleEditorDialogState extends State<StaffScheduleEditorDialog> {
               ),
               ListTile(
                 leading: Icon(Icons.wb_sunny_outlined, color: Colors.amber.shade300),
-                title: Text('Shift pagi', style: TextStyle(color: context.appColors.textPrimary)),
-                subtitle: Text('08:00 – 14:00', style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.9))),
+                title: Text(tr('shift_morning'), style: TextStyle(color: context.appColors.textPrimary)),
+                subtitle: Text(tr('morning_hours'), style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.9))),
                 onTap: () => Navigator.pop(ctx, 'morning'),
               ),
               ListTile(
                 leading: Icon(Icons.nights_stay_outlined, color: Colors.orange.shade300),
-                title: Text('Shift petang', style: TextStyle(color: context.appColors.textPrimary)),
-                subtitle: Text('14:00 – 22:00', style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.9))),
+                title: Text(tr('shift_afternoon'), style: TextStyle(color: context.appColors.textPrimary)),
+                subtitle: Text(tr('afternoon_hours'), style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.9))),
                 onTap: () => Navigator.pop(ctx, 'afternoon'),
               ),
               ListTile(
                 leading: Icon(Icons.event_busy, color: context.appColors.textSecondary),
-                title: Text('Hari cuti (off)', style: TextStyle(color: context.appColors.textPrimary)),
+                title: Text(tr('shift_off'), style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () => Navigator.pop(ctx, 'off'),
               ),
               Divider(color: context.appColors.borderBlue),
               ListTile(
                 leading: Icon(Icons.undo, color: context.appColors.accentBlue),
-                title: Text('Buang tetapan tarikh ini', style: TextStyle(color: context.appColors.textPrimary)),
+                title: Text(tr('remove_date_override'), style: TextStyle(color: context.appColors.textPrimary)),
                 subtitle: Text(
-                  'Kembali kepada lalai mingguan (${_shortLabelMs(weeklyFallback)})',
+                  tr('revert_weekly_default', {'label': _shortShiftLabel(weeklyFallback)}),
                   style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.85), fontSize: 12),
                 ),
                 onTap: () => Navigator.pop(ctx, '__clear__'),
@@ -291,14 +302,14 @@ class _StaffScheduleEditorDialogState extends State<StaffScheduleEditorDialog> {
     }
   }
 
-  String _shortLabelMs(String shift) {
+  String _shortShiftLabel(String shift) {
     switch (shift) {
       case 'morning':
-        return 'Pagi';
+        return tr('shift_morning_short');
       case 'afternoon':
-        return 'Petang';
+        return tr('shift_afternoon_short');
       default:
-        return 'Cuti';
+        return tr('shift_off_short');
     }
   }
 
@@ -331,7 +342,7 @@ class _StaffScheduleEditorDialogState extends State<StaffScheduleEditorDialog> {
               ),
               SizedBox(height: 2),
               Text(
-                _shortLabelMs(shift),
+                _shortShiftLabel(shift),
                 style: TextStyle(fontSize: 10, color: c.withValues(alpha: 0.95), fontWeight: FontWeight.w600),
               ),
             ],
@@ -369,7 +380,7 @@ class _StaffScheduleEditorDialogState extends State<StaffScheduleEditorDialog> {
             ),
             Expanded(
               child: Text(
-                '${_monthNames[month - 1]} $year',
+                '${tr(_monthKeys[month - 1])} $year',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 16),
               ),
@@ -384,10 +395,10 @@ class _StaffScheduleEditorDialogState extends State<StaffScheduleEditorDialog> {
         ),
         Row(
           children: [
-            for (final w in ['Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab', 'Aha'])
+            for (final key in _weekdayKeys)
               Expanded(
                 child: Center(
-                  child: Text(w, style: TextStyle(fontSize: 11, color: context.appColors.textSecondary.withValues(alpha: 0.85))),
+                  child: Text(tr(key), style: TextStyle(fontSize: 11, color: context.appColors.textSecondary.withValues(alpha: 0.85))),
                 ),
               ),
           ],
@@ -407,9 +418,9 @@ class _StaffScheduleEditorDialogState extends State<StaffScheduleEditorDialog> {
           spacing: 12,
           runSpacing: 6,
           children: [
-            _legendRow(context.appColors.accentBlue, 'Pagi'),
-            _legendRow(Colors.orangeAccent, 'Petang'),
-            _legendRow(context.appColors.textSecondary, 'Cuti'),
+            _legendRow(context.appColors.accentBlue, tr('shift_morning_short')),
+            _legendRow(Colors.orangeAccent, tr('shift_afternoon_short')),
+            _legendRow(context.appColors.textSecondary, tr('shift_off_short')),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -422,7 +433,7 @@ class _StaffScheduleEditorDialogState extends State<StaffScheduleEditorDialog> {
                   ),
                 ),
                 SizedBox(width: 6),
-                Text('Tetapan tarikh', style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
+                Text(tr('date_override_legend'), style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
               ],
             ),
           ],
@@ -446,16 +457,14 @@ class _StaffScheduleEditorDialogState extends State<StaffScheduleEditorDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: context.appColors.card,
-      title: Text('Jadual ikut tarikh · ${widget.staffName}', style: TextStyle(color: context.appColors.textPrimary)),
+      title: Text(tr('schedule_by_date_title', {'name': widget.staffName}), style: TextStyle(color: context.appColors.textPrimary)),
       content: SizedBox(
         width: double.maxFinite,
         height: 560,
         child: ListView(
           children: [
             Text(
-              'Ketik tarikh untuk tetapkan shift bagi hari itu sahaja. '
-              'Tarikh lain tidak berubah — Isnin minggu ini dan Isnin minggu depan boleh berbeza. '
-              'Birukan sempadan = ada tetapan khas; buang tetapan untuk guna lalai mingguan.',
+              tr('schedule_editor_hint'),
               style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.95), fontSize: 12),
             ),
             SizedBox(height: 8),
@@ -472,7 +481,7 @@ class _StaffScheduleEditorDialogState extends State<StaffScheduleEditorDialog> {
                   SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Tetapan ikut tarikh: $_overrideCount · Lalai mingguan dipakai jika tiada tetapan',
+                      tr('date_overrides_count', {'count': '$_overrideCount'}),
                       style: TextStyle(color: context.appColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -487,25 +496,25 @@ class _StaffScheduleEditorDialogState extends State<StaffScheduleEditorDialog> {
                 OutlinedButton.icon(
                   onPressed: _loadCompanyTemplate,
                   icon: Icon(Icons.business, size: 18, color: context.appColors.accentBlue),
-                  label: Text('Lalai mingguan syarikat'),
+                  label: Text(tr('company_weekly_default')),
                   style: OutlinedButton.styleFrom(foregroundColor: context.appColors.accentBlue),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => _applyWeeklyFromList(defaultWeekSchedule()),
                   icon: Icon(Icons.weekend_rounded, size: 18, color: context.appColors.accentBlue),
-                  label: Text('Isnin–Jumaat pagi, Sabtu–Ahad cuti'),
+                  label: Text(tr('preset_mon_fri_morning')),
                   style: OutlinedButton.styleFrom(foregroundColor: context.appColors.accentBlue),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => _applyWeeklyFromList(_weekdaysMondayToThursday()),
                   icon: Icon(Icons.event_busy_outlined, size: 18, color: context.appColors.accentBlue),
-                  label: Text('Isnin–Khamis pagi, Jumaat–Ahad cuti'),
+                  label: Text(tr('preset_mon_thu_morning')),
                   style: OutlinedButton.styleFrom(foregroundColor: context.appColors.accentBlue),
                 ),
                 OutlinedButton.icon(
                   onPressed: _fillFocusedMonthFromWeekly,
                   icon: Icon(Icons.date_range, size: 18, color: context.appColors.accentBlue),
-                  label: Text('Isi bulan ini daripada lalai mingguan'),
+                  label: Text(tr('fill_month_from_weekly')),
                   style: OutlinedButton.styleFrom(foregroundColor: context.appColors.accentBlue),
                 ),
               ],
@@ -518,7 +527,7 @@ class _StaffScheduleEditorDialogState extends State<StaffScheduleEditorDialog> {
               maxLines: 2,
               style: TextStyle(color: context.appColors.textPrimary),
               decoration: InputDecoration(
-                labelText: 'Notes for staff',
+                labelText: tr('notes_for_staff'),
                 labelStyle: TextStyle(color: context.appColors.textSecondary),
               ),
             ),
@@ -526,11 +535,11 @@ class _StaffScheduleEditorDialogState extends State<StaffScheduleEditorDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('cancel'))),
         ElevatedButton(
           onPressed: _save,
           style: ElevatedButton.styleFrom(backgroundColor: context.appColors.primaryBlue),
-          child: Text('Save schedule'),
+          child: Text(tr('save_schedule')),
         ),
       ],
     );

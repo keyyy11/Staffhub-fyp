@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../services/auth_service.dart';
 import '../widgets/staffhub_logo.dart';
 import 'admin_dashboard_screen.dart';
@@ -15,7 +16,7 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends State<LoginPage> with L10nMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -42,7 +43,7 @@ class _LoginPageState extends State<LoginPage> {
 
     if (email.isEmpty || password.isEmpty) {
       setState(() {
-        _errorMessage = 'Please enter email and password';
+        _errorMessage = tr('enter_email_password');
         _isLoading = false;
       });
       return;
@@ -67,7 +68,7 @@ class _LoginPageState extends State<LoginPage> {
         MaterialPageRoute(builder: (_) => next),
       );
     } else {
-      setState(() => _errorMessage = result.errorMessage ?? 'Login failed');
+      setState(() => _errorMessage = result.errorMessage ?? tr('login_failed'));
     }
   }
 
@@ -97,12 +98,12 @@ class _LoginPageState extends State<LoginPage> {
                     const StaffHubLogo(height: 152),
                     SizedBox(height: 24),
                     Text(
-                      'Login',
+                      tr('login_title'),
                       style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: context.appColors.accentBlue),
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Sign in with your email and password',
+                      tr('login_subtitle'),
                       style: TextStyle(fontSize: 14, color: context.appColors.textSecondary),
                     ),
                     SizedBox(height: 40),
@@ -149,8 +150,8 @@ class _LoginPageState extends State<LoginPage> {
                             cursorColor: context.appColors.accentBlue,
                             style: TextStyle(color: context.appColors.textPrimary),
                             decoration: InputDecoration(
-                              labelText: 'Email',
-                              hintText: 'name@email.com',
+                              labelText: tr('email'),
+                              hintText: tr('email_hint'),
                               prefixIcon: Icon(Icons.email_outlined, color: context.appColors.accentBlue),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                               filled: true,
@@ -162,8 +163,8 @@ class _LoginPageState extends State<LoginPage> {
                             obscureText: _obscurePassword,
                             style: TextStyle(color: context.appColors.textPrimary),
                             decoration: InputDecoration(
-                              labelText: 'Password',
-                              hintText: '••••••••',
+                              labelText: tr('password'),
+                              hintText: tr('password_hint'),
                               prefixIcon: Icon(Icons.lock_outlined, color: context.appColors.accentBlue),
                               suffixIcon: IconButton(
                                 icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
@@ -182,7 +183,7 @@ class _LoginPageState extends State<LoginPage> {
                                         MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
                                       ),
                               child: Text(
-                                'Forgot password?',
+                                tr('forgot_password'),
                                 style: TextStyle(color: context.appColors.accentBlue, fontSize: 13),
                               ),
                             ),
@@ -204,7 +205,7 @@ class _LoginPageState extends State<LoginPage> {
                                       height: 24,
                                       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                     )
-                                  : Text('Sign In'),
+                                  : Text(tr('sign_in')),
                             ),
                           ),
                           SizedBox(height: 12),
@@ -219,7 +220,7 @@ class _LoginPageState extends State<LoginPage> {
                                     );
                                   },
                             child: Text(
-                              'Demo Mode (no API)',
+                              tr('demo_mode'),
                               style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
                             ),
                           ),

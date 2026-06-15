@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../l10n/l10n.dart';
 import 'api_service.dart';
 
 class LoginResult {
@@ -25,7 +26,7 @@ class AuthService {
       }
       return LoginResult(
         success: false,
-        errorMessage: response['message'] as String? ?? 'Login failed',
+        errorMessage: response['message'] as String? ?? tr('login_failed'),
       );
     } catch (e) {
       return LoginResult(
@@ -41,9 +42,9 @@ class AuthService {
         s.contains('TimeoutException') ||
         s.contains('Failed host lookup') ||
         s.contains('Connection refused')) {
-      return 'Cannot reach API. Start staffhub-api on port 3000. On a real phone, use your PC IP in config (see config.dart) or flutter run --dart-define=API_HOST=...';
+      return tr('cannot_reach_api_dev');
     }
-    return 'Connection error. Please ensure API is running.';
+    return tr('connection_error_ensure_api');
   }
 
   static Future<LoginResult> forgotPassword(String email) async {
@@ -57,7 +58,7 @@ class AuthService {
       }
       return LoginResult(
         success: false,
-        errorMessage: response['message'] as String? ?? 'Failed to send reset email',
+        errorMessage: response['message'] as String? ?? tr('reset_email_failed'),
       );
     } catch (e) {
       return LoginResult(success: false, errorMessage: _networkErrorHint(e));
@@ -83,7 +84,7 @@ class AuthService {
       }
       return LoginResult(
         success: false,
-        errorMessage: response['message'] as String? ?? 'Password reset failed',
+        errorMessage: response['message'] as String? ?? tr('password_reset_failed'),
       );
     } catch (e) {
       return LoginResult(success: false, errorMessage: _networkErrorHint(e));
@@ -103,7 +104,7 @@ class AuthService {
       }
       return LoginResult(
         success: false,
-        errorMessage: response['message'] as String? ?? 'Supervisor registration failed',
+        errorMessage: response['message'] as String? ?? tr('supervisor_registration_failed'),
       );
     } catch (e) {
       return LoginResult(success: false, errorMessage: _networkErrorHint(e));
@@ -123,12 +124,12 @@ class AuthService {
       }
       return LoginResult(
         success: false,
-        errorMessage: response['message'] as String? ?? 'Admin registration failed',
+        errorMessage: response['message'] as String? ?? tr('admin_registration_failed'),
       );
     } catch (e) {
       final msg = e.toString().contains('TimeoutException') || e.toString().contains('SocketException')
-          ? 'Cannot reach API. Ensure the backend is running (e.g. node index.js) and URL in config.dart is correct.'
-          : 'Connection error. Please ensure API is running.';
+          ? tr('cannot_reach_api')
+          : tr('connection_error_ensure_api');
       return LoginResult(success: false, errorMessage: msg);
     }
   }
@@ -150,7 +151,7 @@ class AuthService {
       }
       return LoginResult(
         success: false,
-        errorMessage: response['message'] as String? ?? 'Registration failed',
+        errorMessage: response['message'] as String? ?? tr('registration_failed'),
       );
     } catch (e) {
       return LoginResult(

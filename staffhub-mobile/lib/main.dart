@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'app_theme.dart';
+import 'l10n/l10n.dart';
 import 'screens/login_page.dart';
 import 'screens/home_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
@@ -25,7 +26,7 @@ class StaffHubApp extends StatelessWidget {
       builder: (context, _) {
         final s = SettingsController.instance;
         return MaterialApp(
-          title: 'Staff Hub',
+          title: tr('app_title'),
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,

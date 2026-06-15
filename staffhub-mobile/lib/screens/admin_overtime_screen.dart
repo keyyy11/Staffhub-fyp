@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../services/api_service.dart';
 
 /// Admin: full visibility of OT flow (submitted → approved/rejected) for all staff.
@@ -10,7 +11,7 @@ class AdminOvertimeScreen extends StatefulWidget {
   State<AdminOvertimeScreen> createState() => _AdminOvertimeScreenState();
 }
 
-class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
+class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> with L10nMixin {
   List<Map<String, dynamic>> _list = [];
   bool _loading = true;
   String? _statusFilter;
@@ -69,12 +70,25 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
     }
   }
 
+  String _statusLabel(String? s) {
+    switch (s) {
+      case 'approved':
+        return tr('approved');
+      case 'rejected':
+        return tr('rejected');
+      case 'pending':
+        return tr('pending');
+      default:
+        return s ?? tr('pending');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: Text('Overtime audit', style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold)),
+        title: Text(tr('overtime_audit_title'), style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold)),
         backgroundColor: context.appColors.surface,
         foregroundColor: context.appColors.textPrimary,
         actions: [
@@ -90,7 +104,7 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Text(
-              'All OT applications and approval flow (read-only). Supervisors approve; you monitor the full trail.',
+              tr('ot_audit_desc'),
               style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.95), fontSize: 13),
             ),
           ),
@@ -100,7 +114,7 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
               spacing: 8,
               children: [
                 ChoiceChip(
-                  label: Text('All'),
+                  label: Text(tr('all')),
                   selected: _statusFilter == null,
                   onSelected: (_) {
                     setState(() => _statusFilter = null);
@@ -110,7 +124,7 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
                   labelStyle: TextStyle(color: _statusFilter == null ? Colors.white : context.appColors.textSecondary),
                 ),
                 ChoiceChip(
-                  label: Text('Pending'),
+                  label: Text(tr('pending')),
                   selected: _statusFilter == 'pending',
                   onSelected: (_) {
                     setState(() => _statusFilter = 'pending');
@@ -120,7 +134,7 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
                   labelStyle: TextStyle(color: _statusFilter == 'pending' ? Colors.white : context.appColors.textSecondary),
                 ),
                 ChoiceChip(
-                  label: Text('Approved'),
+                  label: Text(tr('approved')),
                   selected: _statusFilter == 'approved',
                   onSelected: (_) {
                     setState(() => _statusFilter = 'approved');
@@ -130,7 +144,7 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
                   labelStyle: TextStyle(color: _statusFilter == 'approved' ? Colors.white : context.appColors.textSecondary),
                 ),
                 ChoiceChip(
-                  label: Text('Rejected'),
+                  label: Text(tr('rejected')),
                   selected: _statusFilter == 'rejected',
                   onSelected: (_) {
                     setState(() => _statusFilter = 'rejected');
@@ -153,7 +167,7 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
                             physics: const AlwaysScrollableScrollPhysics(),
                             children: [
                               SizedBox(height: 48),
-                              Center(child: Text('No OT records', style: TextStyle(color: context.appColors.textSecondary))),
+                              Center(child: Text(tr('no_ot_records'), style: TextStyle(color: context.appColors.textSecondary))),
                             ],
                           )
                         : ListView.builder(
@@ -193,14 +207,21 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
                                           color: _stColor(st).withValues(alpha: 0.2),
                                           borderRadius: BorderRadius.circular(8),
                                         ),
-                                        child: Text(st.toUpperCase(), style: TextStyle(color: _stColor(st), fontSize: 10, fontWeight: FontWeight.bold)),
+                                        child: Text(
+                                          _statusLabel(st).toUpperCase(),
+                                          style: TextStyle(color: _stColor(st), fontSize: 10, fontWeight: FontWeight.bold),
+                                        ),
                                       ),
                                     ],
                                   ),
                                   subtitle: Padding(
                                     padding: const EdgeInsets.only(top: 6),
                                     child: Text(
-                                      'OT date ${_fmt(r['otDate'])} · ${r['hours'] ?? '-'} h · ID ${r['staffId']}',
+                                      tr('ot_date_id_line', {
+                                        'date': _fmt(r['otDate']),
+                                        'hours': (r['hours'] ?? '-').toString(),
+                                        'staffId': (r['staffId'] ?? '-').toString(),
+                                      }),
                                       style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
                                     ),
                                   ),
@@ -208,7 +229,10 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
                                     if ((r['reason'] as String?)?.isNotEmpty == true)
                                       Align(
                                         alignment: Alignment.centerLeft,
-                                        child: Text('Reason: ${r['reason']}', style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
+                                        child: Text(
+                                          tr('reason_colon', {'reason': r['reason'] as String}),
+                                          style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
+                                        ),
                                       ),
                                     if ((r['supervisorStaffIdAtSubmit'] as String?)?.isNotEmpty == true)
                                       Padding(
@@ -216,16 +240,19 @@ class _AdminOvertimeScreenState extends State<AdminOvertimeScreen> {
                                         child: Align(
                                           alignment: Alignment.centerLeft,
                                           child: Text(
-                                            'Supervisor at submit: ${r['supervisorStaffIdAtSubmit']}',
+                                            tr('supervisor_at_submit', {'id': r['supervisorStaffIdAtSubmit'] as String}),
                                             style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
                                           ),
                                         ),
                                       ),
                                     Divider(color: context.appColors.borderBlue),
-                                    Text('Activity flow', style: TextStyle(color: context.appColors.accentBlue, fontWeight: FontWeight.w600, fontSize: 13)),
+                                    Text(tr('activity_flow'), style: TextStyle(color: context.appColors.accentBlue, fontWeight: FontWeight.w600, fontSize: 13)),
                                     SizedBox(height: 8),
                                     if (steps.isEmpty)
-                                      Text('Submitted ${_fmtDt(r['createdAt'])}', style: TextStyle(color: context.appColors.textSecondary, fontSize: 12))
+                                      Text(
+                                        tr('submitted_at_flow', {'datetime': _fmtDt(r['createdAt'])}),
+                                        style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
+                                      )
                                     else
                                       ...steps.map((s) {
                                         final action = s['action'] as String? ?? '';

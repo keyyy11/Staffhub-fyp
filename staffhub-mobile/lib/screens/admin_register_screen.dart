@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../services/auth_service.dart';
 import 'admin_dashboard_screen.dart';
 
@@ -10,7 +11,7 @@ class AdminRegisterScreen extends StatefulWidget {
   State<AdminRegisterScreen> createState() => _AdminRegisterScreenState();
 }
 
-class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
+class _AdminRegisterScreenState extends State<AdminRegisterScreen> with L10nMixin {
   final _staffIdController = TextEditingController();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -44,7 +45,7 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
 
     if (name.isEmpty || email.isEmpty || password.isEmpty || adminSecret.isEmpty) {
       setState(() {
-        _errorMessage = 'Please fill name, email, password, and admin secret';
+        _errorMessage = tr('fill_admin_fields');
         _isLoading = false;
       });
       return;
@@ -52,7 +53,7 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
 
     if (password.length < 6) {
       setState(() {
-        _errorMessage = 'Password must be at least 6 characters';
+        _errorMessage = tr('password_min_length');
         _isLoading = false;
       });
       return;
@@ -75,7 +76,7 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
         (route) => false,
       );
     } else {
-      setState(() => _errorMessage = result.errorMessage ?? 'Registration failed');
+      setState(() => _errorMessage = result.errorMessage ?? tr('register_failed'));
     }
   }
 
@@ -84,7 +85,7 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
     return Scaffold(
       backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: Text('Register Admin', style: TextStyle(color: context.appColors.textPrimary)),
+        title: Text(tr('register_admin'), style: TextStyle(color: context.appColors.textPrimary)),
         backgroundColor: context.appColors.surface,
         foregroundColor: context.appColors.textPrimary,
         leading: IconButton(
@@ -130,29 +131,29 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
                             if (_errorMessage!.contains('API') || _errorMessage!.contains('Connection'))
                               Padding(
                                 padding: const EdgeInsets.only(top: 8),
-                                child: Text('Ensure the API is running (npm.cmd run dev)', style: TextStyle(fontSize: 12, color: Colors.red.shade200)),
+                                child: Text(tr('ensure_api_running'), style: TextStyle(fontSize: 12, color: Colors.red.shade200)),
                               ),
                           ],
                         ),
                       ),
-                  _buildField('Admin ID (optional)', _staffIdController, 'Leave empty for auto ADM001…'),
+                  _buildField(tr('admin_id_optional'), _staffIdController, tr('admin_id_hint')),
                   SizedBox(height: 16),
-                  _buildField('Full Name', _nameController, 'Admin Name'),
+                  _buildField(tr('full_name'), _nameController, tr('admin_name_hint')),
                   SizedBox(height: 16),
-                  _buildField('Email', _emailController, 'admin@staffhub.com', keyboardType: TextInputType.emailAddress),
+                  _buildField(tr('email'), _emailController, tr('admin_email_hint'), keyboardType: TextInputType.emailAddress),
                   SizedBox(height: 16),
-                  _buildField('Password (min 6)', _passwordController, '••••••', obscure: _obscurePassword, onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword)),
+                  _buildField(tr('password_min_6'), _passwordController, tr('password_hint'), obscure: _obscurePassword, onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword)),
                   SizedBox(height: 16),
-                  _buildField('Admin Secret', _adminSecretController, 'admin123', obscure: true),
+                  _buildField(tr('admin_secret'), _adminSecretController, tr('admin_secret_hint'), obscure: true),
                   SizedBox(height: 8),
-                  Text('Default secret: admin123 (set ADMIN_SECRET in .env to change)', style: TextStyle(color: context.appColors.textSecondary, fontSize: 11)),
+                  Text(tr('admin_secret_default'), style: TextStyle(color: context.appColors.textSecondary, fontSize: 11)),
                   SizedBox(height: 24),
                   SizedBox(
                     height: 52,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _registerAdmin,
                       style: ElevatedButton.styleFrom(backgroundColor: context.appColors.primaryBlue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: _isLoading ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : Text('Create Admin'),
+                      child: _isLoading ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : Text(tr('create_admin')),
                     ),
                   ),
                 ],

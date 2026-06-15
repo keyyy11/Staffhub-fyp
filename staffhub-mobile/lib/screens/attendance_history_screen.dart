@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 
@@ -10,7 +11,7 @@ class AttendanceHistoryScreen extends StatefulWidget {
   State<AttendanceHistoryScreen> createState() => _AttendanceHistoryScreenState();
 }
 
-class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
+class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> with L10nMixin {
   String _staffId = '';
   Future<Map<String, dynamic>>? _future;
 
@@ -55,7 +56,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     return Scaffold(
       backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: Text('Attendance history', style: TextStyle(color: context.appColors.textPrimary)),
+        title: Text(tr('attendance_history'), style: TextStyle(color: context.appColors.textPrimary)),
         backgroundColor: context.appColors.surface,
         foregroundColor: context.appColors.textPrimary,
         elevation: 0,
@@ -70,7 +71,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
           ),
         ),
         child: _staffId.isEmpty
-            ? Center(child: Text('No Staff ID', style: TextStyle(color: context.appColors.textSecondary)))
+            ? Center(child: Text(tr('no_staff_id'), style: TextStyle(color: context.appColors.textSecondary)))
             : FutureBuilder<Map<String, dynamic>>(
                 future: _future,
                 builder: (context, snapshot) {
@@ -81,14 +82,14 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                   if (body == null || body['success'] != true) {
                     return Center(
                       child: Text(
-                        'Could not load records.',
+                        tr('could_not_load_records'),
                         style: TextStyle(color: Colors.red.shade200),
                       ),
                     );
                   }
                   final list = (body['data'] as List<dynamic>?) ?? [];
                   if (list.isEmpty) {
-                    return Center(child: Text('No attendance records yet.', style: TextStyle(color: context.appColors.textSecondary)));
+                    return Center(child: Text(tr('no_attendance_records'), style: TextStyle(color: context.appColors.textSecondary)));
                   }
                   return RefreshIndicator(
                     color: context.appColors.accentBlue,
@@ -123,7 +124,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                                     ),
                                     SizedBox(height: 6),
                                     Text(
-                                      'In: ${_fmtTime(row['clockIn'])}  ·  Out: ${_fmtTime(row['clockOut'])}',
+                                      tr('clock_in_out_line', {
+                                        'inTime': _fmtTime(row['clockIn']),
+                                        'outTime': _fmtTime(row['clockOut']),
+                                      }),
                                       style: TextStyle(color: context.appColors.textSecondary, fontSize: 14),
                                     ),
                                   ],

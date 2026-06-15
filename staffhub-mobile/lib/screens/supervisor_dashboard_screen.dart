@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/staffhub_logo.dart';
@@ -9,6 +10,7 @@ import '../widgets/mc_letter_viewer.dart';
 import '../widgets/attendance_clock_panel.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
+import 'staff_performance_screen.dart';
 
 /// Supervisor: team attendance, leave, per-staff schedules, clock-in/out notifications.
 class SupervisorDashboardScreen extends StatefulWidget {
@@ -18,8 +20,7 @@ class SupervisorDashboardScreen extends StatefulWidget {
   State<SupervisorDashboardScreen> createState() => _SupervisorDashboardScreenState();
 }
 
-class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
-  static const _sectionTitles = ['Home', 'Attendance', 'Leave', 'Overtime', 'Schedules', 'Notifications'];
+class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> with L10nMixin {
 
   int _selectedIndex = 0;
   String _supervisorName = '';
@@ -38,6 +39,25 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
   bool _loading = true;
   String? _errorMessage;
   Timer? _pollTimer;
+
+  String _sectionTitle(int index) {
+    switch (index) {
+      case 0:
+        return tr('home');
+      case 1:
+        return tr('attendance');
+      case 2:
+        return tr('leave');
+      case 3:
+        return tr('supervisor_tab_overtime');
+      case 4:
+        return tr('schedules');
+      case 5:
+        return tr('notifications');
+      default:
+        return tr('home');
+    }
+  }
 
   @override
   void initState() {
@@ -118,8 +138,8 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
     } catch (e) {
       final msg = e.toString();
       _errorMessage = msg.contains('Not authenticated')
-          ? 'Session expired. Please log in again.'
-          : 'Failed to load: $msg';
+          ? tr('session_expired')
+          : tr('failed_load_detail', {'message': msg});
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -194,15 +214,28 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
   String _leaveTypeLabel(String? t) {
     switch (t) {
       case 'medical':
-        return 'Medical';
+        return tr('leave_type_medical');
       case 'annual':
-        return 'Annual';
+        return tr('leave_type_annual');
       case 'unpaid':
-        return 'Unpaid';
+        return tr('leave_type_unpaid');
       case 'other':
-        return 'Other';
+        return tr('leave_type_other');
       default:
         return t ?? '-';
+    }
+  }
+
+  String _statusLabel(String? st) {
+    switch (st) {
+      case 'approved':
+        return tr('approved').toUpperCase();
+      case 'rejected':
+        return tr('rejected').toUpperCase();
+      case 'pending':
+        return tr('pending').toUpperCase();
+      default:
+        return (st ?? '').toUpperCase();
     }
   }
 
@@ -266,10 +299,10 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
     );
     if (!mounted) return;
     if (saved == true) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schedule saved')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('schedule_saved'))));
       await _loadAll();
     } else if (saved == false) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to save schedule')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('schedule_save_failed'))));
     }
   }
 
@@ -290,8 +323,8 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                   children: [
                     StaffHubLogo(height: 58),
                     SizedBox(height: 12),
-                    Text('Supervisor', style: TextStyle(color: context.appColors.textPrimary, fontSize: 20, fontWeight: FontWeight.bold)),
-                    Text('Home & organisation', style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
+                    Text(tr('supervisor'), style: TextStyle(color: context.appColors.textPrimary, fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text(tr('supervisor_home_org'), style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
                   ],
                 ),
               ),
@@ -300,7 +333,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   children: [
-                    for (var i = 0; i < _sectionTitles.length; i++)
+                    for (var i = 0; i < 6; i++)
                       ListTile(
                         leading: Icon(
                           [
@@ -314,7 +347,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                           color: _selectedIndex == i ? context.appColors.accentBlue : context.appColors.textSecondary,
                         ),
                         title: Text(
-                          _sectionTitles[i],
+                          _sectionTitle(i),
                           style: TextStyle(
                             color: _selectedIndex == i ? context.appColors.accentBlue : context.appColors.textPrimary,
                             fontWeight: _selectedIndex == i ? FontWeight.w600 : FontWeight.w500,
@@ -331,7 +364,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
               ),
               ListTile(
                 leading: Icon(Icons.settings_outlined, color: context.appColors.accentBlue),
-                title: Text('Settings', style: TextStyle(color: context.appColors.textPrimary)),
+                title: Text(tr('settings'), style: TextStyle(color: context.appColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
@@ -339,7 +372,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
               ),
               ListTile(
                 leading: Icon(Icons.logout, color: Colors.redAccent),
-                title: Text('Log out', style: TextStyle(color: Colors.redAccent)),
+                title: Text(tr('logout'), style: TextStyle(color: Colors.redAccent)),
                 onTap: _logout,
               ),
             ],
@@ -347,14 +380,14 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
         ),
       ),
       appBar: AppBar(
-        title: Text(_sectionTitles[_selectedIndex], style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold)),
+        title: Text(_sectionTitle(_selectedIndex), style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold)),
         backgroundColor: context.appColors.surface,
         foregroundColor: context.appColors.textPrimary,
         elevation: 0,
         actions: [
           IconButton(
             icon: Icon(Icons.settings_outlined, color: context.appColors.accentBlue),
-            tooltip: 'Settings',
+            tooltip: tr('settings'),
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
           ),
           if (_unreadNotifications > 0 && _selectedIndex != 5)
@@ -419,22 +452,22 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             Text(
-              _supervisorName.isNotEmpty ? 'Welcome, $_supervisorName' : 'Welcome',
+              _supervisorName.isNotEmpty ? tr('welcome_name', {'name': _supervisorName}) : tr('welcome'),
               style: TextStyle(color: context.appColors.textPrimary, fontSize: 22, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 6),
             Text(
-              'Overview: all OT requests and who is on approved leave today. Directory below (admin excluded). Other tabs focus on your direct team where applicable.',
+              tr('supervisor_overview_desc'),
               style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.95), fontSize: 13),
             ),
             SizedBox(height: 20),
             Text(
-              'My attendance',
+              tr('my_attendance'),
               style: TextStyle(color: context.appColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
             Text(
-              'Clock in/out at your branch — same geofence rules as staff.',
+              tr('clock_branch_hint'),
               style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.95), fontSize: 13),
             ),
             SizedBox(height: 12),
@@ -444,52 +477,52 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
               children: [
                 Expanded(
                   child: _homeStatCard(
-                    'Organisation',
+                    tr('organisation'),
                     '${_orgStaff.length}',
-                    'staff & supervisors',
+                    tr('staff_supervisors_count'),
                     Icons.groups_rounded,
                   ),
                 ),
                 SizedBox(width: 12),
                 Expanded(
                   child: _homeStatCard(
-                    'Direct team',
+                    tr('direct_team'),
                     '${_team.length}',
-                    'report to you',
+                    tr('report_to_you'),
                     Icons.supervisor_account_rounded,
                   ),
                 ),
               ],
             ),
             SizedBox(height: 22),
-            _homeSectionHeader('Overtime requests', Icons.more_time_rounded, '${_orgOvertimeRequests.length}'),
+            _homeSectionHeader(tr('overtime_requests'), Icons.more_time_rounded, '${_orgOvertimeRequests.length}'),
             Text(
-              'All OT applications from organisation staff & supervisors.',
+              tr('all_ot_org'),
               style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.88), fontSize: 12),
             ),
             SizedBox(height: 10),
             if (_orgOvertimeRequests.isEmpty)
-              _homeEmptyHint('No overtime requests yet.')
+              _homeEmptyHint(tr('no_ot_yet'))
             else
               ..._orgOvertimeRequests.map(_homeOvertimeTile),
             SizedBox(height: 22),
-            _homeSectionHeader('On leave today', Icons.beach_access_rounded, '${onLeaveToday.length}'),
+            _homeSectionHeader(tr('on_leave_today'), Icons.beach_access_rounded, '${onLeaveToday.length}'),
             Text(
-              'Approved leave covering today’s date.',
+              tr('approved_leave_today'),
               style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.88), fontSize: 12),
             ),
             SizedBox(height: 10),
             if (onLeaveToday.isEmpty)
-              _homeEmptyHint('No one on approved leave today.')
+              _homeEmptyHint(tr('no_one_on_leave'))
             else
               ...onLeaveToday.map(_homeLeaveTodayTile),
             SizedBox(height: 22),
-            _homeSectionHeader('Directory search', Icons.person_search_rounded, null),
+            _homeSectionHeader(tr('directory_search'), Icons.person_search_rounded, null),
             TextField(
               onChanged: (v) => setState(() => _homeSearchQuery = v),
               style: TextStyle(color: context.appColors.textPrimary),
               decoration: InputDecoration(
-                hintText: 'Search by name, ID, department…',
+                hintText: tr('search_hint'),
                 hintStyle: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.7)),
                 prefixIcon: Icon(Icons.search, color: context.appColors.accentBlue),
                 filled: true,
@@ -503,7 +536,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
             ),
             SizedBox(height: 12),
             Text(
-              'All staff & supervisors (admin excluded) · ${filtered.length} shown',
+              tr('org_directory_count', {'count': '${filtered.length}'}),
               style: TextStyle(color: context.appColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
             ),
             SizedBox(height: 8),
@@ -512,7 +545,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  _orgStaff.isEmpty ? 'No organisation data loaded.' : 'No matches for your search.',
+                  _orgStaff.isEmpty ? tr('no_org_data') : tr('no_matches'),
                   style: TextStyle(color: context.appColors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
@@ -567,7 +600,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                   style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 15),
                 ),
                 Text(
-                  'OT date ${_formatDate(r['otDate'])} · ${r['hours'] ?? '-'} h',
+                  tr('ot_date_hours', {'date': _formatDate(r['otDate']), 'hours': '${r['hours'] ?? '-'}'}),
                   style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
                 ),
               ],
@@ -579,7 +612,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
               color: c.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(st.toUpperCase(), style: TextStyle(color: c, fontSize: 10, fontWeight: FontWeight.bold)),
+            child: Text(_statusLabel(st), style: TextStyle(color: c, fontSize: 10, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -684,14 +717,14 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                 if (!isSup && reportsTo.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
-                    child: Text('Reports to supervisor ID: $reportsTo', style: TextStyle(color: context.appColors.textSecondary, fontSize: 11)),
+                    child: Text(tr('reports_to_supervisor', {'id': reportsTo}), style: TextStyle(color: context.appColors.textSecondary, fontSize: 11)),
                   ),
               ],
             ),
           ),
           Chip(
             label: Text(
-              isSup ? 'Supervisor' : 'Staff',
+              isSup ? tr('role_supervisor') : tr('role_staff'),
               style: TextStyle(fontSize: 11, color: isSup ? Colors.deepPurpleAccent.shade100 : context.appColors.textPrimary),
             ),
             backgroundColor: isSup ? Colors.deepPurple.withValues(alpha: 0.22) : context.appColors.surface,
@@ -724,7 +757,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
               Padding(
                 padding: EdgeInsets.all(24),
                 child: Text(
-                  'No team members yet. Ask admin to assign staff to you (set supervisor Staff ID on each staff account).',
+                  tr('no_team_members'),
                   style: TextStyle(color: context.appColors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
@@ -733,12 +766,12 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _stat('Total', '${_attendanceStats!['total'] ?? 0}'),
-                  _stat('On time', '${_attendanceStats!['onTime'] ?? 0}', Colors.green),
-                  _stat('Late', '${_attendanceStats!['late'] ?? 0}', Colors.amber),
+                  _stat(tr('total'), '${_attendanceStats!['total'] ?? 0}'),
+                  _stat(tr('on_time'), '${_attendanceStats!['onTime'] ?? 0}', Colors.green),
+                  _stat(tr('late'), '${_attendanceStats!['late'] ?? 0}', Colors.amber),
                 ],
               ),
-            Text('Expected clock-in: $_expectedTime', style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
+            Text(tr('expected_clock_in_time', {'time': _expectedTime ?? ''}), style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
             SizedBox(height: 12),
             ..._attendanceReport.map((r) {
               final late = (r['status'] as String?) == 'late';
@@ -754,9 +787,15 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(r['staffName'] ?? r['staffId'], style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.w600)),
-                    Text('${_formatDate(r['date'])} · In ${r['clockInTime'] ?? '-'} · Out ${r['clockOutTime'] ?? '-'}',
-                        style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
-                    Text(late ? 'LATE' : 'ON TIME', style: TextStyle(color: late ? Colors.amber : Colors.green, fontSize: 11, fontWeight: FontWeight.bold)),
+                    Text(
+                      tr('attendance_date_in_out', {
+                        'date': _formatDate(r['date']),
+                        'inTime': '${r['clockInTime'] ?? '-'}',
+                        'outTime': '${r['clockOutTime'] ?? '-'}',
+                      }),
+                      style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
+                    ),
+                    Text(late ? tr('late_status') : tr('on_time_status'), style: TextStyle(color: late ? Colors.amber : Colors.green, fontSize: 11, fontWeight: FontWeight.bold)),
                   ],
                 ),
               );
@@ -788,7 +827,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
             return Padding(
               padding: const EdgeInsets.only(bottom: 14),
               child: Text(
-                'Approve or reject leave from staff who report to you. Pending requests show Approve / Reject.',
+                tr('leave_tab_hint'),
                 style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.95), fontSize: 13),
               ),
             );
@@ -797,7 +836,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
             return Padding(
               padding: EdgeInsets.all(24),
               child: Text(
-                'No leave requests from your team.',
+                tr('no_team_leave'),
                 style: TextStyle(color: context.appColors.textSecondary),
                 textAlign: TextAlign.center,
               ),
@@ -824,28 +863,28 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                 Text(r['staffName'] ?? r['staffId'], style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold)),
                 Text(_leaveTypeLabel(r['leaveType'] as String?), style: TextStyle(color: context.appColors.accentBlue)),
                 Text(
-                  '${r['totalDays'] ?? '-'} working days · ${_formatDate(r['startDate'])} → ${_formatDate(r['endDate'])}',
+                  '${tr('working_days_count', {'count': '${r['totalDays'] ?? '-'}'})} · ${_formatDate(r['startDate'])} → ${_formatDate(r['endDate'])}',
                   style: TextStyle(color: context.appColors.textSecondary, fontSize: 13),
                 ),
                 if ((r['reason'] as String?)?.trim().isNotEmpty == true)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
-                    child: Text('Reason: ${r['reason']}', style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
+                    child: Text(tr('reason_colon', {'reason': '${r['reason']}'}), style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
                   ),
                 if (r['hasMcLetter'] == true && id.isNotEmpty) ...[
                   SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed: () => showMcLetterDialog(context, requestId: id, asSupervisor: true),
                     icon: Icon(Icons.description_outlined, size: 18, color: context.appColors.accentBlue),
-                    label: Text('View MC letter', style: TextStyle(color: context.appColors.accentBlue)),
+                    label: Text(tr('view_mc_letter'), style: TextStyle(color: context.appColors.accentBlue)),
                   ),
                 ],
                 if ((r['adminComment'] as String?)?.trim().isNotEmpty == true)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
-                    child: Text('Note: ${r['adminComment']}', style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
+                    child: Text(tr('note_colon', {'note': '${r['adminComment']}'}), style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
                   ),
-                Text(st.toUpperCase(), style: TextStyle(color: c, fontWeight: FontWeight.bold, fontSize: 12)),
+                Text(_statusLabel(st), style: TextStyle(color: c, fontWeight: FontWeight.bold, fontSize: 12)),
                 if (pending && id.isNotEmpty) ...[
                   SizedBox(height: 10),
                   Row(
@@ -854,7 +893,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                         child: OutlinedButton(
                           onPressed: () => _decideLeave(id, false),
                           style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
-                          child: Text('Reject'),
+                          child: Text(tr('reject')),
                         ),
                       ),
                       SizedBox(width: 12),
@@ -862,7 +901,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                         child: ElevatedButton(
                           onPressed: () => _decideLeave(id, true),
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700),
-                          child: Text('Approve'),
+                          child: Text(tr('approve')),
                         ),
                       ),
                     ],
@@ -884,18 +923,18 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: context.appColors.card,
-          title: Text('Reject leave?', style: TextStyle(color: context.appColors.textPrimary)),
+          title: Text(tr('reject_leave_title'), style: TextStyle(color: context.appColors.textPrimary)),
           content: TextField(
             controller: commentCtrl,
             style: TextStyle(color: context.appColors.textPrimary),
             decoration: InputDecoration(
-              labelText: 'Comment (optional)',
+              labelText: tr('comment_optional'),
               labelStyle: TextStyle(color: context.appColors.textSecondary),
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Reject')),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('cancel'))),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('reject'))),
           ],
         ),
       );
@@ -913,17 +952,17 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
       if (!mounted) return;
       if (result['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] as String? ?? 'Updated')),
+          SnackBar(content: Text(result['message'] as String? ?? tr('updated'))),
         );
         await _loadAll();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] as String? ?? 'Failed')),
+          SnackBar(content: Text(result['message'] as String? ?? tr('failed'))),
         );
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connection error')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('connection_error'))));
       }
     }
   }
@@ -936,18 +975,18 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: context.appColors.card,
-          title: Text('Reject OT?', style: TextStyle(color: context.appColors.textPrimary)),
+          title: Text(tr('reject_ot_q'), style: TextStyle(color: context.appColors.textPrimary)),
           content: TextField(
             controller: commentCtrl,
             style: TextStyle(color: context.appColors.textPrimary),
             decoration: InputDecoration(
-              labelText: 'Comment (optional)',
+              labelText: tr('comment_optional'),
               labelStyle: TextStyle(color: context.appColors.textSecondary),
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Reject')),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('cancel'))),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('reject'))),
           ],
         ),
       );
@@ -965,17 +1004,17 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
       if (!mounted) return;
       if (result['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] as String? ?? 'Updated')),
+          SnackBar(content: Text(result['message'] as String? ?? tr('updated'))),
         );
         await _loadAll();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] as String? ?? 'Failed')),
+          SnackBar(content: Text(result['message'] as String? ?? tr('failed'))),
         );
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connection error')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('connection_error'))));
       }
     }
   }
@@ -992,7 +1031,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
             return Padding(
               padding: const EdgeInsets.only(bottom: 14),
               child: Text(
-                'Approve or reject OT from your direct team. Pending requests show Approve / Reject.',
+                tr('ot_tab_hint'),
                 style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.95), fontSize: 13),
               ),
             );
@@ -1001,7 +1040,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
             return Padding(
               padding: EdgeInsets.all(24),
               child: Text(
-                'No overtime requests from your team.',
+                tr('no_team_ot'),
                 style: TextStyle(color: context.appColors.textSecondary),
                 textAlign: TextAlign.center,
               ),
@@ -1026,7 +1065,10 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(r['staffName'] ?? r['staffId'], style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold)),
-                Text('OT date ${_formatDate(r['otDate'])} · ${r['hours'] ?? '-'} h', style: TextStyle(color: context.appColors.accentBlue, fontSize: 13)),
+                Text(
+                  tr('ot_date_hours', {'date': _formatDate(r['otDate']), 'hours': '${r['hours'] ?? '-'}'}),
+                  style: TextStyle(color: context.appColors.accentBlue, fontSize: 13),
+                ),
                 if ((r['reason'] as String?)?.isNotEmpty == true)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
@@ -1035,9 +1077,9 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                 if (st != 'pending' && (r['approverComment'] as String?)?.trim().isNotEmpty == true)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
-                    child: Text('Response: ${r['approverComment']}', style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
+                    child: Text(tr('response_colon', {'response': '${r['approverComment']}'}), style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
                   ),
-                Text(st.toUpperCase(), style: TextStyle(color: c, fontWeight: FontWeight.bold, fontSize: 12)),
+                Text(_statusLabel(st), style: TextStyle(color: c, fontWeight: FontWeight.bold, fontSize: 12)),
                 if (pending && id.isNotEmpty) ...[
                   SizedBox(height: 10),
                   Row(
@@ -1046,7 +1088,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                         child: OutlinedButton(
                           onPressed: () => _decideOvertime(id, false),
                           style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
-                          child: Text('Reject'),
+                          child: Text(tr('reject')),
                         ),
                       ),
                       SizedBox(width: 12),
@@ -1054,7 +1096,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                         child: ElevatedButton(
                           onPressed: () => _decideOvertime(id, true),
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700),
-                          child: Text('Approve'),
+                          child: Text(tr('approve')),
                         ),
                       ),
                     ],
@@ -1081,7 +1123,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                 Icon(Icons.calendar_month_outlined, size: 48, color: context.appColors.textSecondary),
                 SizedBox(height: 16),
                 Text(
-                  'No direct reports yet. Ask admin to assign staff to your supervisor Staff ID, then you can create a weekly schedule for each person.',
+                  tr('no_direct_reports_schedules'),
                   style: TextStyle(color: context.appColors.textSecondary, fontSize: 14),
                   textAlign: TextAlign.center,
                 ),
@@ -1098,12 +1140,12 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Create staff schedules',
+                          tr('create_staff_schedules'),
                           style: TextStyle(color: context.appColors.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 8),
                         Text(
-                          'Set a new weekly timetable (Mon–Sun) for each team member — working days, start/end times, and notes. Saving creates or updates their schedule.',
+                          tr('schedules_weekly_desc'),
                           style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.95), fontSize: 13),
                         ),
                       ],
@@ -1139,11 +1181,27 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                                   Text(sid, style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
                                   SizedBox(height: 4),
                                   Text(
-                                    'Tap to create or edit weekly schedule',
+                                    tr('tap_edit_weekly_schedule'),
                                     style: TextStyle(color: context.appColors.accentBlue.withValues(alpha: 0.95), fontSize: 12),
                                   ),
                                 ],
                               ),
+                            ),
+                            IconButton(
+                              tooltip: tr('view_performance'),
+                              icon: Icon(Icons.insights_outlined, color: context.appColors.accentBlue),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => StaffPerformanceScreen(
+                                      staffId: sid,
+                                      staffName: name,
+                                      asSupervisor: true,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                             Icon(Icons.chevron_right, color: context.appColors.textSecondary),
                           ],
@@ -1174,7 +1232,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                   await ApiService.markAllSupervisorNotificationsRead();
                   await _pollNotifications();
                 },
-                child: Text('Mark all as read'),
+                child: Text(tr('mark_all_read')),
               ),
             ),
           Expanded(
@@ -1186,10 +1244,10 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                 final read = n['read'] == true;
                 final type = n['type'] as String? ?? '';
                 final title = type == 'clock_out'
-                    ? 'Clock out'
+                    ? tr('notification_clock_out')
                     : type == 'ot_request'
-                        ? 'OT request'
-                        : 'Clock in';
+                        ? tr('notification_ot_request')
+                        : tr('notification_clock_in');
                 return Dismissible(
                   key: Key(n['_id']?.toString() ?? '$i'),
                   child: ListTile(
@@ -1206,7 +1264,13 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                               : Icons.login,
                       color: context.appColors.accentBlue,
                     ),
-                    title: Text('$title — ${n['staffName'] ?? n['staffId']}', style: TextStyle(color: context.appColors.textPrimary)),
+                    title: Text(
+                      tr('notification_title_format', {
+                        'title': title,
+                        'name': '${n['staffName'] ?? n['staffId']}',
+                      }),
+                      style: TextStyle(color: context.appColors.textPrimary),
+                    ),
                     subtitle: Text(
                       n['createdAt']?.toString() ?? '',
                       style: TextStyle(color: context.appColors.textSecondary, fontSize: 11),

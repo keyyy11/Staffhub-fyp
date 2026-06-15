@@ -121,9 +121,12 @@ export default function StaffPage() {
                   <td className="py-3 pr-4 text-slate-400">{s.supervisorStaffId || "—"}</td>
                   <td className="py-3 pr-4 text-slate-400">RM {s.salary ?? 0}</td>
                   <td className="py-3">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Link href={`/staff/${s.staffId}`}>
                         <Button variant="ghost" className="!px-2 !py-1 text-xs">Edit</Button>
+                      </Link>
+                      <Link href={`/staff/${s.staffId}/performance`}>
+                        <Button variant="secondary" className="!px-2 !py-1 text-xs">Performance</Button>
                       </Link>
                       {s.role === "staff" && (
                         <Button variant="secondary" className="!px-2 !py-1 text-xs" onClick={() => handlePromote(s.staffId)}>

@@ -6,6 +6,7 @@ const overtimeController = require('../controllers/overtimeController');
 const { requireAuth, requireStaff } = require('../middleware/authMiddleware');
 
 router.get('/work-schedule', staffController.getWorkSchedule);
+router.get('/dashboard-stats', requireAuth, staffController.getDashboardStats);
 router.get('/my-work-schedule', requireAuth, staffController.getMyWorkSchedule);
 router.get('/payslip/:staffId', staffController.getPayslip);
 

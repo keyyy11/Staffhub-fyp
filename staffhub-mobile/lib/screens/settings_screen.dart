@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
-import '../l10n/settings_strings.dart';
+import '../l10n/l10n.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/settings_controller.dart';
@@ -12,7 +12,7 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen> with L10nMixin {
   final _currentPw = TextEditingController();
   final _newPw = TextEditingController();
   final _confirmPw = TextEditingController();
@@ -38,10 +38,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _submitPassword(String lang) async {
+  Future<void> _submitPassword() async {
     if (await AuthService.isDemoMode()) {
       setState(() {
-        _pwMessage = SettingsStrings.t(lang, 'demo_password');
+        _pwMessage = tr('demo_password');
         _pwOk = false;
       });
       return;
@@ -51,14 +51,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final cf = _confirmPw.text;
     if (c.isEmpty || n.isEmpty || cf.isEmpty) {
       setState(() {
-        _pwMessage = SettingsStrings.t(lang, 'fill_all');
+        _pwMessage = tr('fill_all');
         _pwOk = false;
       });
       return;
     }
     if (n != cf) {
       setState(() {
-        _pwMessage = SettingsStrings.t(lang, 'password_mismatch');
+        _pwMessage = tr('password_mismatch');
         _pwOk = false;
       });
       return;
@@ -74,13 +74,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _savingPw = false;
         if (r['success'] == true) {
           _pwOk = true;
-          _pwMessage = SettingsStrings.t(lang, 'password_updated');
+          _pwMessage = tr('password_updated');
           _currentPw.clear();
           _newPw.clear();
           _confirmPw.clear();
         } else {
           _pwOk = false;
-          _pwMessage = r['message'] as String? ?? 'Error';
+          _pwMessage = r['message'] as String? ?? tr('error');
         }
       });
     } catch (e) {
@@ -102,7 +102,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context, _) {
         final s = SettingsController.instance;
         final lang = s.langCode;
-        String tr(String k) => SettingsStrings.t(lang, k);
 
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -118,8 +117,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               SizedBox(height: 8),
               SegmentedButton<String>(
                 segments: [
-                  ButtonSegment(value: 'ms', label: Text(tr('lang_ms'))),
                   ButtonSegment(value: 'en', label: Text(tr('lang_en'))),
+                  ButtonSegment(value: 'ms', label: Text(tr('lang_ms'))),
                 ],
                 selected: {lang},
                 onSelectionChanged: (Set<String> v) {
@@ -170,7 +169,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
               SizedBox(height: 12),
               FilledButton(
-                onPressed: _savingPw ? null : () => _submitPassword(lang),
+                onPressed: _savingPw ? null : _submitPassword,
                 child: _savingPw
                     ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))
                     : Text(tr('save_password')),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
@@ -11,7 +12,7 @@ class RegisterScreen extends StatefulWidget {
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends State<RegisterScreen> with L10nMixin {
   final _formKey = GlobalKey<FormState>();
   final _staffIdController = TextEditingController();
   final _nameController = TextEditingController();
@@ -44,7 +45,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
       setState(() {
-        _errorMessage = 'Please fill name, email, and password';
+        _errorMessage = tr('fill_name_email_password');
         _isLoading = false;
       });
       return;
@@ -52,7 +53,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (password.length < 6) {
       setState(() {
-        _errorMessage = 'Password must be at least 6 characters';
+        _errorMessage = tr('password_min_length');
         _isLoading = false;
       });
       return;
@@ -74,7 +75,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         (route) => false,
       );
     } else {
-      setState(() => _errorMessage = result.errorMessage ?? 'Registration failed');
+      setState(() => _errorMessage = result.errorMessage ?? tr('register_failed'));
     }
   }
 
@@ -83,7 +84,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: Text('Register'),
+        title: Text(tr('register')),
         backgroundColor: context.appColors.surface,
         foregroundColor: context.appColors.textPrimary,
         elevation: 0,
@@ -156,8 +157,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _staffIdController,
                           style: TextStyle(color: context.appColors.textPrimary),
                           decoration: InputDecoration(
-                            labelText: 'Staff ID (optional)',
-                            hintText: 'Leave empty to auto-generate (STF001, …)',
+                            labelText: tr('staff_id_optional'),
+                            hintText: tr('staff_id_hint'),
                             prefixIcon: Icon(Icons.badge_outlined, color: context.appColors.accentBlue),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -170,8 +171,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _nameController,
                           style: TextStyle(color: context.appColors.textPrimary),
                           decoration: InputDecoration(
-                            labelText: 'Full Name',
-                            hintText: 'John Doe',
+                            labelText: tr('full_name'),
+                            hintText: tr('full_name_hint'),
                             prefixIcon: Icon(Icons.person_outlined, color: context.appColors.accentBlue),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -187,8 +188,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           cursorColor: context.appColors.accentBlue,
                           style: TextStyle(color: context.appColors.textPrimary),
                           decoration: InputDecoration(
-                            labelText: 'Email',
-                            hintText: 'name@email.com',
+                            labelText: tr('email'),
+                            hintText: tr('email_hint'),
                             prefixIcon: Icon(Icons.email_outlined, color: context.appColors.accentBlue),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -202,8 +203,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           obscureText: _obscurePassword,
                           style: TextStyle(color: context.appColors.textPrimary),
                           decoration: InputDecoration(
-                            labelText: 'Password (min 6 characters)',
-                            hintText: '••••••••',
+                            labelText: tr('password_min_6'),
+                            hintText: tr('password_hint'),
                             prefixIcon: Icon(Icons.lock_outlined, color: context.appColors.accentBlue),
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -243,14 +244,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : Text('Register'),
+                                : Text(tr('register')),
                           ),
                         ),
                         SizedBox(height: 16),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('Already have an account? ', style: TextStyle(color: context.appColors.textSecondary)),
+                            Text('${tr('already_have_account')} ', style: TextStyle(color: context.appColors.textSecondary)),
                             TextButton(
                               onPressed: () {
                                 Navigator.of(context).pushReplacement(
@@ -259,7 +260,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                 );
                               },
-                              child: Text('Sign In', style: TextStyle(color: context.appColors.accentBlue)),
+                              child: Text(tr('sign_in'), style: TextStyle(color: context.appColors.accentBlue)),
                             ),
                           ],
                         ),

@@ -2,9 +2,13 @@ import { clearAuth, getToken } from "./auth";
 import type {
   ApiResponse,
   AttendanceRecord,
+  AttendanceReportResult,
+  AttendanceReportStats,
   AuthUser,
   Branch,
   DisciplineMetrics,
+  StaffPerformanceAnalytics,
+  PerformanceOverview,
   LeaveRequest,
   OvertimeRequest,
   PayslipRecord,
@@ -106,12 +110,12 @@ export const api = {
     if (params?.endDate) q.set("endDate", params.endDate);
     if (params?.staffId) q.set("staffId", params.staffId);
     const qs = q.toString();
-    const res = await request<{ report: AttendanceRecord[]; stats: { total: number; onTime: number; late: number } }>(
+    const res = await request<AttendanceReportResult>(
       "GET",
       `/admin/attendance-report${qs ? `?${qs}` : ""}`,
     );
     if (!res.success || !res.data) return { success: false, message: res.message };
-    return { success: true, message: res.message, data: res.data.report };
+    return { success: true, message: res.message, data: res.data };
   },
 
   getLeaveRequests: (status?: string) => {
@@ -134,6 +138,10 @@ export const api = {
 
   getDisciplineMetrics: (staffId: string, days = 90) =>
     request<DisciplineMetrics>("GET", `/admin/staff/${encodeURIComponent(staffId)}/discipline-metrics?days=${days}`),
+  getStaffPerformance: (staffId: string, days = 90) =>
+    request<StaffPerformanceAnalytics>("GET", `/admin/staff/${encodeURIComponent(staffId)}/performance?days=${days}`),
+  getPerformanceOverview: (days = 30) =>
+    request<PerformanceOverview>("GET", `/admin/performance-overview?days=${days}`),
   getWarnings: (staffId?: string) => {
     const qs = staffId ? `?staffId=${encodeURIComponent(staffId)}` : "";
     return request<WarningLetter[]>("GET", `/admin/warnings${qs}`);

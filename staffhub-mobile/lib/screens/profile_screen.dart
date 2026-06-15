@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:image_picker/image_picker.dart';
 import '../app_theme.dart';
+import '../l10n/l10n.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import 'home_screen.dart';
@@ -16,7 +17,7 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> with L10nMixin {
   String _staffId = '';
   String _name = '';
   String _email = '';
@@ -93,13 +94,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _warningCategoryLabel(String? c) {
     switch (c) {
       case 'late_five_times':
-        return 'Late arrivals';
+        return tr('warning_late');
       case 'attendance_leave_unsatisfactory':
-        return 'Attendance / leave';
+        return tr('warning_attendance');
       case 'other':
-        return 'Other';
+        return tr('warning_other');
       default:
-        return c ?? 'Warning';
+        return c ?? tr('warning');
     }
   }
 
@@ -182,7 +183,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() => _profileImageBase64 = 'data:image/jpeg;base64,$base64');
       }
     } catch (e) {
-      if (mounted) _showMessage('Failed to pick image', false);
+      if (mounted) _showMessage(tr('failed_pick_image'), false);
     }
   }
 
@@ -212,7 +213,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _position = position;
         _isEditing = false;
       });
-      _showMessage('Saved locally (Demo mode)', true);
+      _showMessage(tr('saved_locally_demo'), true);
       return;
     }
 
@@ -250,9 +251,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _profileImageBase64 = data['profileImage'] as String? ?? '';
           _isEditing = false;
         });
-        _showMessage('Profile updated successfully', true);
+        _showMessage(tr('profile_updated'), true);
       } else {
-        _showMessage(result['message'] as String? ?? 'Update failed', false);
+        _showMessage(result['message'] as String? ?? tr('update_failed'), false);
       }
     } catch (e) {
       if (mounted) {
@@ -269,7 +270,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _position = _positionController.text.trim();
           _isEditing = false;
         });
-        _showMessage('Saved locally (Demo mode)', true);
+        _showMessage(tr('saved_locally_demo'), true);
       }
     }
   }
@@ -306,20 +307,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: context.appColors.background,
       appBar: AppBar(
-        title: Text('Profile', style: TextStyle(color: context.appColors.textPrimary)),
+        title: Text(tr('profile'), style: TextStyle(color: context.appColors.textPrimary)),
         backgroundColor: context.appColors.surface,
         foregroundColor: context.appColors.textPrimary,
         elevation: 0,
         actions: [
           IconButton(
             icon: Icon(Icons.settings_outlined, color: context.appColors.accentBlue),
-            tooltip: 'Settings',
+            tooltip: tr('settings'),
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
           ),
           if (_isEditing)
             TextButton(
               onPressed: _isSaving ? null : () => setState(() => _isEditing = false),
-              child: Text('Cancel', style: TextStyle(color: context.appColors.textSecondary)),
+              child: Text(tr('cancel'), style: TextStyle(color: context.appColors.textSecondary)),
             ),
           TextButton(
             onPressed: _isSaving
@@ -333,7 +334,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
             child: _isSaving
                 ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: context.appColors.accentBlue))
-                : Text(_isEditing ? 'Save' : 'Edit', style: TextStyle(color: context.appColors.accentBlue, fontWeight: FontWeight.w600)),
+                : Text(_isEditing ? tr('save') : tr('edit'), style: TextStyle(color: context.appColors.accentBlue, fontWeight: FontWeight.w600)),
           ),
         ],
         leading: IconButton(
@@ -389,7 +390,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (_isEditing)
                   Padding(
                     padding: EdgeInsets.only(top: 10),
-                    child: Text('Tap to change photo', style: TextStyle(color: context.appColors.textSecondary, fontSize: 15)),
+                    child: Text(tr('tap_change_photo'), style: TextStyle(color: context.appColors.textSecondary, fontSize: 15)),
                   ),
                 SizedBox(height: 24),
                 if (_message != null)
@@ -433,7 +434,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 22),
                               SizedBox(width: 8),
                               Text(
-                                'Formal warnings',
+                                tr('formal_warnings'),
                                 style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
                               ),
                             ],
@@ -490,17 +491,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildField('Staff ID', _staffId, false),
+          _buildField(tr('staff_id'), _staffId, false),
           SizedBox(height: 24),
-          _buildField('Full Name', _nameController, _isEditing),
+          _buildField(tr('full_name'), _nameController, _isEditing),
           SizedBox(height: 24),
-          _buildField('Email', _email, false),
+          _buildField(tr('email'), _email, false),
           SizedBox(height: 24),
-          _buildField('Phone', _phoneController, _isEditing),
+          _buildField(tr('phone'), _phoneController, _isEditing),
           SizedBox(height: 24),
-          _buildField('Department', _departmentController, _isEditing),
+          _buildField(tr('department'), _departmentController, _isEditing),
           SizedBox(height: 24),
-          _buildField('Position', _positionController, _isEditing),
+          _buildField(tr('position'), _positionController, _isEditing),
         ],
       ),
     );

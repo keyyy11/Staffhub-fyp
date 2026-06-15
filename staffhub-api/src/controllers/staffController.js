@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const Attendance = require('../models/Attendance');
+const LeaveRequest = require('../models/LeaveRequest');
+const OvertimeRequest = require('../models/OvertimeRequest');
 const PayslipRecord = require('../models/PayslipRecord');
 const StaffSchedule = require('../models/StaffSchedule');
 const workplace = require('../config/workplace');
@@ -12,6 +14,19 @@ function pad2(n) {
 
 function timeStr(h, m) {
   return `${pad2(h)}:${pad2(m)}`;
+}
+
+function isClockInLate(clockInDate) {
+  const clockIn = new Date(clockInDate);
+  const expected = new Date(clockIn);
+  expected.setHours(workplace.expectedClockInHour, workplace.expectedClockInMinute, 0, 0);
+  return clockIn > expected;
+}
+
+function monthRange(year, month) {
+  const start = new Date(year, month - 1, 1, 0, 0, 0, 0);
+  const end = new Date(year, month, 0, 23, 59, 59, 999);
+  return { start, end };
 }
 
 /** Weekly schedule — Mon–Fri working, Sat–Sun off */
@@ -258,6 +273,78 @@ exports.getPayslip = async (req, res) => {
         fromAdmin,
         adminRemarks,
         disclaimer,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/** Staff personal dashboard: attendance, late, leave, OT, punctuality rate (current month). */
+exports.getDashboardStats = async (req, res) => {
+  try {
+    const staffId = req.user?.staffId;
+    if (!staffId) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const { start, end } = monthRange(year, month);
+
+    const attendances = await Attendance.find({
+      staffId,
+      date: { $gte: start, $lte: end },
+      clockIn: { $ne: null },
+    }).lean();
+
+    let lateAttendance = 0;
+    for (const row of attendances) {
+      if (isClockInLate(row.clockIn)) lateAttendance += 1;
+    }
+    const totalAttendance = attendances.length;
+    const onTime = totalAttendance - lateAttendance;
+    const attendanceRate = totalAttendance > 0
+      ? Math.round((onTime / totalAttendance) * 100)
+      : 100;
+
+    const leaveRows = await LeaveRequest.find({
+      staffId,
+      status: 'approved',
+      $or: [
+        { startDate: { $gte: start, $lte: end } },
+        { endDate: { $gte: start, $lte: end } },
+      ],
+    }).lean();
+    const leaveTaken = leaveRows.reduce((sum, r) => sum + (Number(r.totalDays) || 0), 0);
+
+    const otRows = await OvertimeRequest.find({
+      staffId,
+      status: 'approved',
+      otDate: { $gte: start, $lte: end },
+    }).lean();
+    const overtimeHours = Math.round(
+      otRows.reduce((sum, r) => sum + (Number(r.hours) || 0), 0) * 10,
+    ) / 10;
+
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+
+    res.json({
+      success: true,
+      data: {
+        year,
+        month,
+        periodLabel: `${monthNames[month - 1]} ${year}`,
+        totalAttendance,
+        lateAttendance,
+        leaveTaken,
+        overtimeHours,
+        attendanceRate,
+        onTime,
       },
     });
   } catch (error) {
