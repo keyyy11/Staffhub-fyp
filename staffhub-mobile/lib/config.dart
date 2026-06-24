@@ -27,8 +27,8 @@ class AppConfig {
     return u;
   }
 
-  /// Base URL for REST API (must end with `/api` — routes are `/api/admin/...`, not `/admin/...`).
-  static String get apiBaseUrl {
+  /// Base URL from compile-time config (used when no custom URL in Settings).
+  static String get defaultApiBaseUrl {
     if (_apiBaseUrlOverride.isNotEmpty) {
       return _ensureEndsWithApi(_apiBaseUrlOverride);
     }
@@ -42,11 +42,13 @@ class AppConfig {
       return 'http://localhost:3000/api';
     }
     if (defaultTargetPlatform == TargetPlatform.android) {
-      // Emulator: 10.0.2.2 = host loopback. Real device: use --dart-define=API_HOST=... or API_BASE_URL=...
       return 'http://10.0.2.2:3000/api';
     }
     return 'http://localhost:3000/api';
   }
+
+  /// Active API base — prefers URL saved in app Settings.
+  static String get apiBaseUrl => defaultApiBaseUrl;
 
   /// Keep in sync with `web/index.html`, AndroidManifest, and AppDelegate if you change the key.
   static const String googleMapsApiKey = 'AIzaSyCnQJLeCz_q2P0ExoNMxP_Qq-na2avqUus';

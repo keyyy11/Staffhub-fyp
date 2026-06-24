@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
 import '../l10n/l10n.dart';
@@ -18,6 +20,8 @@ import 'admin_overtime_screen.dart';
 import 'admin_branches_screen.dart';
 import 'admin_staff_edit_screen.dart';
 import 'staff_performance_screen.dart';
+import 'payslip_screen.dart';
+import '../utils/payslip_pdf_helper.dart';
 
 String _roleLabel(dynamic role) {
   final r = role as String?;
@@ -54,6 +58,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with L10nMi
   int _payslipYear = DateTime.now().year;
   int _payslipMonth = DateTime.now().month;
   bool _payslipSaving = false;
+  bool _payslipGenerating = false;
+  bool _payslipUploading = false;
+  String? _payslipPdfFileName;
   List<Map<String, dynamic>> _attendanceReport = [];
   Map<String, dynamic>? _attendanceStats;
   List<Map<String, dynamic>> _staffList = [];
@@ -1533,6 +1540,137 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with L10nMi
     }
   }
 
+  Future<void> _generateAdminPayslipPdf() async {
+    final sid = _payslipSelectedStaffId;
+    if (sid == null || sid.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('select_staff'))));
+      return;
+    }
+    setState(() => _payslipGenerating = true);
+    try {
+      final result = await ApiService.generateAdminPayslipPdf(
+        staffId: sid,
+        year: _payslipYear,
+        month: _payslipMonth,
+      );
+      if (!mounted) return;
+      setState(() => _payslipGenerating = false);
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] as String? ?? tr('payslip_pdf_generated'))),
+        );
+        await _loadPayslipRecords();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] as String? ?? tr('failed'))),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _payslipGenerating = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('connection_error'))));
+      }
+    }
+  }
+
+  Future<void> _pickAndUploadPayslipPdf() async {
+    final sid = _payslipSelectedStaffId;
+    if (sid == null || sid.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('select_staff'))));
+      return;
+    }
+    final net = double.tryParse(_payslipNetController.text.trim());
+    if (net == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('enter_net_pay'))));
+      return;
+    }
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      withData: true,
+    );
+    if (picked == null || picked.files.isEmpty || picked.files.first.bytes == null) return;
+    final file = picked.files.first;
+    final dataUrl = 'data:application/pdf;base64,${base64Encode(file.bytes!)}';
+    setState(() => _payslipUploading = true);
+    try {
+      final gross = double.tryParse(_payslipGrossController.text.trim());
+      final result = await ApiService.uploadAdminPayslipPdf(
+        staffId: sid,
+        year: _payslipYear,
+        month: _payslipMonth,
+        netPay: net,
+        pdfFile: dataUrl,
+        pdfFileName: file.name,
+        grossPay: gross,
+        remarks: _payslipRemarksController.text.trim().isEmpty ? null : _payslipRemarksController.text.trim(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _payslipUploading = false;
+        _payslipPdfFileName = file.name;
+      });
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] as String? ?? tr('payslip_pdf_uploaded'))),
+        );
+        await _loadPayslipRecords();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] as String? ?? tr('failed'))),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _payslipUploading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('connection_error'))));
+      }
+    }
+  }
+
+  Future<void> _viewAdminPayslipPdf(Map<String, dynamic> record) async {
+    final staffId = record['staffId'] as String? ?? '';
+    final year = record['year'] as int? ?? DateTime.now().year;
+    final month = record['month'] as int? ?? DateTime.now().month;
+    if (staffId.isEmpty) return;
+    try {
+      final result = await ApiService.getAdminPayslipPdf(staffId: staffId, year: year, month: month);
+      if (!mounted) return;
+      if (result['success'] != true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] as String? ?? tr('no_payslip_pdf'))),
+        );
+        return;
+      }
+      final data = result['data'] as Map<String, dynamic>? ?? {};
+      final err = await PayslipPdfHelper.saveAndOpen(
+        dataUrl: data['pdfFile'] as String? ?? '',
+        fileName: data['pdfFileName'] as String? ?? 'payslip.pdf',
+      );
+      if (!mounted) return;
+      if (err != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('connection_error'))));
+      }
+    }
+  }
+
+  Future<void> _previewAdminPayslip() async {
+    final sid = _payslipSelectedStaffId;
+    if (sid == null || sid.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('select_staff'))));
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PayslipScreen(staffId: sid, mode: PayslipViewerMode.admin),
+      ),
+    );
+  }
+
   Widget _buildAdminPayslipTab() {
     if (_staffList.isEmpty) {
       return Center(child: Text(tr('no_staff_register_first'), style: TextStyle(color: context.appColors.textSecondary)));
@@ -1664,6 +1802,37 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with L10nMi
                                 : Text(tr('save_payslip')),
                           ),
                         ),
+                        SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: (_payslipGenerating || _payslipUploading) ? null : _generateAdminPayslipPdf,
+                                child: _payslipGenerating
+                                    ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                                    : Text(tr('generate_payslip_pdf')),
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: (_payslipGenerating || _payslipUploading) ? null : _pickAndUploadPayslipPdf,
+                                child: _payslipUploading
+                                    ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                                    : Text(tr('upload_payslip_pdf')),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8),
+                        TextButton(
+                          onPressed: _previewAdminPayslip,
+                          child: Text(tr('view_payslip_pdf')),
+                        ),
+                        if (_payslipPdfFileName != null) ...[
+                          SizedBox(height: 4),
+                          Text(_payslipPdfFileName!, style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
+                        ],
                       ],
                     ),
                   ),
@@ -1671,6 +1840,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with L10nMi
                   Text(tr('recent_records'), style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
                   SizedBox(height: 8),
                   ..._payslipRecords.take(20).map((p) {
+                    final hasPdf = p['hasPdf'] == true;
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.all(12),
@@ -1680,18 +1850,35 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with L10nMi
                         border: Border.all(color: context.appColors.borderBlue.withOpacity(0.3)),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
-                            child: Text(
-                              '${p['staffId']} · ${p['month']}/${p['year']}',
-                              style: TextStyle(color: context.appColors.textSecondary, fontSize: 14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${p['staffId']} · ${p['month']}/${p['year']}',
+                                  style: TextStyle(color: context.appColors.textSecondary, fontSize: 14),
+                                ),
+                                if (hasPdf)
+                                  Text(
+                                    tr('payslip_has_pdf'),
+                                    style: TextStyle(color: Colors.lightGreenAccent, fontSize: 12),
+                                  ),
+                              ],
                             ),
                           ),
                           Text(
                             'RM ${(p['netPay'] as num?)?.toStringAsFixed(2) ?? '-'}',
                             style: TextStyle(color: context.appColors.accentBlue, fontWeight: FontWeight.bold),
                           ),
+                          if (hasPdf) ...[
+                            SizedBox(width: 8),
+                            IconButton(
+                              icon: Icon(Icons.picture_as_pdf, color: context.appColors.accentBlue),
+                              tooltip: tr('view_payslip_pdf'),
+                              onPressed: () => _viewAdminPayslipPdf(p),
+                            ),
+                          ],
                         ],
                       ),
                     );

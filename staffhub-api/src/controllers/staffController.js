@@ -183,98 +183,12 @@ exports.getPayslip = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid year or month' });
     }
 
-    const user = await User.findOne({ staffId }).select(
-      'staffId name email department position salary',
-    );
-    if (!user) {
-      return res.json({
-        success: false,
-        message: 'User not found',
-      });
+    const { buildPayslipData } = require('../utils/payslipData');
+    const result = await buildPayslipData(staffId, year, month);
+    if (!result.ok) {
+      return res.json({ success: false, message: result.message });
     }
-
-    const rangeStart = new Date(year, month - 1, 1, 0, 0, 0, 0);
-    const rangeEnd = new Date(year, month, 0, 23, 59, 59, 999);
-
-    const records = await Attendance.find({
-      staffId,
-      date: { $gte: rangeStart, $lte: rangeEnd },
-      clockOut: { $ne: null },
-    })
-      .sort({ date: 1 })
-      .lean();
-
-    let totalMinutes = 0;
-    for (const r of records) {
-      totalMinutes += (new Date(r.clockOut).getTime() - new Date(r.clockIn).getTime()) / 60000;
-    }
-
-    const grossMonthly = Number(user.salary) || 0;
-    const epfEmployee = Math.round(grossMonthly * 0.11 * 100) / 100;
-    const socso = Math.min(Math.round(grossMonthly * 0.005 * 100) / 100, 29.75);
-    const computedNet = Math.round((grossMonthly - epfEmployee - socso) * 100) / 100;
-
-    const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
-    ];
-
-    const adminRecord = await PayslipRecord.findOne({ staffId, year, month }).lean();
-
-    let netPay = computedNet;
-    let grossForDisplay = grossMonthly;
-    let deductions = [
-      { code: 'EPF', label: 'EPF employee (est. 11%)', amount: epfEmployee },
-      { code: 'SOCSO', label: 'SOCSO (est.)', amount: socso },
-    ];
-    let disclaimer =
-      'System estimate only. Actual deductions follow HR / statutory rules.';
-    let fromAdmin = false;
-    let adminRemarks = '';
-
-    if (adminRecord) {
-      netPay = Number(adminRecord.netPay);
-      grossForDisplay = adminRecord.grossPay > 0 ? Number(adminRecord.grossPay) : grossMonthly;
-      adminRemarks = adminRecord.remarks || '';
-      fromAdmin = true;
-      disclaimer =
-        'Payslip confirmed by admin. Deductions may be simplified — refer to HR for official documents.';
-      if (adminRecord.grossPay > 0) {
-        const epf2 = Math.round(grossForDisplay * 0.11 * 100) / 100;
-        const soc2 = Math.min(Math.round(grossForDisplay * 0.005 * 100) / 100, 29.75);
-        deductions = [
-          { code: 'EPF', label: 'EPF employee (est. 11%)', amount: epf2 },
-          { code: 'SOCSO', label: 'SOCSO (est.)', amount: soc2 },
-        ];
-      }
-    }
-
-    res.json({
-      success: true,
-      data: {
-        periodLabel: `${monthNames[month - 1]} ${year}`,
-        month,
-        year,
-        staffId: user.staffId,
-        name: user.name,
-        email: user.email,
-        department: user.department || '',
-        position: user.position || '',
-        attendance: {
-          daysWithCompleteClock: records.length,
-          totalHoursWorked: Math.round((totalMinutes / 60) * 100) / 100,
-        },
-        earnings: {
-          grossSalary: grossForDisplay,
-          label: fromAdmin ? 'Gross salary (RM)' : 'Monthly gross salary (RM)',
-        },
-        deductions,
-        netPay,
-        fromAdmin,
-        adminRemarks,
-        disclaimer,
-      },
-    });
+    res.json({ success: true, data: result.data });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -147,6 +147,14 @@ export const api = {
     return request<PayslipRecord[]>("GET", `/admin/payslip-records${qs ? `?${qs}` : ""}`);
   },
   upsertPayslip: (body: Record<string, unknown>) => request("POST", "/admin/payslip-record", body),
+  uploadPayslipPdf: (body: Record<string, unknown>) => request("POST", "/admin/payslip-upload", body),
+  generatePayslipPdf: (body: { staffId: string; year: number; month: number }) =>
+    request("POST", "/admin/payslip-generate", body),
+  getPayslipPdf: (staffId: string, year: number, month: number) =>
+    request<{ pdfFile: string; pdfFileName: string; pdfSource?: string }>(
+      "GET",
+      `/admin/payslip-pdf/${encodeURIComponent(staffId)}?year=${year}&month=${month}`,
+    ),
 
   getDisciplineMetrics: (staffId: string, days = 90) =>
     request<DisciplineMetrics>("GET", `/admin/staff/${encodeURIComponent(staffId)}/discipline-metrics?days=${days}`),

@@ -11,6 +11,7 @@ import '../widgets/attendance_clock_panel.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
 import 'staff_performance_screen.dart';
+import 'payslip_screen.dart';
 
 /// Supervisor: team attendance, leave, per-staff schedules, clock-in/out notifications.
 class SupervisorDashboardScreen extends StatefulWidget {
@@ -34,6 +35,8 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> w
   List<Map<String, dynamic>> _leaveRequests = [];
   List<Map<String, dynamic>> _overtimeRequests = [];
   List<Map<String, dynamic>> _notifications = [];
+  List<Map<String, dynamic>> _teamPayslipRecords = [];
+  String? _supervisorStaffId;
   int _unreadNotifications = 0;
   String? _expectedTime = '09:00';
   bool _loading = true;
@@ -54,6 +57,8 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> w
         return tr('schedules');
       case 5:
         return tr('notifications');
+      case 6:
+        return tr('supervisor_payslips');
       default:
         return tr('home');
     }
@@ -81,6 +86,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> w
       final me = await AuthService.getCurrentUser();
       if (me != null && mounted) {
         _supervisorName = (me['name'] as String?)?.trim() ?? '';
+        _supervisorStaffId = me['staffId'] as String?;
       }
       final results = await Future.wait([
         ApiService.getSupervisorTeam(),
@@ -92,6 +98,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> w
         ApiService.getSupervisorOvertimeRequests(),
         ApiService.getSupervisorNotifications(),
         ApiService.getSupervisorConfig(),
+        ApiService.getSupervisorTeamPayslipRecords(),
       ]);
       if (!mounted) return;
       final teamR = results[0];
@@ -103,6 +110,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> w
       final otR = results[6];
       final notR = results[7];
       final cfgR = results[8];
+      final payslipR = results[9];
 
       if (teamR['success'] == true && teamR['data'] != null) {
         _team = List<Map<String, dynamic>>.from(teamR['data'] as List);
@@ -134,6 +142,9 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> w
       }
       if (cfgR['success'] == true && cfgR['data'] != null) {
         _expectedTime = cfgR['data']['expectedClockIn'] as String? ?? _expectedTime;
+      }
+      if (payslipR['success'] == true && payslipR['data'] != null) {
+        _teamPayslipRecords = List<Map<String, dynamic>>.from(payslipR['data'] as List);
       }
     } catch (e) {
       final msg = e.toString();
@@ -333,7 +344,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> w
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   children: [
-                    for (var i = 0; i < 6; i++)
+                    for (var i = 0; i < 7; i++)
                       ListTile(
                         leading: Icon(
                           [
@@ -343,6 +354,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> w
                             Icons.more_time_rounded,
                             Icons.calendar_month,
                             Icons.notifications_active,
+                            Icons.receipt_long_rounded,
                           ][i],
                           color: _selectedIndex == i ? context.appColors.accentBlue : context.appColors.textSecondary,
                         ),
@@ -419,6 +431,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> w
                     _buildOvertimeTab(),
                     _buildSchedulesTab(),
                     _buildNotificationsTab(),
+                    _buildPayslipTab(),
                   ],
                 ),
     );
@@ -1288,6 +1301,136 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> w
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPayslipTab() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [context.appColors.surface, context.appColors.background],
+          stops: [0.0, 0.2],
+        ),
+      ),
+      child: RefreshIndicator(
+        color: context.appColors.accentBlue,
+        onRefresh: _loadAll,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text(
+              tr('supervisor_payslips_desc'),
+              style: TextStyle(color: context.appColors.textSecondary.withValues(alpha: 0.95), fontSize: 13),
+            ),
+            SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _supervisorStaffId == null
+                  ? null
+                  : () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PayslipScreen()),
+                      );
+                    },
+              icon: Icon(Icons.receipt_long_outlined),
+              label: Text(tr('my_payslip')),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: context.appColors.primaryBlue,
+                minimumSize: Size(double.infinity, 48),
+              ),
+            ),
+            SizedBox(height: 24),
+            Text(
+              tr('team_payslip_records'),
+              style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            SizedBox(height: 8),
+            if (_team.isEmpty)
+              Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(tr('no_team_members'), style: TextStyle(color: context.appColors.textSecondary)),
+              ),
+            ..._team.map((member) {
+              final sid = member['staffId'] as String? ?? '';
+              final name = member['name'] as String? ?? sid;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: context.appColors.card,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: context.appColors.borderBlue.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(name, style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.w600)),
+                          Text(sid, style: TextStyle(color: context.appColors.textSecondary, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PayslipScreen(
+                              staffId: sid,
+                              mode: PayslipViewerMode.supervisor,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Text(tr('payslip')),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            if (_teamPayslipRecords.isNotEmpty) ...[
+              SizedBox(height: 16),
+              Text(
+                tr('recent_records'),
+                style: TextStyle(color: context.appColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+              SizedBox(height: 8),
+              ..._teamPayslipRecords.take(15).map((p) {
+                final hasPdf = p['hasPdf'] == true;
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    '${p['staffName'] ?? p['staffId']} · ${p['month']}/${p['year']}',
+                    style: TextStyle(color: context.appColors.textSecondary, fontSize: 14),
+                  ),
+                  subtitle: hasPdf ? Text(tr('payslip_has_pdf'), style: TextStyle(color: Colors.lightGreenAccent, fontSize: 12)) : null,
+                  trailing: Text(
+                    'RM ${(p['netPay'] as num?)?.toStringAsFixed(2) ?? '-'}',
+                    style: TextStyle(color: context.appColors.accentBlue, fontWeight: FontWeight.bold),
+                  ),
+                  onTap: () {
+                    final sid = p['staffId'] as String? ?? '';
+                    if (sid.isEmpty) return;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PayslipScreen(
+                          staffId: sid,
+                          mode: PayslipViewerMode.supervisor,
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }),
+            ],
+          ],
+        ),
       ),
     );
   }

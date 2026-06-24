@@ -3,6 +3,7 @@ const router = express.Router();
 const supervisorController = require('../controllers/supervisorController');
 const overtimeController = require('../controllers/overtimeController');
 const performanceController = require('../controllers/performanceController');
+const payslipController = require('../controllers/payslipController');
 const { requireAuth, requireSupervisor } = require('../middleware/authMiddleware');
 
 router.use(requireAuth);
@@ -25,5 +26,8 @@ router.put('/notifications/read-all', supervisorController.markAllNotificationsR
 router.get('/staff/:staffId/schedule', supervisorController.getStaffSchedule);
 router.put('/staff/:staffId/schedule', supervisorController.putStaffSchedule);
 router.get('/staff/:staffId/performance', performanceController.getStaffPerformanceSupervisor);
+router.get('/payslip-records', payslipController.getSupervisorTeamPayslipRecords);
+router.get('/staff/:staffId/payslip', payslipController.getSupervisorStaffPayslip);
+router.get('/staff/:staffId/payslip/pdf', payslipController.getSupervisorStaffPayslipPdf);
 
 module.exports = router;

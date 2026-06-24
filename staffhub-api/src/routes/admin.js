@@ -6,6 +6,7 @@ const warningController = require('../controllers/warningController');
 const performanceController = require('../controllers/performanceController');
 const accessLogController = require('../controllers/accessLogController');
 const overtimeController = require('../controllers/overtimeController');
+const payslipController = require('../controllers/payslipController');
 const { requireAuth, requireAdmin } = require('../middleware/authMiddleware');
 
 router.use(requireAuth);
@@ -34,6 +35,9 @@ router.put('/leave-requests/:id', adminController.updateLeaveRequestStatus);
 router.get('/overtime-requests', overtimeController.getAllOvertimeRequests);
 router.get('/payslip-records', adminController.getPayslipRecords);
 router.post('/payslip-record', adminController.upsertPayslipRecord);
+router.post('/payslip-upload', payslipController.uploadPayslipPdf);
+router.post('/payslip-generate', payslipController.generatePayslipPdf);
+router.get('/payslip-pdf/:staffId', payslipController.getAdminPayslipPdf);
 
 router.get('/staff/:staffId/discipline-metrics', warningController.getStaffDisciplineMetrics);
 router.get('/staff/:staffId/performance', performanceController.getStaffPerformanceAdmin);

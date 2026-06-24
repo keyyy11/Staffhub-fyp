@@ -3,12 +3,14 @@ const router = express.Router();
 const staffController = require('../controllers/staffController');
 const warningController = require('../controllers/warningController');
 const overtimeController = require('../controllers/overtimeController');
+const payslipController = require('../controllers/payslipController');
 const { requireAuth, requireStaff } = require('../middleware/authMiddleware');
 
 router.get('/work-schedule', staffController.getWorkSchedule);
 router.get('/dashboard-stats', requireAuth, staffController.getDashboardStats);
 router.get('/my-work-schedule', requireAuth, staffController.getMyWorkSchedule);
 router.get('/payslip/:staffId', staffController.getPayslip);
+router.get('/payslip-pdf/:staffId', requireAuth, payslipController.getStaffPayslipPdf);
 
 router.get('/warnings', requireAuth, warningController.getMyWarnings);
 

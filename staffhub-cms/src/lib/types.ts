@@ -83,6 +83,10 @@ export interface PayslipRecord {
   grossPay?: number;
   netPay: number;
   remarks?: string;
+  hasPdf?: boolean;
+  pdfFileName?: string;
+  pdfSource?: "" | "upload" | "generated";
+  staffName?: string;
 }
 
 export interface WarningLetter {

@@ -10,6 +10,10 @@ const payslipRecordSchema = new mongoose.Schema(
     netPay: { type: Number, required: true },
     remarks: { type: String, default: '' },
     issuedBy: { type: String, default: 'admin' },
+    /** Official payslip PDF — base64 data URL (application/pdf). */
+    pdfFile: { type: String, default: '' },
+    pdfFileName: { type: String, default: '' },
+    pdfSource: { type: String, enum: ['', 'upload', 'generated'], default: '' },
   },
   { timestamps: true },
 );

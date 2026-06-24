@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../config.dart';
+import 'api_config_service.dart';
 import 'auth_service.dart';
 
 class ApiService {
-  static String get baseUrl => AppConfig.apiBaseUrl;
+  static String get baseUrl => ApiConfigService.instance.baseUrl;
 
   static const Duration _timeout = Duration(seconds: 15);
 
@@ -814,6 +814,93 @@ class ApiService {
       if (grossPay != null) 'grossPay': grossPay,
       if (remarks != null && remarks.isNotEmpty) 'remarks': remarks,
     });
+  }
+
+  static Future<Map<String, dynamic>> uploadAdminPayslipPdf({
+    required String staffId,
+    required int year,
+    required int month,
+    required double netPay,
+    required String pdfFile,
+    required String pdfFileName,
+    double? grossPay,
+    String? remarks,
+  }) async {
+    return _adminRequest('POST', '/admin/payslip-upload', body: {
+      'staffId': staffId,
+      'year': year,
+      'month': month,
+      'netPay': netPay,
+      'pdfFile': pdfFile,
+      'pdfFileName': pdfFileName,
+      if (grossPay != null) 'grossPay': grossPay,
+      if (remarks != null && remarks.isNotEmpty) 'remarks': remarks,
+    });
+  }
+
+  static Future<Map<String, dynamic>> generateAdminPayslipPdf({
+    required String staffId,
+    required int year,
+    required int month,
+  }) async {
+    return _adminRequest('POST', '/admin/payslip-generate', body: {
+      'staffId': staffId,
+      'year': year,
+      'month': month,
+    });
+  }
+
+  static Future<Map<String, dynamic>> getAdminPayslipPdf({
+    required String staffId,
+    required int year,
+    required int month,
+  }) async {
+    final path =
+        '/admin/payslip-pdf/${Uri.encodeComponent(staffId)}?year=$year&month=$month';
+    return _adminRequest('GET', path);
+  }
+
+  static Future<Map<String, dynamic>> getStaffPayslipPdf({
+    required String staffId,
+    required int year,
+    required int month,
+  }) async {
+    final token = await AuthService.getToken();
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    final response = await http.get(
+      Uri.parse('$baseUrl/staff/payslip-pdf/${Uri.encodeComponent(staffId)}?year=$year&month=$month'),
+      headers: headers,
+    );
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> getSupervisorStaffPayslip({
+    required String staffId,
+    required int year,
+    required int month,
+  }) async {
+    final path =
+        '/supervisor/staff/${Uri.encodeComponent(staffId)}/payslip?year=$year&month=$month';
+    return _supervisorRequest('GET', path);
+  }
+
+  static Future<Map<String, dynamic>> getSupervisorStaffPayslipPdf({
+    required String staffId,
+    required int year,
+    required int month,
+  }) async {
+    final path =
+        '/supervisor/staff/${Uri.encodeComponent(staffId)}/payslip/pdf?year=$year&month=$month';
+    return _supervisorRequest('GET', path);
+  }
+
+  static Future<Map<String, dynamic>> getSupervisorTeamPayslipRecords({int? year, int? month}) async {
+    final q = <String>[];
+    if (year != null) q.add('year=$year');
+    if (month != null) q.add('month=$month');
+    final query = q.isEmpty ? '' : '?${q.join('&')}';
+    return _supervisorRequest('GET', '/supervisor/payslip-records$query');
   }
 
   /// Public self-registration (`POST /auth/register`). [staffId] optional — empty sends [autoStaffId] for STF###.

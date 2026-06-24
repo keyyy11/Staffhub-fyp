@@ -3,6 +3,7 @@ const Attendance = require('../models/Attendance');
 const LeaveRequest = require('../models/LeaveRequest');
 const LeaveBalance = require('../models/LeaveBalance');
 const PayslipRecord = require('../models/PayslipRecord');
+const { sanitizePayslipRecord } = require('../utils/payslipData');
 const OvertimeRequest = require('../models/OvertimeRequest');
 const StaffSchedule = require('../models/StaffSchedule');
 const Notification = require('../models/Notification');
@@ -599,7 +600,7 @@ exports.getPayslipRecords = async (req, res) => {
     if (year) filter.year = parseInt(year, 10);
     if (month) filter.month = parseInt(month, 10);
     const list = await PayslipRecord.find(filter).sort({ year: -1, month: -1 }).limit(500).lean();
-    res.json({ success: true, data: list });
+    res.json({ success: true, data: list.map(sanitizePayslipRecord) });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -617,9 +618,9 @@ exports.upsertPayslipRecord = async (req, res) => {
     if (m < 1 || m > 12 || Number.isNaN(net) || Number.isNaN(y)) {
       return res.status(400).json({ success: false, message: 'Invalid year, month, or netPay' });
     }
-    const user = await User.findOne({ staffId, role: 'staff' });
+    const user = await User.findOne({ staffId, role: { $in: ['staff', 'supervisor'] } });
     if (!user) {
-      return res.status(404).json({ success: false, message: 'Staff not found' });
+      return res.status(404).json({ success: false, message: 'Staff or supervisor not found' });
     }
     const doc = await PayslipRecord.findOneAndUpdate(
       { staffId, year: y, month: m },
@@ -633,7 +634,7 @@ exports.upsertPayslipRecord = async (req, res) => {
       },
       { upsert: true, new: true },
     );
-    res.json({ success: true, message: 'Payslip record saved', data: doc });
+    res.json({ success: true, message: 'Payslip record saved', data: sanitizePayslipRecord(doc) });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

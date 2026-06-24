@@ -4,6 +4,7 @@ import '../l10n/l10n.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/settings_controller.dart';
+import '../widgets/api_server_settings_card.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -141,6 +142,8 @@ class _SettingsScreenState extends State<SettingsScreen> with L10nMixin {
                   _themeChip(ThemeMode.system, tr('theme_system'), s),
                 ],
               ),
+              SizedBox(height: 28),
+              const ApiServerSettingsCard(),
               SizedBox(height: 28),
               Text(tr('security'), style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 14)),
               SizedBox(height: 12),

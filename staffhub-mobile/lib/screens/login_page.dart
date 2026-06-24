@@ -3,6 +3,7 @@ import '../app_theme.dart';
 import '../l10n/l10n.dart';
 import '../services/auth_service.dart';
 import '../widgets/staffhub_logo.dart';
+import '../widgets/api_server_settings_card.dart';
 import 'admin_dashboard_screen.dart';
 import 'home_screen.dart';
 import 'supervisor_dashboard_screen.dart';
@@ -188,7 +189,9 @@ class _LoginPageState extends State<LoginPage> with L10nMixin {
                               ),
                             ),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 16),
+                          const ApiServerSettingsCard(compact: true),
+                          const SizedBox(height: 8),
                           SizedBox(
                             width: double.infinity,
                             height: 52,

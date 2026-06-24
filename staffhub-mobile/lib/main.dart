@@ -8,11 +8,13 @@ import 'screens/admin_dashboard_screen.dart';
 import 'screens/supervisor_dashboard_screen.dart';
 import 'services/auth_service.dart';
 import 'services/settings_controller.dart';
+import 'services/api_config_service.dart';
 import 'widgets/staffhub_logo.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SettingsController.instance.load();
+  await ApiConfigService.instance.load();
   runApp(const StaffHubApp());
 }
 
